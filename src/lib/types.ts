@@ -1,4 +1,4 @@
-import { Timestamp } from "firebase/firestore";
+import type { Timestamp } from "firebase/firestore";
 
 export type UserRole = "OWNER" | "MANAGER" | "ACCOUNTANT" | "VIEWER";
 
@@ -27,17 +27,131 @@ export type Tenant = {
   };
 };
 
-export type MonthCloseStatus = "PENDING" | "PROCESSING" | "REVIEW" | "READY" | "LOCKED";
+export type MonthCloseStatus = "DRAFT" | "PROCESSING" | "READY" | "LOCKED";
+export type MonthCloseHealth = "MATCHED" | "MATCHED_WITH_NOTES" | "NOT_MATCHED";
 
 export type MonthClose = {
   id: string;
   tenantId: string;
-  name: string;
-  startDate: Date;
-  endDate: Date;
+  periodStart: Timestamp;
+  periodEnd: Timestamp;
   status: MonthCloseStatus;
-  summary?: any;
+  health: MonthCloseHealth;
+  bankTotal: number;
+  invoiceTotal: number;
+  diff: number;
+  openExceptionsCount: number;
+  highExceptionsCount: number;
+  createdBy: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 };
+
+export type FileAssetKind = "BANK_CSV" | "INVOICE_PDF" | "EXPORT";
+export type ParseStatus = "PENDING" | "PARSED" | "FAILED";
+
+export type FileAsset = {
+  id: string;
+  tenantId: string;
+  monthCloseId: string;
+  kind: FileAssetKind;
+  filename: string;
+  storagePath: string;
+  sha256: string;
+  parseStatus: ParseStatus;
+  parseError?: string | null;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+};
+
+export type BankTx = {
+  id: string;
+  tenantId: string;
+  monthCloseId: string;
+  bookingDate: string; // YYYY-MM-DD
+  amount: number;
+  descriptionRaw: string;
+  counterpartyRaw?: string | null;
+  referenceRaw?: string | null;
+  counterpartyId?: string | null;
+  fingerprint: string; // sha256
+  sourceFileId: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+};
+
+export type Invoice = {
+  id: string;
+  tenantId: string;
+  monthCloseId: string;
+  supplierId?: string | null; // counterpartyId
+  supplierNameRaw: string;
+  invoiceNumber: string;
+  issueDate: string; // YYYY-MM-DD
+  totalGross: number;
+  extractionConfidence: number; // 0-100
+  needsReview: boolean;
+  sourceFileId: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+};
+
+export type Counterparty = {
+  id: string;
+  tenantId: string;
+  displayName: string;
+  aliases: string[];
+  rules: {
+    amountToleranceAbs: number;
+    dateWindowDays: number;
+    typicalFeeAbs?: number | null;
+  };
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+};
+
+export type MatchType = "EXACT" | "FUZZY" | "GROUPED" | "PARTIAL" | "FEE" | "MANUAL";
+export type MatchStatus = "PROPOSED" | "CONFIRMED" | "REJECTED";
+
+export type Match = {
+  id: string;
+  tenantId: string;
+  monthCloseId: string;
+  bankTxIds: string[];
+  invoiceIds: string[];
+  matchType: MatchType;
+  score: number; // 0-100
+  status: MatchStatus;
+  explanationKey: string;
+  explanationParams: Record<string, string | number>;
+  confirmedBy?: string | null;
+  confirmedAt?: Timestamp | null;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+};
+
+export type ExceptionKind = "BANK_NO_INVOICE" | "INVOICE_NO_BANK" | "AMOUNT_MISMATCH" | "DUPLICATE" | "AMBIGUOUS" | "UNKNOWN_SUPPLIER";
+export type ExceptionSeverity = "LOW" | "MEDIUM" | "HIGH";
+export type ExceptionStatus = "OPEN" | "RESOLVED" | "IGNORED";
+
+export type Exception = {
+  id: string;
+  tenantId: string;
+  monthCloseId: string;
+  kind: ExceptionKind;
+  severity: ExceptionSeverity;
+  bankTxId?: string | null;
+  invoiceId?: string | null;
+  status: ExceptionStatus;
+  suggestedActionKey: string;
+  suggestedActionParams: Record<string, string | number>;
+  resolvedBy?: string | null;
+  resolvedAt?: Timestamp | null;
+  ignoreReason?: string | null;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+};
+
 
 export type JobType = 
   | "PARSE_BANK_CSV" 
@@ -55,8 +169,20 @@ export type Job = {
   monthCloseId: string;
   type: JobType;
   status: JobStatus;
-  progress?: number;
-  error?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  progress: number;
+  error?: string | null;
+  refFileId?: string | null;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+};
+
+export type AuditEvent = {
+  id: string;
+  tenantId: string;
+  actorUserId: string;
+  entityType: string;
+  entityId: string;
+  action: string;
+  meta: Record<string, any>;
+  createdAt: Timestamp;
 };

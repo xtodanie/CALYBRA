@@ -1,0 +1,77 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper Functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isUser(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    function getUserTenantId() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId;
+    }
+
+    function isTenantMember(tenantId) {
+       return isSignedIn() && getUserTenantId() == tenantId;
+    }
+
+    // A more generic check for tenant-scoped resources
+    function isResourceOwner() {
+      return isTenantMember(resource.data.tenantId);
+    }
+    
+    function isRequestingOwner() {
+        return isTenantMember(request.resource.data.tenantId);
+    }
+
+    // Placeholder for future implementation
+    function isMonthLocked(monthCloseId) {
+      // return get(/databases/$(database)/documents/monthCloses/$(monthCloseId)).data.status == 'LOCKED';
+      return false; 
+    }
+
+    // Default deny all
+    match /{path=**} {
+      allow read, write: if false;
+    }
+
+    // USERS
+    match /users/{userId} {
+      allow read, update: if isUser(userId);
+      // Deny create/delete for now. Creation happens via auth triggers.
+      allow create, delete: if false;
+    }
+
+    // TENANTS
+    match /tenants/{tenantId} {
+      allow read, write: if isTenantMember(tenantId);
+    }
+
+    // AUDIT EVENTS: Create-only, append-only
+    match /auditEvents/{eventId} {
+      allow create: if isSignedIn() && isRequestingOwner();
+      allow read, update, delete: if false;
+    }
+
+    // --- Tenant-Scoped Collections ---
+    // This single block covers all tenant-scoped data by checking the 'tenantId' field.
+    // It denies writes if the associated month is locked.
+    match /{collection}/{docId} {
+      allow read: if isSignedIn() &&
+                   isResourceOwner();
+
+      allow create: if isSignedIn() &&
+                     isRequestingOwner() &&
+                     !isMonthLocked(request.resource.data.monthCloseId); // Check for monthCloseId on create
+
+      allow update, delete: if isSignedIn() &&
+                             isResourceOwner() &&
+                             !isMonthLocked(resource.data.monthCloseId); // Check for monthCloseId on update/delete
+    }
+  }
+}
