@@ -39,7 +39,7 @@ type Status = "NO_CLOSE" | "DRAFT" | "PROCESSING" | "READY" | "LOCKED";
 
 const statusMap: Record<
   Status,
-  { text: string;- variant: "secondary" | "default" | "destructive" | "outline" | null | undefined; workflowStep: number }
+  { text: string; variant: "secondary" | "default" | "destructive" | "outline" | null | undefined; workflowStep: number }
 > = {
   NO_CLOSE: { text: "Not Started", variant: "secondary", workflowStep: 0 },
   DRAFT: { text: "Draft", variant: "outline", workflowStep: 1 },
