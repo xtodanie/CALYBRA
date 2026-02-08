@@ -1,73 +1,59 @@
 import { doc, getDoc } from "firebase/firestore";
-import { signOut, type User as FirebaseUser } from "firebase/auth";
-import { auth, db } from "@/lib/firebaseClient";
+import type { User as FirebaseUser } from "firebase/auth";
+import { db } from "@/lib/firebaseClient";
 import type { User } from "@/lib/types";
 
 /**
- * CALYBRA AUTH INTEGRITY GUARD (READ-ONLY)
+ * Waits for a user's Firestore document to be created.
  *
- * This function is the client-side safety net for user authentication.
- * Its only job is to ensure that an authenticated user has a corresponding
- * user document in Firestore.
+ * This function polls Firestore at a regular interval until the user document
+ * exists or a timeout is reached. This is crucial for handling the latency
+ * between Firebase Auth user creation and the `onAuthCreate` Cloud Function
+ * trigger that creates the corresponding Firestore document.
  *
- * The primary creation of user and tenant documents is handled by the
- * `onAuthCreate` Cloud Function, which is more reliable and secure.
- *
- * This client-side check handles edge cases where the client auth state
- * resolves before the `onAuthCreate` function has completed, or if
- * Firestore data has been cleared (e.g., in the emulator).
- *
- * If the user document is missing, it signs the user out. It does NOT attempt
- * to create any documents, as that is the backend's exclusive responsibility.
- *
- * Contract:
- * - Returns User object if the session and profile are valid.
- * - Returns null if the user document is missing, after signing the user out.
- * - Throws an error that is caught by the AuthProvider.
+ * @param firebaseUser - The user object from Firebase Authentication.
+ * @param timeoutMs - The maximum time to wait in milliseconds.
+ * @param pollIntervalMs - The interval between polling attempts.
+ * @returns A promise that resolves with the User object once it's found.
+ * @throws Throws a `USER_PROFILE_PROVISIONING_TIMEOUT` error if the document
+ *         is not found within the timeout period.
+ * @throws Throws a `CALYBRA_USER_PROFILE_VERIFICATION_FAILED` for other Firestore errors.
  */
 export async function ensureUserProfile(
-  firebaseUser: FirebaseUser
-): Promise<User | null> {
+  firebaseUser: FirebaseUser,
+  timeoutMs = 15000, // 15 seconds
+  pollIntervalMs = 500
+): Promise<User> {
   const userDocRef = doc(db, "users", firebaseUser.uid);
+  const startTime = Date.now();
 
-  try {
-    const userDocSnap = await getDoc(userDocRef);
-
-    // ─────────────────────────────────────────────
-    // HAPPY PATH — user profile already exists
-    // ─────────────────────────────────────────────
-    if (userDocSnap.exists()) {
-      return {
-        uid: firebaseUser.uid,
-        ...userDocSnap.data(),
-      } as User;
-    }
-
-    // ─────────────────────────────────────────────
-    // RECOVERY PATH — missing user document
-    // ─────────────────────────────────────────────
-    console.warn(
-      "CALYBRA: User document missing. This can happen with emulators or if the `onAuthCreate` function failed. Signing out to ensure data integrity.",
-      { uid: firebaseUser.uid }
-    );
-    
-    await signOut(auth);
-    // Returning null will ensure the user state is cleared in the auth context.
-    return null;
-
-  } catch (err) {
-    // ─────────────────────────────────────────────
-    // TERMINAL FAILURE — e.g., Firestore permissions error
-    // ─────────────────────────────────────────────
-    console.warn(
-      "CALYBRA: A terminal error occurred while trying to verify user profile. The user will be signed out.",
-      { uid: firebaseUser.uid, error: err }
-    );
-    
-    await signOut(auth);
-    // We throw an error here to be caught by the calling AuthProvider,
-    // which will stop the auth process and prevent the app from loading
-    // in a broken state.
-    throw new Error("CALYBRA_USER_PROFILE_VERIFICATION_FAILED");
+  function sleep(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
+
+  while (Date.now() - startTime < timeoutMs) {
+    try {
+      const userDocSnap = await getDoc(userDocRef);
+      if (userDocSnap.exists()) {
+        // HAPPY PATH — user profile exists.
+        return {
+          uid: firebaseUser.uid,
+          ...userDocSnap.data(),
+        } as User;
+      }
+      // Document doesn't exist yet, wait before polling again.
+      await sleep(pollIntervalMs);
+    } catch (err) {
+      // This catches Firestore-level errors (e.g., permissions).
+      // We shouldn't retry in this case, so we fail fast.
+      console.warn(
+        "CALYBRA: A terminal error occurred while trying to poll for user profile.",
+        { uid: firebaseUser.uid, error: err }
+      );
+      throw new Error("CALYBRA_USER_PROFILE_VERIFICATION_FAILED");
+    }
+  }
+
+  // If we exit the loop, it means we timed out.
+  throw new Error("USER_PROFILE_PROVISIONING_TIMEOUT");
 }

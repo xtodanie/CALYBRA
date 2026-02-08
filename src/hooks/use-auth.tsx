@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, createContext, useContext } from 'react';
+import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { 
   onAuthStateChanged, 
   User as FirebaseUser, 
@@ -17,10 +17,12 @@ import { ensureUserProfile } from '@/lib/auth/ensureUserProfile';
 type AuthContextType = {
   user: User | null;
   loading: boolean;
+  provisioningError: Error | null;
   login: (email: string, pass: string) => Promise<any>;
   signup: (email: string, pass: string, companyName: string) => Promise<any>;
   logout: () => Promise<void>;
   setActiveMonthClose: (monthCloseId: string) => Promise<void>;
+  retryProvisioning: () => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,39 +30,51 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [provisioningError, setProvisioningError] = useState<Error | null>(null);
+  // Store the raw firebase user to allow for retries
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+
+  const attemptProvisioning = useCallback(async (fbUser: FirebaseUser) => {
+    setLoading(true);
+    setProvisioningError(null);
+    try {
+      const userProfile = await ensureUserProfile(fbUser);
+      setUser(userProfile);
+    } catch (error: any) {
+      if (error.message === "USER_PROFILE_PROVISIONING_TIMEOUT") {
+        console.warn("Timed out waiting for user profile. The user is authenticated but provisioning is delayed.");
+        setProvisioningError(error);
+      } else {
+        console.error("A critical error occurred during profile verification.", error);
+        await signOut(auth);
+        setUser(null);
+        setProvisioningError(error);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        setLoading(true);
-        try {
-          // This self-healing function ensures a user profile exists.
-          const userProfile = await ensureUserProfile(firebaseUser);
-          setUser(userProfile);
-        } catch (error) {
-          // ensureUserProfile will sign the user out and throw on failure.
-          // We catch it here to stop execution and keep the user state as null.
-          console.warn("Auth context setup failed during ensureUserProfile.", error);
-          setUser(null);
-        } finally {
-          setLoading(false);
-        }
+    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+      setFirebaseUser(fbUser); // Store for retries
+      if (fbUser) {
+        await attemptProvisioning(fbUser);
       } else {
         setUser(null);
         setLoading(false);
+        setProvisioningError(null);
       }
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [attemptProvisioning]);
 
   const login = (email: string, pass: string) => {
     return signInWithEmailAndPassword(auth, email, pass);
   };
 
   const signup = async (email: string, pass: string) => {
-    // Client only creates the Auth user. The `onAuthCreate` Cloud Function
-    // is responsible for creating the tenant and user documents atomically.
     return createUserWithEmailAndPassword(auth, email, pass);
   };
   
@@ -71,21 +85,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const setActiveMonthClose = async (monthCloseId: string) => {
     if (!user) return;
     const userDocRef = doc(db, 'users', user.uid);
-    // Note: The Firestore rules only allow a user to update their own document,
-    // but not critical fields. We are only updating a non-critical field here.
-    // In a future phase, we could move this to a Cloud Function if more complex
-    // logic or validation is needed.
     await updateDoc(userDocRef, { 
       activeMonthCloseId: monthCloseId,
       updatedAt: serverTimestamp() 
     });
-    // Optimistically update local state or refetch user doc
     setUser(prevUser => prevUser ? { ...prevUser, activeMonthCloseId: monthCloseId } : null);
+  };
+  
+  const retryProvisioning = () => {
+    if (firebaseUser) {
+      attemptProvisioning(firebaseUser);
+    }
   };
 
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout, setActiveMonthClose }}>
+    <AuthContext.Provider value={{ user, loading, provisioningError, login, signup, logout, setActiveMonthClose, retryProvisioning }}>
       {children}
     </AuthContext.Provider>
   );

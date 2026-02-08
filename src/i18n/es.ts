@@ -170,7 +170,13 @@ export const es: Dict = {
       default: 'Ocurrió un error inesperado. Por favor, inténtalo de nuevo.',
       emailInUse: 'Este correo electrónico ya está asociado con una cuenta.',
       invalidCredentials: 'Correo electrónico o contraseña incorrectos. Por favor, inténtalo de nuevo.',
-    }
+    },
+    provisioning: {
+      title: 'Aprovisionamiento de Cuenta en Progreso',
+      description: 'Estamos configurando tu cuenta en nuestros servidores. Esto normalmente tarda menos de 20 segundos. Esta página se actualizará automáticamente.',
+      retry: 'Comprobando Estado...',
+      logout: 'Cerrar Sesión',
+    },
   },
   billing: {
     title: 'Facturación',

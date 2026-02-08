@@ -168,7 +168,13 @@ export const en = {
       default: 'An unexpected error occurred. Please try again.',
       emailInUse: 'This email is already associated with an account.',
       invalidCredentials: 'Invalid email or password. Please try again.',
-    }
+    },
+    provisioning: {
+      title: 'Account Provisioning in Progress',
+      description: 'Your account is being set up on our servers. This usually takes less than 20 seconds. This page will update automatically.',
+      retry: 'Checking Status...',
+      logout: 'Log Out',
+    },
   },
   billing: {
     title: 'Billing',
