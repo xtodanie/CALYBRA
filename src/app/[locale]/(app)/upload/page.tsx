@@ -14,24 +14,15 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { formatMoney } from '@/i18n/format';
 import { ChevronRight, Download } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { db, storage } from '@/lib/firebaseClient';
-import { collection, addDoc, serverTimestamp, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, doc, setDoc, serverTimestamp, query, where, onSnapshot } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useToast } from '@/hooks/use-toast';
 import type { FileAsset } from '@/lib/types';
 import { formatDate } from '@/i18n/format';
-
-const mockJobs = [
-    { name: 'PARSE_BANK_CSV', status: 'COMPLETED', progress: 100},
-    { name: 'PARSE_INVOICE_PDF', status: 'RUNNING', progress: 60},
-    { name: 'NORMALIZE', status: 'PENDING', progress: 0},
-    { name: 'MATCH', status: 'PENDING', progress: 0},
-]
 
 const MonthContextHeader = () => {
     const t = useT();
@@ -106,7 +97,7 @@ export default function UploadPage() {
     if (!user || !monthCloseId) {
         toast({
             variant: "destructive",
-            title: "Error",
+            title: t.upload.notifications.errorTitle,
             description: "You must be logged in and have a month selected to upload files.",
         });
         return;
@@ -117,12 +108,18 @@ export default function UploadPage() {
     for (const file of files) {
         try {
             const sha256 = await calculateSHA256(file);
-            const storagePath = `tenants/${user.tenantId}/monthCloses/${monthCloseId}/${file.name}`;
+            const fileAssetRef = doc(collection(db, 'fileAssets'));
+            
+            const fileExtension = kind === 'BANK_CSV' ? 'csv' : 'pdf';
+            const subFolder = kind === 'BANK_CSV' ? 'bank' : 'invoices';
+            
+            const storagePath = `tenants/${user.tenantId}/monthCloses/${monthCloseId}/${subFolder}/${fileAssetRef.id}.${fileExtension}`;
             const storageRef = ref(storage, storagePath);
 
             await uploadBytes(storageRef, file);
 
-            await addDoc(collection(db, 'fileAssets'), {
+            await setDoc(fileAssetRef, {
+                schemaVersion: 1,
                 tenantId: user.tenantId,
                 monthCloseId: monthCloseId,
                 kind: kind,
@@ -130,6 +127,7 @@ export default function UploadPage() {
                 storagePath: storagePath,
                 sha256: sha256,
                 parseStatus: 'PENDING',
+                parseError: null,
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp(),
             });
@@ -151,15 +149,13 @@ export default function UploadPage() {
     setIsUploading(false);
   };
   
-  const handleDownload = async (filePath: string, filename: string) => {
+  const handleDownload = async (file: FileAsset) => {
     try {
-        const url = await getDownloadURL(ref(storage, filePath));
+        const url = await getDownloadURL(ref(storage, file.storagePath));
         const a = document.createElement('a');
         a.href = url;
-        // To force download, you might need a proxy or server-side help,
-        // for now, this will open in a new tab.
-        a.target = '_blank';
-        a.download = filename;
+        a.target = '_blank'; // Open in new tab, which browsers might do instead of downloading
+        a.download = file.filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -240,7 +236,7 @@ export default function UploadPage() {
                                 <Badge variant={file.parseStatus === 'PENDING' ? 'default' : 'outline'}>{t.upload.uploadedFiles.statuses[file.parseStatus as keyof typeof t.upload.uploadedFiles.statuses]}</Badge>
                             </TableCell>
                             <TableCell className="text-right">
-                               <Button variant="outline" size="sm" onClick={() => handleDownload(file.storagePath, file.filename)}>
+                               <Button variant="outline" size="sm" onClick={() => handleDownload(file)}>
                                    <Download className="mr-2 h-4 w-4" />
                                    {t.exports.download}
                                </Button>
@@ -257,24 +253,6 @@ export default function UploadPage() {
             </Table>
         </CardContent>
       </Card>
-
-       <Card>
-          <CardContent className="p-6">
-            <h3 className="text-lg font-medium">{t.upload.processing.title}</h3>
-            <p className="text-sm text-muted-foreground mb-4">{t.upload.processing.description}</p>
-            <div className="space-y-4">
-                {mockJobs.map(job => (
-                    <div key={job.name}>
-                        <div className="flex justify-between mb-1">
-                            <p className="text-sm font-medium">{job.name}</p>
-                            <p className="text-sm text-muted-foreground">{t.upload.processing.jobStatuses[job.status as keyof typeof t.upload.processing.jobStatuses]} - {job.progress}%</p>
-                        </div>
-                        <Progress value={job.progress} />
-                    </div>
-                ))}
-            </div>
-          </CardContent>
-       </Card>
     </div>
   );
 }
