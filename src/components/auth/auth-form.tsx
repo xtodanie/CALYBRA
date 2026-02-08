@@ -1,11 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useRouter } from "next/navigation";
+import { FirebaseError } from "firebase/app";
 
-import { useT } from "@/i18n/provider";
+import { useT, useLocale } from "@/i18n/provider";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -25,6 +29,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Logo } from "@/components/logo";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 type AuthFormProps = {
   type: "login" | "signup";
@@ -32,12 +38,19 @@ type AuthFormProps = {
 
 export function AuthForm({ type }: AuthFormProps) {
   const t = useT();
+  const locale = useLocale();
   const isSignup = type === "signup";
+  const { login, signup } = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
   const formSchema = z.object({
     email: z.string().email({ message: t.auth.validation.email }),
     password: z.string().min(8, { message: t.auth.validation.password }),
-    companyName: z.string().optional(),
+    ...(isSignup && {
+      companyName: z.string().min(1, { message: t.auth.validation.companyName }),
+    }),
   });
   
   const form = useForm<z.infer<typeof formSchema>>({
@@ -49,9 +62,32 @@ export function AuthForm({ type }: AuthFormProps) {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
-    // Here you would call your authentication logic
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsLoading(true);
+    try {
+      if (isSignup) {
+        await signup(values.email, values.password, values.companyName || "");
+      } else {
+        await login(values.email, values.password);
+      }
+      router.push(`/${locale}/month-closes`);
+    } catch (error) {
+      console.error(error);
+      const err = error as FirebaseError;
+      let message = t.auth.errors.default;
+      if (err.code === 'auth/email-already-in-use') {
+        message = t.auth.errors.emailInUse;
+      } else if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+        message = t.auth.errors.invalidCredentials;
+      }
+      toast({
+        variant: "destructive",
+        title: t.auth.errors.title,
+        description: message,
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -117,7 +153,8 @@ export function AuthForm({ type }: AuthFormProps) {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading && <Loader2 className="animate-spin" />}
               {isSignup ? t.auth.signupButton : t.auth.loginButton}
             </Button>
           </form>
@@ -127,7 +164,7 @@ export function AuthForm({ type }: AuthFormProps) {
         <p className="text-sm text-muted-foreground">
           {isSignup ? t.auth.alreadyHaveAccount : t.auth.dontHaveAccount}{" "}
           <Button variant="link" asChild className="p-0">
-            <Link href={isSignup ? "/login" : "/signup"}>
+            <Link href={isSignup ? `/${locale}/login` : `/${locale}/signup`}>
               {isSignup ? t.auth.loginButton : t.auth.signupButton}
             </Link>
           </Button>

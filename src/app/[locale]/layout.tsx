@@ -4,6 +4,7 @@ import '../globals.css';
 import { cn } from '@/lib/utils';
 import { Locale, supportedLocales } from '@/i18n/types';
 import { LocaleProvider } from '@/i18n/provider';
+import { AuthProvider } from '@/hooks/use-auth';
 
 export async function generateStaticParams() {
   return supportedLocales.map((locale) => ({ locale }));
@@ -32,9 +33,11 @@ export default function RootLayout({
       <body className={cn(
         "font-body antialiased",
       )}>
-        <LocaleProvider locale={params.locale}>
-          {children}
-        </LocaleProvider>
+        <AuthProvider>
+          <LocaleProvider locale={params.locale}>
+            {children}
+          </LocaleProvider>
+        </AuthProvider>
         <Toaster />
       </body>
     </html>

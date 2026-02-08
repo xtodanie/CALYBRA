@@ -9,13 +9,17 @@ export const en = {
     exports: 'Exports',
     settings: 'Settings',
   },
+  roles: {
+    OWNER: 'Owner',
+    MANAGER: 'Manager',
+    ACCOUNTANT: 'Accountant',
+    VIEWER: 'Viewer',
+  },
   userNav: {
     profile: 'Profile',
     billing: 'Billing',
     settings: 'Settings',
     logOut: 'Log out',
-    guestUser: 'Guest User',
-    guestEmail: 'guest@example.com',
     language: 'Language',
     english: 'English',
     spanish: 'Spanish',
@@ -118,7 +122,14 @@ export const en = {
     validation: {
       email: 'Please enter a valid email.',
       password: 'Password must be at least 8 characters.',
+      companyName: 'Please enter a company name.',
     },
+    errors: {
+      title: 'Authentication Error',
+      default: 'An unexpected error occurred. Please try again.',
+      emailInUse: 'This email is already associated with an account.',
+      invalidCredentials: 'Invalid email or password. Please try again.',
+    }
   },
   billing: {
     title: 'Billing',

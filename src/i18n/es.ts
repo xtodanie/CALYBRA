@@ -11,13 +11,17 @@ export const es: Dict = {
     exports: 'Exportaciones',
     settings: 'Configuración',
   },
+  roles: {
+    OWNER: 'Propietario',
+    MANAGER: 'Gerente',
+    ACCOUNTANT: 'Contable',
+    VIEWER: 'Observador',
+  },
   userNav: {
     profile: 'Perfil',
     billing: 'Facturación',
     settings: 'Configuración',
     logOut: 'Cerrar sesión',
-    guestUser: 'Usuario Invitado',
-    guestEmail: 'invitado@ejemplo.com',
     language: 'Idioma',
     english: 'Inglés',
     spanish: 'Español',
@@ -120,7 +124,14 @@ export const es: Dict = {
     validation: {
       email: 'Por favor, introduce un correo electrónico válido.',
       password: 'La contraseña debe tener al menos 8 caracteres.',
+      companyName: 'Por favor, introduce un nombre de empresa.',
     },
+    errors: {
+      title: 'Error de Autenticación',
+      default: 'Ocurrió un error inesperado. Por favor, inténtalo de nuevo.',
+      emailInUse: 'Este correo electrónico ya está asociado con una cuenta.',
+      invalidCredentials: 'Correo electrónico o contraseña incorrectos. Por favor, inténtalo de nuevo.',
+    }
   },
   billing: {
     title: 'Facturación',

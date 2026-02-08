@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -11,7 +12,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Logo } from "@/components/logo";
 import {
@@ -23,10 +24,13 @@ import {
   DownloadCloud,
 } from "lucide-react";
 import { useT } from "@/i18n/provider";
+import { useAuth } from "@/hooks/use-auth";
+import { Skeleton } from "../ui/skeleton";
 
 export function AppSidebar() {
   const pathname = usePathname();
   const t = useT();
+  const { user, loading } = useAuth();
 
   const menuItems = [
     { href: "/month-closes", icon: CalendarClock, label: t.sidebar.monthCloses, active: pathname.includes("/month-closes") },
@@ -60,20 +64,23 @@ export function AppSidebar() {
         <Separator className="mx-0 mb-2 w-full bg-sidebar-border" />
         <div className="flex items-center gap-3 p-3">
           <Avatar className="h-9 w-9">
-            <AvatarImage
-              src="https://picsum.photos/seed/user/40/40"
-              alt="User"
-            />
-            <AvatarFallback>U</AvatarFallback>
+            <AvatarFallback>{user?.email?.[0].toUpperCase() || 'U'}</AvatarFallback>
           </Avatar>
-          <div className="overflow-hidden">
-            <p className="truncate text-sm font-medium text-sidebar-accent-foreground">
-              {t.userNav.guestUser}
-            </p>
-            <p className="truncate text-xs text-sidebar-foreground">
-              {t.userNav.guestEmail}
-            </p>
-          </div>
+          {loading ? (
+             <div className="space-y-1">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-3 w-32" />
+             </div>
+          ) : (
+            <div className="overflow-hidden">
+              <p className="truncate text-sm font-medium text-sidebar-accent-foreground">
+                {user?.email}
+              </p>
+              <p className="truncate text-xs text-sidebar-foreground">
+                {t.roles[user?.role as keyof typeof t.roles] || user?.role}
+              </p>
+            </div>
+          )}
         </div>
       </SidebarFooter>
     </Sidebar>

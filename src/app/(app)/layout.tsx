@@ -1,21 +1,7 @@
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/layout/app-sidebar";
-import { UserNav } from "@/components/layout/user-nav";
-import { LanguageSwitcher } from "@/components/layout/language-switcher";
+// This file is now deprecated, the logic has been moved to /src/app/[locale]/(app)/layout.tsx
+// to handle authentication within the localized routes.
+// It can be safely removed, but we keep it to avoid breaking changes in file structure for now.
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset className="flex flex-col">
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-end gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:px-8">
-           <LanguageSwitcher />
-           <UserNav />
-        </header>
-        <main className="flex-1 overflow-auto">
-          {children}
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
-  );
+export default function DeprecatedAppLayout({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
 }

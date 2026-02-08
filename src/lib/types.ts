@@ -1,3 +1,5 @@
+import { Timestamp } from "firebase/firestore";
+
 export type UserRole = "OWNER" | "MANAGER" | "ACCOUNTANT" | "VIEWER";
 
 export type User = {
@@ -5,15 +7,21 @@ export type User = {
   email: string;
   tenantId: string;
   role: UserRole;
+  locale: 'en' | 'es';
   displayName?: string;
   photoURL?: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 };
 
 export type Tenant = {
   id: string;
   name: string;
   ownerId: string;
-  // Further settings can be added here
+  timezone: string;
+  currency: 'EUR';
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
   settings?: {
     csvMappings?: any;
   };
