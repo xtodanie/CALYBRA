@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 import { useT } from '@/i18n/provider';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,9 +18,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Loader2, Download, FileText } from 'lucide-react';
+import { Loader2, Download, FileText, Lock, ChevronRight } from 'lucide-react';
 import { formatDate } from '@/i18n/format';
 import { useLocale } from '@/i18n/provider';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const mockExports = [
   { file: 'matches_confirmed.csv', generated: new Date() },
@@ -27,11 +30,44 @@ const mockExports = [
   { file: 'month_summary.json', generated: new Date() },
 ];
 
+const MonthContextHeader = () => {
+    const t = useT();
+    const month = {
+      id: 'june-2024',
+      period: t.monthClose.sampleMonths.june,
+      status: 'READY' as const
+    };
+    const statusMap: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
+        READY: 'default',
+        LOCKED: 'secondary',
+    };
+  
+    return (
+      <div className="mb-4 flex items-center justify-between rounded-lg border bg-card p-3 text-card-foreground shadow-sm">
+        <div className="flex items-center gap-4">
+          <span className="text-sm font-medium text-muted-foreground">{t.monthClose.context.activeMonth}</span>
+          <span className="font-semibold">{month.period}</span>
+          <Badge variant={statusMap[month.status]}>{t.monthCloses.status[month.status]}</Badge>
+        </div>
+        <Button variant="ghost" asChild>
+          <Link href={`/month-closes/${month.id}`}>
+              {t.monthClose.context.viewOverview} <ChevronRight className="h-4 w-4" />
+          </Link>
+        </Button>
+      </div>
+    );
+  }
+
 export default function ExportsPage() {
   const t = useT();
   const locale = useLocale();
   const [isGenerating, setIsGenerating] = useState(false);
   const [exports, setExports] = useState<any[]>([]);
+
+  // This would come from props or context
+  const monthStatus = 'READY'; // MOCK: 'LOCKED' to enable
+
+  const isLocked = monthStatus === 'LOCKED';
 
   const handleGenerate = () => {
     setIsGenerating(true);
@@ -47,17 +83,33 @@ export default function ExportsPage() {
         <h1 className="font-headline text-3xl font-bold tracking-tight">{t.exports.title}</h1>
         <p className="text-muted-foreground">{t.exports.description}</p>
       </div>
+      
+      <MonthContextHeader />
 
       <Card>
         <CardHeader>
-          <Button onClick={handleGenerate} disabled={isGenerating}>
-            {isGenerating ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="mr-2 h-4 w-4" />
+          <div className="flex items-start gap-4">
+            <Button onClick={handleGenerate} disabled={isGenerating || !isLocked}>
+              {isGenerating ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              {isGenerating ? t.exports.generating : t.exports.cta}
+            </Button>
+            {!isLocked && (
+              <Alert variant="default" className="w-auto">
+                <Lock className="h-4 w-4" />
+                <AlertTitle>{t.exports.lockedOnly.title}</AlertTitle>
+                <AlertDescription>
+                  {t.exports.lockedOnly.description}{' '}
+                  <Button variant="link" asChild className="p-0 h-auto">
+                      <Link href={`/month-closes/june-2024`}>{t.exports.lockedOnly.cta}</Link>
+                  </Button>
+                </AlertDescription>
+              </Alert>
             )}
-            {isGenerating ? t.exports.generating : t.exports.cta}
-          </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {exports.length === 0 ? (

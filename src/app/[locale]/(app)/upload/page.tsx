@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { useT, useLocale } from '@/i18n/provider';
 import { Card, CardContent } from '@/components/ui/card';
 import { FileUploader } from '@/components/file-uploader';
@@ -14,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { formatMoney } from '@/i18n/format';
+import { ChevronRight } from 'lucide-react';
 
 const mockInvoices = [
   {
@@ -52,6 +54,34 @@ const mockJobs = [
     { name: 'MATCH', status: 'PENDING', progress: 0},
 ]
 
+const MonthContextHeader = () => {
+    const t = useT();
+    // Mock data for now, would come from context/props
+    const month = {
+      id: 'june-2024',
+      period: t.monthClose.sampleMonths.june,
+      status: 'DRAFT' as const
+    };
+    const statusMap: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
+        DRAFT: 'outline'
+    };
+  
+    return (
+      <div className="mb-4 flex items-center justify-between rounded-lg border bg-card p-3 text-card-foreground shadow-sm">
+        <div className="flex items-center gap-4">
+          <span className="text-sm font-medium text-muted-foreground">{t.monthClose.context.activeMonth}</span>
+          <span className="font-semibold">{month.period}</span>
+          <Badge variant={statusMap[month.status]}>{t.monthCloses.status[month.status]}</Badge>
+        </div>
+        <Button variant="ghost" asChild>
+          <Link href={`/month-closes/${month.id}`}>
+              {t.monthClose.context.viewOverview} <ChevronRight className="h-4 w-4" />
+          </Link>
+        </Button>
+      </div>
+    );
+}
+
 export default function UploadPage() {
   const t = useT();
   const locale = useLocale();
@@ -61,6 +91,8 @@ export default function UploadPage() {
         <h1 className="font-headline text-3xl font-bold tracking-tight">{t.upload.title}</h1>
         <p className="text-muted-foreground">{t.upload.description}</p>
       </div>
+
+      <MonthContextHeader />
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         <Card>
@@ -87,8 +119,8 @@ export default function UploadPage() {
 
       <Card>
         <CardContent className="p-6">
-            <h3 className="text-lg font-medium">{t.upload.invoicePdfs.title}</h3>
-            <p className="text-sm text-muted-foreground mb-4">{t.upload.invoicePdfs.description}</p>
+            <h3 className="text-lg font-medium">{t.upload.invoicePdfs.tableTitle}</h3>
+            <p className="text-sm text-muted-foreground mb-4">{t.upload.invoicePdfs.tableDescription}</p>
             <Table>
                 <TableHeader>
                     <TableRow>
@@ -118,7 +150,7 @@ export default function UploadPage() {
                                 )}
                             </TableCell>
                             <TableCell>
-                                <Badge variant={inv.status === 'Parsed' ? 'outline' : 'default'}>{inv.status}</Badge>
+                                <Badge variant={inv.status === 'Parsed' ? 'outline' : 'default'}>{t.upload.invoicePdfs.statuses[inv.status.replace(" ", "") as keyof typeof t.upload.invoicePdfs.statuses]}</Badge>
                             </TableCell>
                             <TableCell>
                                 {inv.confidence < 70 && (
@@ -141,7 +173,7 @@ export default function UploadPage() {
                     <div key={job.name}>
                         <div className="flex justify-between mb-1">
                             <p className="text-sm font-medium">{job.name}</p>
-                            <p className="text-sm text-muted-foreground">{job.status} - {job.progress}%</p>
+                            <p className="text-sm text-muted-foreground">{t.upload.processing.jobStatuses[job.status as keyof typeof t.upload.processing.jobStatuses]} - {job.progress}%</p>
                         </div>
                         <Progress value={job.progress} />
                     </div>

@@ -1,5 +1,5 @@
 'use client';
-import { useT } from '@/i18n/provider';
+import { useT, useLocale } from '@/i18n/provider';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -17,10 +17,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { LanguageSwitcher } from '@/components/layout/language-switcher';
+import { usePathname, useRouter } from 'next/navigation';
+import { supportedLocales } from '@/i18n/types';
 
 export default function SettingsPage() {
   const t = useT();
+  const currentLocale = useLocale();
+  const router = useRouter();
+  const currentPathname = usePathname();
+
+  const handleLocaleChange = (newLocale: 'en' | 'es') => {
+    if (newLocale === currentLocale) return;
+
+    const newPath = supportedLocales.reduce(
+      (path, locale) => path.replace(`/${locale}`, ''),
+      currentPathname
+    );
+    router.push(`/${newLocale}${newPath}`);
+  };
+
   return (
     <div className="flex-1 space-y-8 p-4 pt-6 md:p-8">
        <div>
@@ -40,7 +55,7 @@ export default function SettingsPage() {
           <div className="space-y-2">
             <Label htmlFor="timezone">{t.settings.tenant.timezone}</Label>
             <Select defaultValue="europe-madrid">
-              <SelectTrigger id="timezone">
+              <SelectTrigger id="timezone" className="w-[280px]">
                 <SelectValue placeholder="Select timezone" />
               </SelectTrigger>
               <SelectContent>
@@ -64,8 +79,16 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
             <div className="space-y-2">
-                <Label>{t.settings.user.language}</Label>
-                <LanguageSwitcher />
+                <Label htmlFor="language-select">{t.settings.user.language}</Label>
+                 <Select value={currentLocale} onValueChange={handleLocaleChange}>
+                    <SelectTrigger id="language-select" className="w-[280px]">
+                        <SelectValue placeholder={t.settings.user.language} />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="en">{t.userNav.english}</SelectItem>
+                        <SelectItem value="es">{t.userNav.spanish}</SelectItem>
+                    </SelectContent>
+                </Select>
             </div>
             <div className="space-y-2">
                  <Label>{t.settings.user.role}</Label>

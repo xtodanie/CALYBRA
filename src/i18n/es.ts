@@ -97,6 +97,10 @@ export const es: Dict = {
       may: 'Mayo 2024',
       april: 'Abril 2024',
     },
+    context: {
+        activeMonth: 'Mes Activo',
+        viewOverview: 'Ver Resumen del Mes',
+    },
   },
   auth: {
     loginTitle: 'Bienvenido de Nuevo',
@@ -134,6 +138,8 @@ export const es: Dict = {
     invoicePdfs: {
       title: '2. Subir Facturas',
       description: 'Sube todas las facturas de proveedores en formato PDF para el período. Puedes seleccionar múltiples archivos.',
+      tableTitle: 'Facturas Subidas',
+      tableDescription: 'Revisa el estado de tus facturas subidas a continuación.',
       cta: 'Seleccionar Archivos PDF',
       dropzone: 'Arrastra y suelta los archivos PDF aquí',
       table: {
@@ -147,13 +153,21 @@ export const es: Dict = {
         actions: 'Acciones',
       },
       confidenceLow: 'Baja',
-      statusPending: 'Pendiente',
+      statuses: {
+        Parsed: 'Procesada',
+        NeedsReview: 'Necesita Revisión',
+      },
       edit: 'Editar',
     },
     processing: {
       title: '3. Procesamiento',
       description: 'Estamos procesando tus archivos. Puedes salir de esta página y volver más tarde.',
-      jobStatus: 'Estado del Proceso',
+      jobStatuses: {
+        PENDING: 'Pendiente',
+        RUNNING: 'En curso',
+        COMPLETED: 'Completado',
+        FAILED: 'Fallido',
+      },
     }
   },
   matches: {
@@ -170,8 +184,18 @@ export const es: Dict = {
       invoice: 'Factura(s)',
       actions: 'Acciones',
     },
+    empty: {
+        proposed: 'No hay coincidencias propuestas para revisar.',
+        confirmed: 'Aún no se han confirmado coincidencias.',
+    },
     confirm: 'Confirmar',
     reject: 'Rechazar',
+    confirmed: 'Confirmada',
+    explanations: {
+        amountAndName: 'El importe y el nombre del proveedor coinciden.',
+        amountAndDate: 'El importe coincide, la fecha es cercana, se reconoció un alias del proveedor.',
+        manualConfirmation: 'Confirmado manualmente por el usuario.',
+    }
   },
   exceptions: {
     title: 'Excepciones',
@@ -193,12 +217,44 @@ export const es: Dict = {
       medium: 'Media',
       low: 'Baja',
     },
-    actions: {
-      assign: 'Asignar Proveedor',
-      markAsFee: 'Marcar como Gasto',
-      group: 'Agrupar',
-      ignore: 'Ignorar',
-      manualMatch: 'Conciliación Manual',
+    types: {
+      MISSING_INVOICE: 'Falta Factura',
+      AMOUNT_MISMATCH: 'Descuadre de Importe',
+      UNKNOWN_SUPPLIER: 'Proveedor Desconocido',
+      DUPLICATE_INVOICE: 'Factura Duplicada',
+    },
+    details: {
+      MISSING_INVOICE: 'La transacción bancaria "{description}" por {amount} no tiene factura correspondiente.',
+      AMOUNT_MISMATCH: 'Tx. banco: {bankAmount}. Factura #{invoiceNumber}: {invoiceAmount}. Diferencia: {difference}.',
+      UNKNOWN_SUPPLIER: 'La transacción bancaria "{description}" por {amount} no es de un proveedor conocido.',
+      DUPLICATE_INVOICE: 'La factura #{invoiceNumber} de "{supplier}" aparece dos veces.',
+    },
+    suggestions: {
+      MISSING_INVOICE: 'Sube la factura o márcala como otro gasto.',
+      AMOUNT_MISMATCH: 'Comprueba si hay comisiones bancarias o un pago parcial.',
+      UNKNOWN_SUPPLIER: 'Asigna un proveedor a esta transacción.',
+      DUPLICATE_INVOICE: 'Verifica el pago y elimina una de las facturas.',
+    },
+    resolve: 'Resolver',
+    resolveActions: {
+      MISSING_INVOICE: {
+        upload: 'Subir Factura',
+        ignore: 'Ignorar (Otro Gasto)',
+      },
+      AMOUNT_MISMATCH: {
+        markAsFee: 'Marcar Diferencia como Comisión',
+        ignore: 'Aceptar Descuadre',
+      },
+      UNKNOWN_SUPPLIER: {
+        assign: 'Asignar Proveedor',
+      },
+      DUPLICATE_INVOICE: {
+        remove: 'Eliminar Duplicado',
+      },
+      generic: {
+        manualMatch: 'Conciliar Manualmente',
+        ignore: 'Ignorar',
+      }
     },
   },
   exports: {
@@ -213,6 +269,11 @@ export const es: Dict = {
       actions: 'Acciones',
     },
     download: 'Descargar',
+    lockedOnly: {
+        title: 'Mes No Bloqueado',
+        description: 'Solo puedes generar exportaciones para meses bloqueados. Por favor, revisa y bloquea el mes para continuar.',
+        cta: 'Bloquear Mes',
+    }
   },
   settings: {
     title: 'Configuración',

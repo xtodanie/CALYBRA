@@ -95,6 +95,10 @@ export const en = {
       may: 'May 2024',
       april: 'April 2024',
     },
+    context: {
+      activeMonth: 'Active Month',
+      viewOverview: 'View Month Overview',
+    },
   },
   auth: {
     loginTitle: 'Welcome Back',
@@ -132,6 +136,8 @@ export const en = {
     invoicePdfs: {
       title: '2. Upload Invoices',
       description: 'Upload all supplier invoice PDFs for the period. You can select multiple files.',
+      tableTitle: 'Uploaded Invoices',
+      tableDescription: 'Review the status of your uploaded invoices below.',
       cta: 'Select PDF Files',
       dropzone: 'Drag & drop PDF files here',
       table: {
@@ -145,13 +151,21 @@ export const en = {
         actions: 'Actions',
       },
       confidenceLow: 'Low',
-      statusPending: 'Pending',
+      statuses: {
+        Parsed: 'Parsed',
+        NeedsReview: 'Needs Review',
+      },
       edit: 'Edit',
     },
     processing: {
       title: '3. Processing',
       description: 'We are processing your files. You can leave this page and come back later.',
-      jobStatus: 'Job Status',
+      jobStatuses: {
+        PENDING: 'Pending',
+        RUNNING: 'Running',
+        COMPLETED: 'Completed',
+        FAILED: 'Failed',
+      },
     }
   },
   matches: {
@@ -168,8 +182,18 @@ export const en = {
       invoice: 'Invoice(s)',
       actions: 'Actions',
     },
+    empty: {
+        proposed: 'No proposed matches to review.',
+        confirmed: 'No matches have been confirmed yet.',
+    },
     confirm: 'Confirm',
     reject: 'Reject',
+    confirmed: 'Confirmed',
+    explanations: {
+        amountAndName: 'Amount and supplier name match.',
+        amountAndDate: 'Amount matches, date is close, supplier alias recognized.',
+        manualConfirmation: 'Manually confirmed by user.',
+    }
   },
   exceptions: {
     title: 'Exceptions',
@@ -191,12 +215,44 @@ export const en = {
       medium: 'Medium',
       low: 'Low',
     },
-    actions: {
-      assign: 'Assign Supplier',
-      markAsFee: 'Mark as Fee',
-      group: 'Group',
-      ignore: 'Ignore',
-      manualMatch: 'Manual Match',
+    types: {
+      MISSING_INVOICE: 'Missing Invoice',
+      AMOUNT_MISMATCH: 'Amount Mismatch',
+      UNKNOWN_SUPPLIER: 'Unknown Supplier',
+      DUPLICATE_INVOICE: 'Duplicate Invoice',
+    },
+    details: {
+      MISSING_INVOICE: 'Bank transaction "{description}" for {amount} has no matching invoice.',
+      AMOUNT_MISMATCH: 'Bank tx: {bankAmount}. Invoice #{invoiceNumber}: {invoiceAmount}. Difference: {difference}.',
+      UNKNOWN_SUPPLIER: 'Bank transaction "{description}" for {amount} is not a known supplier.',
+      DUPLICATE_INVOICE: 'Invoice #{invoiceNumber} from "{supplier}" appears twice.',
+    },
+    suggestions: {
+      MISSING_INVOICE: 'Upload invoice or mark as other expense.',
+      AMOUNT_MISMATCH: 'Check for bank fees or partial payment.',
+      UNKNOWN_SUPPLIER: 'Assign a supplier to this transaction.',
+      DUPLICATE_INVOICE: 'Verify payment and remove one invoice.',
+    },
+    resolve: 'Resolve',
+    resolveActions: {
+      MISSING_INVOICE: {
+        upload: 'Upload Invoice',
+        ignore: 'Ignore (Other Expense)',
+      },
+      AMOUNT_MISMATCH: {
+        markAsFee: 'Mark Difference as Fee',
+        ignore: 'Accept Mismatch',
+      },
+      UNKNOWN_SUPPLIER: {
+        assign: 'Assign Supplier',
+      },
+      DUPLICATE_INVOICE: {
+        remove: 'Remove Duplicate',
+      },
+      generic: {
+        manualMatch: 'Manual Match',
+        ignore: 'Ignore',
+      }
     },
   },
   exports: {
@@ -211,6 +267,11 @@ export const en = {
       actions: 'Actions',
     },
     download: 'Download',
+    lockedOnly: {
+        title: 'Month Not Locked',
+        description: 'You can only generate exports for locked months. Please review and lock the month to proceed.',
+        cta: 'Lock Month',
+    }
   },
   settings: {
     title: 'Settings',
