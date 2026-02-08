@@ -20,7 +20,28 @@ export const en = {
     english: 'English',
     spanish: 'Spanish',
   },
-  dashboard: {
+  monthCloses: {
+    title: 'Month Closes',
+    description: 'Here are all your monthly closing periods. Start a new one or review an existing one.',
+    cta: 'Close New Month',
+    empty: {
+      title: 'No Month Closes Yet',
+      description: 'A "month close" is how you reconcile your bank transactions with your invoices for a specific period. Start by closing your first month to begin.',
+    },
+    table: {
+      period: 'Period',
+      status: 'Status',
+      difference: 'Difference',
+      exceptions: 'Open Exceptions',
+    },
+    status: {
+      DRAFT: 'Draft',
+      PROCESSING: 'Processing',
+      READY: 'Ready for Review',
+      LOCKED: 'Locked',
+    }
+  },
+  monthClose: {
     title: 'Current Month',
     monthSelectorPlaceholder: 'Select a month',
     status: {
@@ -99,28 +120,116 @@ export const en = {
     title: 'Billing',
     description: 'Manage your subscription and payment methods.',
   },
-  exceptions: {
-    title: 'Exceptions',
-    description: 'Review and resolve reconciliation exceptions.',
-  },
-  exports: {
-    title: 'Exports',
-    description: 'Generate and download your reconciliation reports.',
+  upload: {
+    title: 'Upload Data',
+    description: 'Provide your bank statement and all supplier invoices for this period.',
+    bankCsv: {
+      title: '1. Upload Bank Statement',
+      description: 'Upload the bank statement CSV for the selected period.',
+      cta: 'Select CSV File',
+      dropzone: 'Drag & drop CSV file here',
+    },
+    invoicePdfs: {
+      title: '2. Upload Invoices',
+      description: 'Upload all supplier invoice PDFs for the period. You can select multiple files.',
+      cta: 'Select PDF Files',
+      dropzone: 'Drag & drop PDF files here',
+      table: {
+        file: 'File',
+        supplier: 'Supplier',
+        invoiceNumber: 'Invoice #',
+        date: 'Date',
+        total: 'Total',
+        confidence: 'Confidence',
+        status: 'Status',
+        actions: 'Actions',
+      },
+      confidenceLow: 'Low',
+      statusPending: 'Pending',
+      edit: 'Edit',
+    },
+    processing: {
+      title: '3. Processing',
+      description: 'We are processing your files. You can leave this page and come back later.',
+      jobStatus: 'Job Status',
+    }
   },
   matches: {
     title: 'Matches',
-    description: 'Review proposed matches between transactions and invoices.',
+    description: 'Review proposed matches between bank transactions and invoices. Confirming helps us learn.',
+    tabs: {
+      proposed: 'Proposed',
+      confirmed: 'Confirmed',
+    },
+    table: {
+      score: 'Score',
+      explanation: 'Explanation',
+      bankTransaction: 'Bank Transaction',
+      invoice: 'Invoice(s)',
+      actions: 'Actions',
+    },
+    confirm: 'Confirm',
+    reject: 'Reject',
   },
-  profile: {
-    title: 'Profile',
-    description: 'Update your personal information.',
+  exceptions: {
+    title: 'Exceptions',
+    description: 'Resolve items that could not be matched automatically.',
+    groupBy: 'Group by',
+    groups: {
+      type: 'Type',
+      severity: 'Severity',
+    },
+    table: {
+      issue: 'Issue',
+      severity: 'Severity',
+      details: 'Details',
+      suggestion: 'Suggested Action',
+      actions: 'Actions',
+    },
+    severities: {
+      high: 'High',
+      medium: 'Medium',
+      low: 'Low',
+    },
+    actions: {
+      assign: 'Assign Supplier',
+      markAsFee: 'Mark as Fee',
+      group: 'Group',
+      ignore: 'Ignore',
+      manualMatch: 'Manual Match',
+    },
+  },
+  exports: {
+    title: 'Exports',
+    description: 'Once a month is locked, you can generate and download your reconciliation reports for your accountant.',
+    cta: 'Generate Export',
+    generating: 'Generating export...',
+    empty: 'No exports generated for this month yet.',
+    table: {
+      file: 'File',
+      generated: 'Generated',
+      actions: 'Actions',
+    },
+    download: 'Download',
   },
   settings: {
     title: 'Settings',
     description: 'Manage your account and application settings.',
+    tenant: {
+      title: 'Business Settings',
+      name: 'Business Name',
+      timezone: 'Timezone',
+      currency: 'Default Currency',
+      save: 'Save Changes',
+    },
+    user: {
+      title: 'Your Profile',
+      language: 'Language',
+      role: 'Your Role',
+    }
   },
-  upload: {
-    title: 'Upload',
-    description: 'Upload your bank statements and invoices here.',
+  profile: {
+    title: 'Profile',
+    description: 'Update your personal information.',
   },
 } as const;

@@ -6,8 +6,6 @@ import {
   ArrowRight,
   Banknote,
   CheckCircle2,
-  ChevronDown,
-  Circle,
   CopyCheck,
   DownloadCloud,
   FileWarning,
@@ -51,22 +49,22 @@ const ActionButton = ({ status, setStatus, t }: { status: Status, setStatus: (st
     case "NO_CLOSE":
       return (
         <Button size="lg" onClick={() => setStatus("DRAFT")}>
-          {t.dashboard.nextAction.cta.NO_CLOSE} <ArrowRight />
+          {t.monthClose.nextAction.cta.NO_CLOSE} <ArrowRight />
         </Button>
       );
     case "DRAFT":
-      return <Button size="lg" onClick={() => setStatus("PROCESSING")}>{t.dashboard.nextAction.cta.DRAFT} <ArrowRight /></Button>;
+      return <Button size="lg" onClick={() => setStatus("PROCESSING")}>{t.monthClose.nextAction.cta.DRAFT} <ArrowRight /></Button>;
     case "PROCESSING":
       return (
         <Button size="lg" disabled>
           <Loader2 className="animate-spin" />
-          {t.dashboard.nextAction.cta.PROCESSING}
+          {t.monthClose.nextAction.cta.PROCESSING}
         </Button>
       );
     case "READY":
-      return <Button size="lg" onClick={() => setStatus("LOCKED")}>{t.dashboard.nextAction.cta.READY} <ArrowRight /></Button>;
+      return <Button size="lg" onClick={() => setStatus("LOCKED")}>{t.monthClose.nextAction.cta.READY} <ArrowRight /></Button>;
     case "LOCKED":
-      return <Button size="lg">{t.dashboard.nextAction.cta.LOCKED} <ArrowRight /></Button>;
+      return <Button size="lg">{t.monthClose.nextAction.cta.LOCKED} <ArrowRight /></Button>;
     default:
       return null;
   }
@@ -105,11 +103,11 @@ const WorkflowStep = ({
 
 const WorkflowPanel = ({ currentStep, t }: { currentStep: number, t: any }) => {
   const steps = [
-    { name: t.dashboard.workflow.steps.uploadBankCsv, icon: UploadCloud },
-    { name: t.dashboard.workflow.steps.uploadInvoicePdfs, icon: UploadCloud },
-    { name: t.dashboard.workflow.steps.reviewMatches, icon: CopyCheck },
-    { name: t.dashboard.workflow.steps.resolveExceptions, icon: AlertTriangle },
-    { name: t.dashboard.workflow.steps.lockAndExport, icon: DownloadCloud },
+    { name: t.monthClose.workflow.steps.uploadBankCsv, icon: UploadCloud },
+    { name: t.monthClose.workflow.steps.uploadInvoicePdfs, icon: UploadCloud },
+    { name: t.monthClose.workflow.steps.reviewMatches, icon: CopyCheck },
+    { name: t.monthClose.workflow.steps.resolveExceptions, icon: AlertTriangle },
+    { name: t.monthClose.workflow.steps.lockAndExport, icon: DownloadCloud },
   ];
 
   const getStepStatus = (stepIndex: number) => {
@@ -126,7 +124,7 @@ const WorkflowPanel = ({ currentStep, t }: { currentStep: number, t: any }) => {
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>{t.dashboard.workflow.title}</CardTitle>
+        <CardTitle>{t.monthClose.workflow.title}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
@@ -144,7 +142,7 @@ const WorkflowPanel = ({ currentStep, t }: { currentStep: number, t: any }) => {
   );
 };
 
-export default function DashboardPage() {
+export default function MonthCloseDetailPage({ params }: { params: { id: string }}) {
   const [status, setStatus] = useState<Status>("DRAFT");
   const t = useT();
   const locale = useLocale();
@@ -154,11 +152,11 @@ export default function DashboardPage() {
     Status,
     { text: string; variant: "secondary" | "default" | "destructive" | "outline" | null | undefined; workflowStep: number }
   > = {
-    NO_CLOSE: { text: t.dashboard.status.NO_CLOSE, variant: "secondary", workflowStep: 0 },
-    DRAFT: { text: t.dashboard.status.DRAFT, variant: "outline", workflowStep: 1 },
-    PROCESSING: { text: t.dashboard.status.PROCESSING, variant: "default", workflowStep: 3 },
-    READY: { text: t.dashboard.status.READY, variant: "default", workflowStep: 4 },
-    LOCKED: { text: t.dashboard.status.LOCKED, variant: "secondary", workflowStep: 5 },
+    NO_CLOSE: { text: t.monthClose.status.NO_CLOSE, variant: "secondary", workflowStep: 0 },
+    DRAFT: { text: t.monthClose.status.DRAFT, variant: "outline", workflowStep: 1 },
+    PROCESSING: { text: t.monthClose.status.PROCESSING, variant: "default", workflowStep: 3 },
+    READY: { text: t.monthClose.status.READY, variant: "default", workflowStep: 4 },
+    LOCKED: { text: t.monthClose.status.LOCKED, variant: "secondary", workflowStep: 5 },
   };
 
   return (
@@ -166,21 +164,21 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between space-y-2">
         <div className="flex items-center gap-4">
           <h1 className="font-headline text-3xl font-bold tracking-tight">
-            {t.dashboard.title}
+            {t.monthClose.title}
           </h1>
           <Badge variant={statusMap[status].variant}>
             {statusMap[status].text}
           </Badge>
         </div>
         <div className="flex items-center space-x-2">
-          <Select defaultValue="june-2024">
+          <Select defaultValue={params.id}>
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder={t.dashboard.monthSelectorPlaceholder} />
+              <SelectValue placeholder={t.monthClose.monthSelectorPlaceholder} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="june-2024">{t.dashboard.sampleMonths.june}</SelectItem>
-              <SelectItem value="may-2024">{t.dashboard.sampleMonths.may}</SelectItem>
-              <SelectItem value="april-2024">{t.dashboard.sampleMonths.april}</SelectItem>
+              <SelectItem value="june-2024">{t.monthClose.sampleMonths.june}</SelectItem>
+              <SelectItem value="may-2024">{t.monthClose.sampleMonths.may}</SelectItem>
+              <SelectItem value="april-2024">{t.monthClose.sampleMonths.april}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -189,42 +187,42 @@ export default function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t.dashboard.kpi.bankTotal}</CardTitle>
+            <CardTitle className="text-sm font-medium">{t.monthClose.kpi.bankTotal}</CardTitle>
             <Banknote className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatMoney(data.bankTotal, locale)}</div>
-            <p className="text-xs text-muted-foreground">{t.dashboard.kpi.bankTotalDescription}</p>
+            <p className="text-xs text-muted-foreground">{t.monthClose.kpi.bankTotalDescription}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t.dashboard.kpi.invoiceTotal}</CardTitle>
+            <CardTitle className="text-sm font-medium">{t.monthClose.kpi.invoiceTotal}</CardTitle>
             <Receipt className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatMoney(data.invoiceTotal, locale)}</div>
-            <p className="text-xs text-muted-foreground">{t.dashboard.kpi.invoiceTotalDescription}</p>
+            <p className="text-xs text-muted-foreground">{t.monthClose.kpi.invoiceTotalDescription}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t.dashboard.kpi.difference}</CardTitle>
+            <CardTitle className="text-sm font-medium">{t.monthClose.kpi.difference}</CardTitle>
             <Scale className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-400">{formatMoney(data.difference, locale)}</div>
-            <p className="text-xs text-muted-foreground">{t.dashboard.kpi.differenceDescription}</p>
+            <p className="text-xs text-muted-foreground">{t.monthClose.kpi.differenceDescription}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t.dashboard.kpi.exceptions}</CardTitle>
+            <CardTitle className="text-sm font-medium">{t.monthClose.kpi.exceptions}</CardTitle>
             <FileWarning className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data.exceptions} {t.dashboard.kpi.exceptionsOpen}</div>
-            <p className="text-xs text-muted-foreground"><span className="font-semibold text-destructive">{data.highSeverity}</span> {t.dashboard.kpi.exceptionsHighSeverity}</p>
+            <div className="text-2xl font-bold">{data.exceptions} {t.monthClose.kpi.exceptionsOpen}</div>
+            <p className="text-xs text-muted-foreground"><span className="font-semibold text-destructive">{data.highSeverity}</span> {t.monthClose.kpi.exceptionsHighSeverity}</p>
           </CardContent>
         </Card>
       </div>
@@ -235,17 +233,17 @@ export default function DashboardPage() {
         </div>
         <Card className="flex flex-col items-center justify-center p-6">
           <CardHeader className="text-center">
-            <CardTitle className="text-xl">{t.dashboard.nextAction.title}</CardTitle>
+            <CardTitle className="text-xl">{t.monthClose.nextAction.title}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col items-center gap-4">
             <p className="text-center text-muted-foreground">
-              {t.dashboard.nextAction.description[status]}
+              {t.monthClose.nextAction.description[status]}
             </p>
             <ActionButton status={status} setStatus={setStatus} t={t} />
             {status === "PROCESSING" && (
                 <div className="w-full mt-2">
                     <Progress value={data.progress} className="w-full" />
-                    <p className="text-center text-xs text-muted-foreground mt-2">{data.progress}{t.dashboard.nextAction.progress}</p>
+                    <p className="text-center text-xs text-muted-foreground mt-2">{data.progress}{t.monthClose.nextAction.progress}</p>
                 </div>
             )}
           </CardContent>

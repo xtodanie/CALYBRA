@@ -38,6 +38,13 @@ export function middleware(request: NextRequest) {
   if (pathnameIsMissingLocale) {
     const locale = getLocale(request);
     
+    // Redirect to the month-closes page for the determined locale
+    if (pathname === '/') {
+       return NextResponse.redirect(
+        new URL(`/${locale}/month-closes`, request.url)
+      );
+    }
+
     return NextResponse.redirect(
       new URL(`/${locale}${pathname.startsWith('/') ? '' : '/'}${pathname}`, request.url)
     );

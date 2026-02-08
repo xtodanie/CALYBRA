@@ -29,7 +29,7 @@ export function AppSidebar() {
   const t = useT();
 
   const menuItems = [
-    { href: "/dashboard", icon: CalendarClock, label: t.sidebar.monthCloses, active: pathname.endsWith('/dashboard') },
+    { href: "/month-closes", icon: CalendarClock, label: t.sidebar.monthCloses, active: pathname.includes("/month-closes") },
     { href: "/upload", icon: UploadCloud, label: t.sidebar.upload, active: pathname.includes("/upload") },
     { href: "/matches", icon: CopyCheck, label: t.sidebar.matches, active: pathname.includes("/matches") },
     { href: "/exceptions", icon: AlertTriangle, label: t.sidebar.exceptions, active: pathname.includes("/exceptions") },
@@ -40,7 +40,7 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader>
-        <Logo />
+        <Link href="/month-closes"><Logo /></Link>
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>

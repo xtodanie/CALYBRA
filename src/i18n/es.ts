@@ -22,7 +22,28 @@ export const es: Dict = {
     english: 'Inglés',
     spanish: 'Español',
   },
-  dashboard: {
+  monthCloses: {
+    title: 'Cierres Mensuales',
+    description: 'Aquí están todos tus períodos de cierre mensuales. Inicia uno nuevo o revisa uno existente.',
+    cta: 'Cerrar Nuevo Mes',
+    empty: {
+      title: 'Aún no hay Cierres Mensuales',
+      description: 'Un "cierre de mes" es cómo concilias tus transacciones bancarias con tus facturas para un período específico. Comienza cerrando tu primer mes para empezar.',
+    },
+    table: {
+      period: 'Período',
+      status: 'Estado',
+      difference: 'Diferencia',
+      exceptions: 'Excepciones Abiertas',
+    },
+    status: {
+      DRAFT: 'Borrador',
+      PROCESSING: 'Procesando',
+      READY: 'Listo para Revisar',
+      LOCKED: 'Bloqueado',
+    }
+  },
+  monthClose: {
     title: 'Mes Actual',
     monthSelectorPlaceholder: 'Selecciona un mes',
     status: {
@@ -101,28 +122,116 @@ export const es: Dict = {
     title: 'Facturación',
     description: 'Gestiona tu suscripción y métodos de pago.',
   },
-  exceptions: {
-    title: 'Excepciones',
-    description: 'Revisa y resuelve las excepciones de conciliación.',
-  },
-  exports: {
-    title: 'Exportaciones',
-    description: 'Genera y descarga tus informes de conciliación.',
+  upload: {
+    title: 'Subir Datos',
+    description: 'Sube tu extracto bancario y todas las facturas de proveedores para este período.',
+    bankCsv: {
+      title: '1. Subir Extracto Bancario',
+      description: 'Sube el extracto bancario en formato CSV para el período seleccionado.',
+      cta: 'Seleccionar Archivo CSV',
+      dropzone: 'Arrastra y suelta el archivo CSV aquí',
+    },
+    invoicePdfs: {
+      title: '2. Subir Facturas',
+      description: 'Sube todas las facturas de proveedores en formato PDF para el período. Puedes seleccionar múltiples archivos.',
+      cta: 'Seleccionar Archivos PDF',
+      dropzone: 'Arrastra y suelta los archivos PDF aquí',
+      table: {
+        file: 'Archivo',
+        supplier: 'Proveedor',
+        invoiceNumber: 'Nº Factura',
+        date: 'Fecha',
+        total: 'Total',
+        confidence: 'Confianza',
+        status: 'Estado',
+        actions: 'Acciones',
+      },
+      confidenceLow: 'Baja',
+      statusPending: 'Pendiente',
+      edit: 'Editar',
+    },
+    processing: {
+      title: '3. Procesamiento',
+      description: 'Estamos procesando tus archivos. Puedes salir de esta página y volver más tarde.',
+      jobStatus: 'Estado del Proceso',
+    }
   },
   matches: {
     title: 'Coincidencias',
-    description: 'Revisa las coincidencias propuestas entre transacciones y facturas.',
+    description: 'Revisa las coincidencias propuestas entre transacciones bancarias y facturas. Confirmar nos ayuda a aprender.',
+    tabs: {
+      proposed: 'Propuestas',
+      confirmed: 'Confirmadas',
+    },
+    table: {
+      score: 'Puntaje',
+      explanation: 'Explicación',
+      bankTransaction: 'Transacción Bancaria',
+      invoice: 'Factura(s)',
+      actions: 'Acciones',
+    },
+    confirm: 'Confirmar',
+    reject: 'Rechazar',
   },
-  profile: {
-    title: 'Perfil',
-    description: 'Actualiza tu información personal.',
+  exceptions: {
+    title: 'Excepciones',
+    description: 'Resuelve los elementos que no pudieron ser conciliados automáticamente.',
+    groupBy: 'Agrupar por',
+    groups: {
+      type: 'Tipo',
+      severity: 'Severidad',
+    },
+    table: {
+      issue: 'Problema',
+      severity: 'Severidad',
+      details: 'Detalles',
+      suggestion: 'Acción Sugerida',
+      actions: 'Acciones',
+    },
+    severities: {
+      high: 'Alta',
+      medium: 'Media',
+      low: 'Baja',
+    },
+    actions: {
+      assign: 'Asignar Proveedor',
+      markAsFee: 'Marcar como Gasto',
+      group: 'Agrupar',
+      ignore: 'Ignorar',
+      manualMatch: 'Conciliación Manual',
+    },
+  },
+  exports: {
+    title: 'Exportaciones',
+    description: 'Una vez que un mes está bloqueado, puedes generar y descargar tus informes de conciliación para tu gestoría.',
+    cta: 'Generar Exportación',
+    generating: 'Generando exportación...',
+    empty: 'Aún no se han generado exportaciones para este mes.',
+    table: {
+      file: 'Archivo',
+      generated: 'Generado',
+      actions: 'Acciones',
+    },
+    download: 'Descargar',
   },
   settings: {
     title: 'Configuración',
     description: 'Gestiona tu cuenta y la configuración de la aplicación.',
+    tenant: {
+      title: 'Configuración del Negocio',
+      name: 'Nombre del Negocio',
+      timezone: 'Zona Horaria',
+      currency: 'Moneda por Defecto',
+      save: 'Guardar Cambios',
+    },
+    user: {
+      title: 'Tu Perfil',
+      language: 'Idioma',
+      role: 'Tu Rol',
+    }
   },
-  upload: {
-    title: 'Subir',
-    description: 'Sube tus extractos bancarios y facturas aquí.',
+  profile: {
+    title: 'Perfil',
+    description: 'Actualiza tu información personal.',
   },
 };
