@@ -1,0 +1,27 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    function isOwner(userId) {
+      return get(/databases/(default)/documents/users/$(userId)).data.role == 'OWNER';
+    }
+
+    function isSameTenant(tenantId) {
+      // Get the user's tenantId from Firestore
+      let userTenantId = get(/databases/(default)/documents/users/$(request.auth.uid)).data.tenantId;
+      return userTenantId == tenantId;
+    }
+
+    // Path for tenant-specific files
+    // /tenants/{tenantId}/monthCloses/{monthCloseId}/{filename}
+    match /tenants/{tenantId}/{path=**} {
+      allow read, write: if request.auth != null && isSameTenant(tenantId);
+    }
+
+    // Default deny all other paths
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

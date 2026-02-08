@@ -177,6 +177,34 @@ export const en = {
         COMPLETED: 'Completed',
         FAILED: 'Failed',
       },
+    },
+    uploadedFiles: {
+      title: 'Uploaded Files',
+      description: 'These files have been uploaded for the current month and are waiting to be processed.',
+      empty: 'No files uploaded for this month yet.',
+      table: {
+        filename: 'Filename',
+        kind: 'Type',
+        uploadedAt: 'Uploaded At',
+        status: 'Status',
+        actions: 'Actions',
+      },
+      kinds: {
+        BANK_CSV: 'Bank Statement',
+        INVOICE_PDF: 'Invoice',
+        EXPORT: 'Export',
+      },
+      statuses: {
+        PENDING: 'Pending',
+        PARSED: 'Processed',
+        FAILED: 'Failed',
+      }
+    },
+    notifications: {
+      successTitle: 'Upload Successful',
+      successDescription: 'has been uploaded and is pending processing.',
+      errorTitle: 'Upload Failed',
+      downloadErrorTitle: 'Download Failed',
     }
   },
   matches: {

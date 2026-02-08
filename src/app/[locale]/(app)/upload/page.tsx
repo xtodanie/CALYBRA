@@ -15,37 +15,15 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { formatMoney } from '@/i18n/format';
-import { ChevronRight } from 'lucide-react';
-
-const mockInvoices = [
-  {
-    file: 'invoice-123.pdf',
-    supplier: 'Global Foods Inc.',
-    invoiceNumber: 'INV-123',
-    date: '2024-06-15',
-    total: 450.75,
-    confidence: 95,
-    status: 'Parsed',
-  },
-  {
-    file: 'receipt-june.pdf',
-    supplier: '?',
-    invoiceNumber: '?',
-    date: '?',
-    total: '?',
-    confidence: 30,
-    status: 'Needs Review',
-  },
-  {
-    file: 'another-inv.pdf',
-    supplier: 'Office Supplies Co.',
-    invoiceNumber: '8872',
-    date: '2024-06-20',
-    total: 120.0,
-    confidence: 100,
-    status: 'Parsed',
-  },
-];
+import { ChevronRight, Download } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/use-auth';
+import { db, storage } from '@/lib/firebase';
+import { collection, addDoc, serverTimestamp, query, where, onSnapshot } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { useToast } from '@/hooks/use-toast';
+import type { FileAsset } from '@/lib/types';
+import { formatDate } from '@/i18n/format';
 
 const mockJobs = [
     { name: 'PARSE_BANK_CSV', status: 'COMPLETED', progress: 100},
@@ -56,7 +34,7 @@ const mockJobs = [
 
 const MonthContextHeader = () => {
     const t = useT();
-    // Mock data for now, would come from context/props
+    // Mock data for now, will be replaced with live data in a future step.
     const month = {
       id: 'june-2024',
       period: t.monthClose.sampleMonths.june,
@@ -82,9 +60,119 @@ const MonthContextHeader = () => {
     );
 }
 
+// Helper function to calculate SHA-256 hash of a file
+async function calculateSHA256(file: File): Promise<string> {
+    const buffer = await file.arrayBuffer();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+
 export default function UploadPage() {
   const t = useT();
   const locale = useLocale();
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<FileAsset[]>([]);
+  
+  // MOCK: This would come from the URL or a context provider
+  const monthCloseId = 'june-2024';
+
+  useEffect(() => {
+    if (!user || !monthCloseId) return;
+
+    const q = query(
+        collection(db, 'fileAssets'),
+        where('tenantId', '==', user.tenantId),
+        where('monthCloseId', '==', monthCloseId)
+    );
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const files: FileAsset[] = [];
+        querySnapshot.forEach((doc) => {
+            files.push({ id: doc.id, ...doc.data() } as FileAsset);
+        });
+        setUploadedFiles(files);
+    });
+
+    return () => unsubscribe();
+  }, [user, monthCloseId]);
+
+  const handleFileUpload = async (files: File[], kind: 'BANK_CSV' | 'INVOICE_PDF') => {
+    if (!user || !monthCloseId) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "You must be logged in and have a month selected to upload files.",
+        });
+        return;
+    }
+    
+    setIsUploading(true);
+
+    for (const file of files) {
+        try {
+            const sha256 = await calculateSHA256(file);
+            const storagePath = `tenants/${user.tenantId}/monthCloses/${monthCloseId}/${file.name}`;
+            const storageRef = ref(storage, storagePath);
+
+            await uploadBytes(storageRef, file);
+
+            await addDoc(collection(db, 'fileAssets'), {
+                tenantId: user.tenantId,
+                monthCloseId: monthCloseId,
+                kind: kind,
+                filename: file.name,
+                storagePath: storagePath,
+                sha256: sha256,
+                parseStatus: 'PENDING',
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+            });
+
+            toast({
+                title: t.upload.notifications.successTitle,
+                description: `${file.name} ${t.upload.notifications.successDescription}`,
+            });
+
+        } catch (error) {
+            console.error("Upload error:", error);
+            toast({
+                variant: "destructive",
+                title: t.upload.notifications.errorTitle,
+                description: `${file.name}: ${(error as Error).message}`,
+            });
+        }
+    }
+    setIsUploading(false);
+  };
+  
+  const handleDownload = async (filePath: string, filename: string) => {
+    try {
+        const url = await getDownloadURL(ref(storage, filePath));
+        const a = document.createElement('a');
+        a.href = url;
+        // To force download, you might need a proxy or server-side help,
+        // for now, this will open in a new tab.
+        a.target = '_blank';
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    } catch (error) {
+        console.error("Download failed:", error);
+        toast({
+            variant: "destructive",
+            title: t.upload.notifications.downloadErrorTitle,
+            description: (error as Error).message,
+        });
+    }
+  }
+
+
   return (
     <div className="flex-1 space-y-8 p-4 pt-6 md:p-8">
       <div>
@@ -102,6 +190,10 @@ export default function UploadPage() {
               description={t.upload.bankCsv.description}
               cta={t.upload.bankCsv.cta}
               dropzoneText={t.upload.bankCsv.dropzone}
+              onFilesSelected={(files) => handleFileUpload(files, 'BANK_CSV')}
+              accept={{ 'text/csv': ['.csv'] }}
+              multiple={false}
+              disabled={isUploading}
             />
           </CardContent>
         </Card>
@@ -112,6 +204,10 @@ export default function UploadPage() {
               description={t.upload.invoicePdfs.description}
               cta={t.upload.invoicePdfs.cta}
               dropzoneText={t.upload.invoicePdfs.dropzone}
+              onFilesSelected={(files) => handleFileUpload(files, 'INVOICE_PDF')}
+              accept={{ 'application/pdf': ['.pdf'] }}
+              multiple={true}
+              disabled={isUploading}
             />
           </CardContent>
         </Card>
@@ -119,46 +215,43 @@ export default function UploadPage() {
 
       <Card>
         <CardContent className="p-6">
-            <h3 className="text-lg font-medium">{t.upload.invoicePdfs.tableTitle}</h3>
-            <p className="text-sm text-muted-foreground mb-4">{t.upload.invoicePdfs.tableDescription}</p>
+            <h3 className="text-lg font-medium">{t.upload.uploadedFiles.title}</h3>
+            <p className="text-sm text-muted-foreground mb-4">{t.upload.uploadedFiles.description}</p>
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>{t.upload.invoicePdfs.table.file}</TableHead>
-                        <TableHead>{t.upload.invoicePdfs.table.supplier}</TableHead>
-                        <TableHead>{t.upload.invoicePdfs.table.invoiceNumber}</TableHead>
-                        <TableHead>{t.upload.invoicePdfs.table.date}</TableHead>
-                        <TableHead className="text-right">{t.upload.invoicePdfs.table.total}</TableHead>
-                        <TableHead className="text-center">{t.upload.invoicePdfs.table.confidence}</TableHead>
-                        <TableHead>{t.upload.invoicePdfs.table.status}</TableHead>
-                        <TableHead>{t.upload.invoicePdfs.table.actions}</TableHead>
+                        <TableHead>{t.upload.uploadedFiles.table.filename}</TableHead>
+                        <TableHead>{t.upload.uploadedFiles.table.kind}</TableHead>
+                        <TableHead>{t.upload.uploadedFiles.table.uploadedAt}</TableHead>
+                        <TableHead>{t.upload.uploadedFiles.table.status}</TableHead>
+                        <TableHead className="text-right">{t.upload.uploadedFiles.table.actions}</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {mockInvoices.map((inv, i) => (
-                        <TableRow key={i}>
-                            <TableCell className="font-medium">{inv.file}</TableCell>
-                            <TableCell>{inv.supplier}</TableCell>
-                            <TableCell>{inv.invoiceNumber}</TableCell>
-                            <TableCell>{inv.date}</TableCell>
-                            <TableCell className="text-right">{typeof inv.total === 'number' ? formatMoney(inv.total, locale) : '?'}</TableCell>
-                            <TableCell className="text-center">
-                                {inv.confidence < 70 ? (
-                                    <Badge variant="destructive">{inv.confidence}% ({t.upload.invoicePdfs.confidenceLow})</Badge>
-                                ) : (
-                                    <Badge variant="secondary">{inv.confidence}%</Badge>
-                                )}
-                            </TableCell>
+                    {uploadedFiles.length > 0 ? uploadedFiles.map((file) => (
+                        <TableRow key={file.id}>
+                            <TableCell className="font-medium">{file.filename}</TableCell>
                             <TableCell>
-                                <Badge variant={inv.status === 'Parsed' ? 'outline' : 'default'}>{t.upload.invoicePdfs.statuses[inv.status.replace(" ", "") as keyof typeof t.upload.invoicePdfs.statuses]}</Badge>
+                                <Badge variant="outline">{t.upload.uploadedFiles.kinds[file.kind as keyof typeof t.upload.uploadedFiles.kinds]}</Badge>
                             </TableCell>
+                            <TableCell>{file.createdAt ? formatDate(file.createdAt.toDate(), locale) : '...'}</TableCell>
                             <TableCell>
-                                {inv.confidence < 70 && (
-                                     <Button variant="outline" size="sm">{t.upload.invoicePdfs.edit}</Button>
-                                )}
+                                <Badge variant={file.parseStatus === 'PENDING' ? 'default' : 'outline'}>{t.upload.uploadedFiles.statuses[file.parseStatus as keyof typeof t.upload.uploadedFiles.statuses]}</Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                               <Button variant="outline" size="sm" onClick={() => handleDownload(file.storagePath, file.filename)}>
+                                   <Download className="mr-2 h-4 w-4" />
+                                   {t.exports.download}
+                               </Button>
                             </TableCell>
                         </TableRow>
-                    ))}
+                    )) : (
+                        <TableRow>
+                            <TableCell colSpan={5} className="h-24 text-center">
+                                {t.upload.uploadedFiles.empty}
+                            </TableCell>
+                        </TableRow>
+                    )}
                 </TableBody>
             </Table>
         </CardContent>

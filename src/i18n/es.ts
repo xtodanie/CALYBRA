@@ -179,6 +179,34 @@ export const es: Dict = {
         COMPLETED: 'Completado',
         FAILED: 'Fallido',
       },
+    },
+    uploadedFiles: {
+      title: 'Archivos Subidos',
+      description: 'Estos archivos se han subido para el mes actual y están pendientes de ser procesados.',
+      empty: 'Aún no se han subido archivos para este mes.',
+      table: {
+        filename: 'Nombre de archivo',
+        kind: 'Tipo',
+        uploadedAt: 'Fecha de subida',
+        status: 'Estado',
+        actions: 'Acciones',
+      },
+      kinds: {
+        BANK_CSV: 'Extracto Bancario',
+        INVOICE_PDF: 'Factura',
+        EXPORT: 'Exportación',
+      },
+      statuses: {
+        PENDING: 'Pendiente',
+        PARSED: 'Procesado',
+        FAILED: 'Fallido',
+      }
+    },
+    notifications: {
+      successTitle: 'Subida Correcta',
+      successDescription: 'se ha subido y está pendiente de procesamiento.',
+      errorTitle: 'Error de Subida',
+      downloadErrorTitle: 'Error de Descarga',
     }
   },
   matches: {
