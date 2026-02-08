@@ -72,7 +72,6 @@ export function AuthForm({ type }: AuthFormProps) {
       }
       router.push(`/${locale}/month-closes`);
     } catch (error) {
-      console.error(error);
       const err = error as FirebaseError;
       let message = t.auth.errors.default;
       if (err.code === 'auth/email-already-in-use') {
