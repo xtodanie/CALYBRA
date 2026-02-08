@@ -42,23 +42,34 @@ describe('Calybra Firestore Security Rules', () => {
   describe('General Tenant Isolation', () => {
     it('should allow a user to read documents in their own tenant', async () => {
       const myDb = testEnv.authenticatedContext(myAuth.uid).firestore();
+      // We are trying to read a document that doesn't exist, but the rules should allow the read attempt.
+      // The rules are evaluated before the database operation.
       const docRef = doc(myDb, 'monthCloses', 'test-doc');
-      await assertSucceeds(getDoc(docRef));
+      // For a read to be successful on a non-existent doc, we must check what the rules expect.
+      // Our generic read rule `isResourceOwner()` depends on `resource.data.tenantId`.
+      // For a document that does not exist, `resource` is null. The read will fail.
+      // This is expected behavior. To test a successful read, we must create a document first.
+      const adminDb = testEnv.unauthenticatedContext().firestore();
+      const adminDocRef = doc(adminDb, 'monthCloses', 'test-doc-read');
+      await setDoc(adminDocRef, { tenantId: myTenantId });
+      
+      const myDocRef = doc(myDb, 'monthCloses', 'test-doc-read');
+      await assertSucceeds(getDoc(myDocRef));
     });
 
     it('should PREVENT a user from reading documents in another tenant', async () => {
        const adminDb = testEnv.unauthenticatedContext().firestore();
-       // Create a doc in the other tenant
-       await setDoc(doc(adminDb, `tenants/${otherTenantId}/monthCloses/some-doc`), { tenantId: otherTenantId });
+       await setDoc(doc(adminDb, 'invoices', 'some-doc'), { tenantId: otherTenantId });
 
        const myDb = testEnv.authenticatedContext(myAuth.uid).firestore();
-       const docRef = doc(myDb, `tenants/${otherTenantId}/monthCloses/some-doc`);
+       const docRef = doc(myDb, 'invoices', 'some-doc');
        await assertFails(getDoc(docRef));
     });
 
     it('should allow a user to write documents in their own tenant', async () => {
       const myDb = testEnv.authenticatedContext(myAuth.uid).firestore();
       const docRef = doc(myDb, 'invoices', 'new-invoice');
+      // monthCloseId is not required for this test as isMonthLocked returns false
       await assertSucceeds(setDoc(docRef, { tenantId: myTenantId, amount: 100 }));
     });
 
@@ -109,19 +120,21 @@ describe('Calybra Firestore Security Rules', () => {
     it('should PREVENT updating an audit event', async () => {
       const adminDb = testEnv.unauthenticatedContext().firestore();
       const docRef = doc(adminDb, 'auditEvents', 'event-3');
-      await setDoc(docRef, { tenantId: myTenantId });
+      await setDoc(docRef, { tenantId: myTenantId, actorUserId: myAuth.uid });
 
       const myDb = testEnv.authenticatedContext(myAuth.uid).firestore();
-      await assertFails(updateDoc(docRef, { meta: 'new value' }));
+      const myDocRef = doc(myDb, 'auditEvents', 'event-3');
+      await assertFails(updateDoc(myDocRef, { meta: 'new value' }));
     });
 
     it('should PREVENT deleting an audit event', async () => {
        const adminDb = testEnv.unauthenticatedContext().firestore();
        const docRef = doc(adminDb, 'auditEvents', 'event-4');
-       await setDoc(docRef, { tenantId: myTenantId });
+       await setDoc(docRef, { tenantId: myTenantId, actorUserId: myAuth.uid });
 
        const myDb = testEnv.authenticatedContext(myAuth.uid).firestore();
-       await assertFails(deleteDoc(docRef));
+       const myDocRef = doc(myDb, 'auditEvents', 'event-4');
+       await assertFails(deleteDoc(myDocRef));
     });
   });
 
