@@ -14,10 +14,26 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Logo } from "@/components/logo";
-import { LayoutDashboard, Settings } from "lucide-react";
+import {
+  Settings,
+  CalendarClock,
+  UploadCloud,
+  CopyCheck,
+  AlertTriangle,
+  DownloadCloud,
+} from "lucide-react";
 
 export function AppSidebar() {
   const pathname = usePathname();
+
+  const menuItems = [
+    { href: "/dashboard", icon: CalendarClock, label: "Month Closes", active: pathname === '/dashboard' },
+    { href: "/upload", icon: UploadCloud, label: "Upload", active: pathname.startsWith("/upload") },
+    { href: "/matches", icon: CopyCheck, label: "Matches", active: pathname.startsWith("/matches") },
+    { href: "/exceptions", icon: AlertTriangle, label: "Exceptions", active: pathname.startsWith("/exceptions") },
+    { href: "/exports", icon: DownloadCloud, label: "Exports", active: pathname.startsWith("/exports") },
+    { href: "/settings", icon: Settings, label: "Settings", active: pathname.startsWith("/settings") },
+  ];
 
   return (
     <Sidebar>
@@ -26,35 +42,26 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
-          <SidebarMenuItem>
-            <Link href="/dashboard" legacyBehavior passHref>
-              <SidebarMenuButton
-                isActive={pathname.startsWith("/dashboard")}
-                tooltip="Dashboard"
-              >
-                <LayoutDashboard />
-                <span>Dashboard</span>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-             <Link href="/settings" legacyBehavior passHref>
-              <SidebarMenuButton
-                isActive={pathname.startsWith("/settings")}
-                tooltip="Settings"
-              >
-                <Settings />
-                <span>Settings</span>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
+          {menuItems.map(({ href, icon: Icon, label, active }) => (
+            <SidebarMenuItem key={href}>
+              <Link href={href} legacyBehavior passHref>
+                <SidebarMenuButton isActive={active} tooltip={label}>
+                  <Icon />
+                  <span>{label}</span>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+          ))}
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-0">
         <Separator className="mx-0 mb-2 w-full bg-sidebar-border" />
         <div className="flex items-center gap-3 p-3">
           <Avatar className="h-9 w-9">
-            <AvatarImage src="https://picsum.photos/seed/user/40/40" alt="User" />
+            <AvatarImage
+              src="https://picsum.photos/seed/user/40/40"
+              alt="User"
+            />
             <AvatarFallback>U</AvatarFallback>
           </Avatar>
           <div className="overflow-hidden">
