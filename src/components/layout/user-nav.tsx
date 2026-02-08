@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CreditCard, LogOut, Settings, User } from "lucide-react";
 import { useT } from "@/i18n/provider";
-import { LanguageSwitcher } from "./language-switcher";
 
 export function UserNav() {
   const t = useT();
@@ -59,7 +58,6 @@ export function UserNav() {
             </DropdownMenuItem>
           </Link>
         </DropdownMenuGroup>
-        <LanguageSwitcher />
         <DropdownMenuSeparator />
         <DropdownMenuItem>
           <LogOut className="mr-2 h-4 w-4" />
