@@ -4,19 +4,25 @@ import type { Timestamp } from "firebase/firestore";
 const SCHEMA_VERSION = 1;
 
 export type UserRole = "OWNER" | "MANAGER" | "ACCOUNTANT" | "VIEWER";
+export type UserPlan = "free" | "pro" | "enterprise";
+export type UserStatus = "active" | "disabled";
 
 export type User = {
   uid: string;
-  email: string;
+  email: string | null;
   tenantId: string;
   role: UserRole;
+  plan: UserPlan;
+  status: UserStatus;
   locale: 'en' | 'es';
   activeMonthCloseId?: string;
-  displayName?: string;
-  photoURL?: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
   schemaVersion: number;
+  metadata: {
+    source: "signup" | "auto-recovery";
+    recoveryCount?: number;
+  };
 };
 
 export type Tenant = {

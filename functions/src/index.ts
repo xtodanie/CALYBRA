@@ -4,9 +4,59 @@ import * as admin from "firebase-admin";
 admin.initializeApp();
 
 const db = admin.firestore();
-const storage = admin.storage();
 
-const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
+/**
+ * This function triggers when a new user is created in Firebase Authentication.
+ * It atomically creates a new `tenant` and a corresponding `user` document
+ * in Firestore, ensuring data integrity from the very beginning.
+ * This is the primary mechanism for user profile creation.
+ */
+export const onAuthCreate = functions.auth.user().onCreate(
+  async (user) => {
+    const { uid, email } = user;
+    const batch = db.batch();
+    const schemaVersion = 1;
+
+    // 1. Create a new tenant document for this user.
+    const tenantDocRef = db.collection("tenants").doc();
+    const companyName = email ? `Company for ${email}` : `Tenant for ${uid}`;
+    batch.set(tenantDocRef, {
+      name: companyName,
+      ownerId: uid,
+      timezone: "UTC", // Default, user can change later.
+      currency: "EUR",
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      schemaVersion,
+    });
+
+    // 2. Create the canonical user document.
+    const userDocRef = db.doc(`users/${uid}`);
+    batch.set(userDocRef, {
+      uid,
+      email: email ?? null,
+      tenantId: tenantDocRef.id,
+      role: "OWNER",
+      plan: "free",
+      status: "active",
+      locale: "es", // Default locale
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      schemaVersion,
+      metadata: {
+        source: "signup",
+      },
+    });
+    
+    // 3. Commit the batch.
+    try {
+        await batch.commit();
+        console.log(`Successfully created tenant and user profile for UID: ${uid}`);
+    } catch (error) {
+        console.error(`Failed to create tenant/user for UID: ${uid}`, error);
+    }
+});
+
 
 /**
  * Simulates a job process by updating the job document in Firestore through several steps.
@@ -17,6 +67,8 @@ export const processJob = functions.firestore
   .onCreate(async (snap, context) => {
     const {jobId} = context.params;
     const jobRef = db.collection("jobs").doc(jobId);
+
+    const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
     const steps = [
       {
@@ -42,6 +94,13 @@ export const processJob = functions.firestore
     ];
 
     try {
+      // Set initial status to running
+      await jobRef.update({
+          status: "RUNNING",
+          progress: { stepKey: 'jobs.steps.queued', pct: 1 },
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
       for (const step of steps) {
         await delay(step.delay);
         await jobRef.update({
@@ -122,7 +181,7 @@ export const getSignedDownloadUrl = functions.https.onCall(
       const expiryDate = new Date();
       expiryDate.setMinutes(expiryDate.getMinutes() + 15);
 
-      const [url] = await storage
+      const [url] = await admin.storage()
         .bucket()
         .file(fileAssetData.storagePath)
         .getSignedUrl({

@@ -9,7 +9,7 @@ import {
   signInWithEmailAndPassword,
   signOut
 } from 'firebase/auth';
-import { doc, serverTimestamp, collection, writeBatch, updateDoc } from 'firebase/firestore';
+import { doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebaseClient';
 import type { User } from '@/lib/types';
 import { ensureUserProfile } from '@/lib/auth/ensureUserProfile';
@@ -32,18 +32,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
+        setLoading(true);
         try {
+          // This self-healing function ensures a user profile exists.
           const userProfile = await ensureUserProfile(firebaseUser);
           setUser(userProfile);
         } catch (error) {
-          // ensureUserProfile will sign the user out and throw an error on failure.
+          // ensureUserProfile will sign the user out and throw on failure.
           // We catch it here to stop execution and keep the user state as null.
+          console.warn("Auth context setup failed during ensureUserProfile.", error);
           setUser(null);
+        } finally {
+          setLoading(false);
         }
       } else {
         setUser(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -54,41 +59,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signup = async (email: string, pass: string, companyName: string) => {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-    const firebaseUser = userCredential.user;
-
-    // Use a batch to ensure atomic creation of tenant and user docs
-    const batch = writeBatch(db);
-    const schemaVersion = 1;
-
-    // 1. Create a new tenant document reference with an auto-generated ID
-    const tenantDocRef = doc(collection(db, 'tenants'));
-    batch.set(tenantDocRef, {
-      name: companyName,
-      ownerId: firebaseUser.uid,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      currency: 'EUR',
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      schemaVersion,
-    });
-
-    // 2. Create the user profile document reference
-    const userDocRef = doc(db, 'users', firebaseUser.uid);
-    batch.set(userDocRef, {
-      schemaVersion,
-      tenantId: tenantDocRef.id,
-      email: firebaseUser.email,
-      role: 'OWNER',
-      locale: 'es', // Default locale
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-
-    // 3. Commit the batch
-    await batch.commit();
-
-    return userCredential;
+    // Client only creates the Auth user. The `onAuthCreate` Cloud Function
+    // is responsible for creating the tenant and user documents atomically.
+    // We pass the companyName to the function via a temporary mechanism or
+    // have the user update it in a subsequent "onboarding" step.
+    // For now, the Cloud Function will generate a default name.
+    return createUserWithEmailAndPassword(auth, email, pass);
   };
   
   const logout = async () => {

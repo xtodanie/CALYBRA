@@ -48,15 +48,20 @@ service cloud.firestore {
     }
 
     // USERS
-    // A user can create their own user document and read/update it.
-    // Nobody can delete user documents.
+    // Users can read/create their own doc.
+    // Updates are restricted to prevent self-elevation of roles or tenant switching.
+    // Deletion is forbidden to prevent orphaned auth users.
     match /users/{userId} {
-      allow create: if isUser(userId);
       allow read: if isUser(userId);
-      allow update: if isUser(userId) && 
-                     !('tenantId' in request.resource.data) &&
-                     !('role' in request.resource.data) &&
-                     !('email' in request.resource.data);
+      allow create: if isUser(userId);
+      allow update: if isUser(userId) &&
+                     // Protect critical fields from being changed by the user
+                     request.resource.data.uid == resource.data.uid &&
+                     request.resource.data.email == resource.data.email &&
+                     request.resource.data.tenantId == resource.data.tenantId &&
+                     request.resource.data.role == resource.data.role &&
+                     request.resource.data.plan == resource.data.plan &&
+                     request.resource.data.createdAt == resource.data.createdAt;
       allow delete: if false;
     }
 
@@ -90,7 +95,7 @@ service cloud.firestore {
     match /jobs/{jobId} {
         allow create: if isSignedIn() && isRequestingOwner();
         allow read: if isSignedIn() && isResourceOwner();
-        allow update, delete: if false;
+        allow update, delete: if false; // Updates must be server-side only.
     }
 
     // --- Tenant-Scoped Collections ---
