@@ -15,6 +15,7 @@ const otherAuth = { uid: 'user-xyz', email: 'xyz@example.com' };
 const newAuth = { uid: 'user-new', email: 'new@example.com' }; // For creation tests
 const myTenantId = 'tenant-1';
 const otherTenantId = 'tenant-2';
+const myMonthId = 'month-abc';
 
 beforeAll(async () => {
   testEnv = await initializeTestEnvironment({
@@ -40,14 +41,14 @@ beforeEach(async () => {
 
 
 describe('Calybra Firestore Security Rules', () => {
-  
+
   describe('General Tenant Isolation', () => {
     it('should allow a user to read documents in their own tenant', async () => {
       const myDb = testEnv.authenticatedContext(myAuth.uid).firestore();
       const adminDb = testEnv.unauthenticatedContext().firestore();
       const adminDocRef = doc(adminDb, 'monthCloses', 'test-doc-read');
       await setDoc(adminDocRef, { tenantId: myTenantId });
-      
+
       const myDocRef = doc(myDb, 'monthCloses', 'test-doc-read');
       await assertSucceeds(getDoc(myDocRef));
     });
@@ -87,10 +88,16 @@ describe('Calybra Firestore Security Rules', () => {
       await assertFails(getDoc(docRef));
     });
 
-    it('should allow a user to update their own profile', async () => {
+    it('should allow a user to update their own activeMonthCloseId', async () => {
        const myDb = testEnv.authenticatedContext(myAuth.uid).firestore();
        const docRef = doc(myDb, 'users', myAuth.uid);
-       await assertSucceeds(updateDoc(docRef, { locale: 'en' }));
+       await assertSucceeds(updateDoc(docRef, { activeMonthCloseId: 'new-month' }));
+    });
+
+    it('should PREVENT a user from updating their tenantId', async () => {
+       const myDb = testEnv.authenticatedContext(myAuth.uid).firestore();
+       const docRef = doc(myDb, 'users', myAuth.uid);
+       await assertFails(updateDoc(docRef, { tenantId: 'new-tenant' }));
     });
 
     it('should allow a user to create their own user document', async () => {
@@ -122,7 +129,7 @@ describe('Calybra Firestore Security Rules', () => {
     it('should allow a member to read their own tenant document', async () => {
       const adminDb = testEnv.unauthenticatedContext().firestore();
       await setDoc(doc(adminDb, 'tenants', myTenantId), { name: 'MyCo', ownerId: myAuth.uid });
-      
+
       const myDb = testEnv.authenticatedContext(myAuth.uid).firestore();
       const myTenantDoc = doc(myDb, 'tenants', myTenantId);
       await assertSucceeds(getDoc(myTenantDoc));
@@ -142,8 +149,8 @@ describe('Calybra Firestore Security Rules', () => {
     it('should allow a user to create an audit event for their own tenant', async () => {
       const myDb = testEnv.authenticatedContext(myAuth.uid).firestore();
       const docRef = doc(myDb, 'auditEvents', 'event-1');
-      await assertSucceeds(setDoc(docRef, { 
-          tenantId: myTenantId, 
+      await assertSucceeds(setDoc(docRef, {
+          tenantId: myTenantId,
           actor: myAuth.uid,
           action: 'test.action',
           createdAt: serverTimestamp() // This is how you test server timestamps
@@ -153,8 +160,8 @@ describe('Calybra Firestore Security Rules', () => {
     it('should PREVENT creating an audit event for another tenant', async () => {
         const myDb = testEnv.authenticatedContext(myAuth.uid).firestore();
         const docRef = doc(myDb, 'auditEvents', 'event-2');
-        await assertFails(setDoc(docRef, { 
-            tenantId: otherTenantId, 
+        await assertFails(setDoc(docRef, {
+            tenantId: otherTenantId,
             action: 'cross.tenant.write',
             createdAt: serverTimestamp()
         }));
@@ -190,7 +197,7 @@ describe('Calybra Firestore Security Rules', () => {
             status: 'CONFIRMED' // This is the forbidden field
         }));
     });
-    
+
     it('should PREVENT a client from setting a match finalizedBy directly', async () => {
         const myDb = testEnv.authenticatedContext(myAuth.uid).firestore();
         const matchRef = doc(myDb, 'matches', 'match-2');
@@ -208,5 +215,18 @@ describe('Calybra Firestore Security Rules', () => {
             score: 80 // A client-settable field
         }));
     });
+  });
+
+  describe('Job Rules', () => {
+      it('should allow creating a job for your own tenant', async () => {
+          const db = testEnv.authenticatedContext(myAuth.uid).firestore();
+          const jobRef = doc(db, 'jobs', 'job-1');
+          await assertSucceeds(setDoc(jobRef, { tenantId: myTenantId, monthCloseId: myMonthId }));
+      });
+      it('should PREVENT creating a job for another tenant', async () => {
+          const db = testEnv.authenticatedContext(myAuth.uid).firestore();
+          const jobRef = doc(db, 'jobs', 'job-1');
+          await assertFails(setDoc(jobRef, { tenantId: otherTenantId, monthCloseId: myMonthId }));
+      });
   });
 });

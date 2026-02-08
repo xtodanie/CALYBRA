@@ -37,13 +37,25 @@ export const en = {
       status: 'Status',
       difference: 'Difference',
       exceptions: 'Open Exceptions',
+      actions: 'Actions'
     },
     status: {
       DRAFT: 'Draft',
       PROCESSING: 'Processing',
       READY: 'Ready for Review',
       LOCKED: 'Locked',
-    }
+    },
+    setActive: 'Set active',
+    active: 'Active',
+    create: {
+      title: 'Close a New Month',
+      description: 'Select the start and end date for the period you want to close. This is usually the first and last day of a calendar month.',
+      periodStart: 'Period Start',
+      periodEnd: 'Period End',
+      cta: 'Create Closing Period',
+      success: 'Month close created successfully.',
+      error: 'Failed to create month close.',
+    },
   },
   monthClose: {
     title: 'Current Month',
@@ -102,6 +114,11 @@ export const en = {
     context: {
       activeMonth: 'Active Month',
       viewOverview: 'View Month Overview',
+      noActiveMonth: {
+        title: 'No Active Month',
+        description: 'You must select an active month to work on. Please go to the Month Closes page to select or create a new closing period.',
+        cta: 'Select a Month',
+      },
     },
   },
   auth: {
@@ -169,14 +186,26 @@ export const en = {
       edit: 'Edit',
     },
     processing: {
-      title: '3. Processing',
-      description: 'We are processing your files. You can leave this page and come back later.',
+      title: '3. Processing Jobs',
+      description: 'We are processing your files. You can monitor the progress below.',
+      empty: 'No jobs are currently running for this month.',
       jobStatuses: {
         PENDING: 'Pending',
         RUNNING: 'Running',
         COMPLETED: 'Completed',
         FAILED: 'Failed',
       },
+      jobSteps: {
+        queued: 'Queued',
+        downloading: 'Downloading...',
+        preparing: 'Preparing...',
+        finalizing: 'Finalizing...',
+        completed: 'Completed',
+      },
+      jobTypes: {
+        PARSE_BANK_CSV: 'Parse Bank CSV',
+        PARSE_INVOICE_PDF: 'Parse Invoice PDF',
+      }
     },
     uploadedFiles: {
       title: 'Uploaded Files',
@@ -202,7 +231,7 @@ export const en = {
     },
     notifications: {
       successTitle: 'Upload Successful',
-      successDescription: 'has been uploaded and is pending processing.',
+      successDescription: 'has been uploaded and a processing job has been created.',
       errorTitle: 'Upload Failed',
       downloadErrorTitle: 'Download Failed',
     }

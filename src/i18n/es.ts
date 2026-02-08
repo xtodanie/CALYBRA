@@ -39,13 +39,25 @@ export const es: Dict = {
       status: 'Estado',
       difference: 'Diferencia',
       exceptions: 'Excepciones Abiertas',
+      actions: 'Acciones'
     },
     status: {
       DRAFT: 'Borrador',
       PROCESSING: 'Procesando',
       READY: 'Listo para Revisar',
       LOCKED: 'Bloqueado',
-    }
+    },
+    setActive: 'Marcar como activo',
+    active: 'Activo',
+    create: {
+      title: 'Cerrar un Nuevo Mes',
+      description: 'Selecciona la fecha de inicio y fin para el período que quieres cerrar. Normalmente es el primer y último día de un mes natural.',
+      periodStart: 'Inicio del Período',
+      periodEnd: 'Fin del Período',
+      cta: 'Crear Período de Cierre',
+      success: 'Período de cierre creado con éxito.',
+      error: 'Error al crear el período de cierre.',
+    },
   },
   monthClose: {
     title: 'Mes Actual',
@@ -102,8 +114,13 @@ export const es: Dict = {
       april: 'Abril 2024',
     },
     context: {
-        activeMonth: 'Mes Activo',
-        viewOverview: 'Ver Resumen del Mes',
+      activeMonth: 'Mes Activo',
+      viewOverview: 'Ver Resumen del Mes',
+      noActiveMonth: {
+        title: 'No hay Mes Activo',
+        description: 'Debes seleccionar un mes activo para trabajar. Por favor, ve a la página de Cierres Mensuales para seleccionar o crear un nuevo período de cierre.',
+        cta: 'Seleccionar un Mes',
+      },
     },
   },
   auth: {
@@ -171,14 +188,26 @@ export const es: Dict = {
       edit: 'Editar',
     },
     processing: {
-      title: '3. Procesamiento',
-      description: 'Estamos procesando tus archivos. Puedes salir de esta página y volver más tarde.',
+      title: '3. Tareas de Procesamiento',
+      description: 'Estamos procesando tus archivos. Puedes monitorizar el progreso a continuación.',
+      empty: 'No hay tareas en ejecución para este mes.',
       jobStatuses: {
         PENDING: 'Pendiente',
         RUNNING: 'En curso',
         COMPLETED: 'Completado',
         FAILED: 'Fallido',
       },
+      jobSteps: {
+        queued: 'En cola',
+        downloading: 'Descargando...',
+        preparing: 'Preparando...',
+        finalizing: 'Finalizando...',
+        completed: 'Completado',
+      },
+      jobTypes: {
+        PARSE_BANK_CSV: 'Procesar CSV Bancario',
+        PARSE_INVOICE_PDF: 'Procesar PDF de Factura',
+      }
     },
     uploadedFiles: {
       title: 'Archivos Subidos',
@@ -204,7 +233,7 @@ export const es: Dict = {
     },
     notifications: {
       successTitle: 'Subida Correcta',
-      successDescription: 'se ha subido y está pendiente de procesamiento.',
+      successDescription: 'se ha subido y se ha creado una tarea de procesamiento.',
       errorTitle: 'Error de Subida',
       downloadErrorTitle: 'Error de Descarga',
     }

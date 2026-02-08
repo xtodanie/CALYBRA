@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, createContext, useContext } from 'react';
+import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { 
   onAuthStateChanged, 
   User as FirebaseUser, 
@@ -9,9 +9,9 @@ import {
   signInWithEmailAndPassword,
   signOut
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp, collection, writeBatch } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp, collection, writeBatch, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebaseClient';
-import { User } from '@/lib/types';
+import type { User } from '@/lib/types';
 
 type AuthContextType = {
   user: User | null;
@@ -19,6 +19,7 @@ type AuthContextType = {
   login: (email: string, pass: string) => Promise<any>;
   signup: (email: string, pass: string, companyName: string) => Promise<any>;
   logout: () => Promise<void>;
+  setActiveMonthClose: (monthCloseId: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,20 +28,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const fetchUserDoc = useCallback(async (firebaseUser: FirebaseUser) => {
+    const userDocRef = doc(db, 'users', firebaseUser.uid);
+    const userDoc = await getDoc(userDocRef);
+    if (userDoc.exists()) {
+      const userData = { uid: firebaseUser.uid, ...userDoc.data() } as User;
+      setUser(userData);
+      return userData;
+    } else {
+      // This case can happen if the user doc creation fails after auth creation.
+      // Or if the user is from an old system. For now, we sign them out.
+      console.error("Authenticated user has no user document. Signing out.");
+      await signOut(auth);
+      setUser(null);
+      return null;
+    }
+  }, []);
+
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        const userDocRef = doc(db, 'users', firebaseUser.uid);
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-          setUser({ uid: firebaseUser.uid, ...userDoc.data() } as User);
-        } else {
-          // This case can happen if the user doc creation fails after auth creation.
-          // Or if the user is from an old system. For now, we sign them out.
-          console.error("Authenticated user has no user document. Signing out.");
-          await signOut(auth);
-          setUser(null);
-        }
+        await fetchUserDoc(firebaseUser);
       } else {
         setUser(null);
       }
@@ -48,7 +57,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [fetchUserDoc]);
 
   const login = (email: string, pass: string) => {
     return signInWithEmailAndPassword(auth, email, pass);
@@ -96,8 +105,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     await signOut(auth);
   };
 
+  const setActiveMonthClose = async (monthCloseId: string) => {
+    if (!user) return;
+    const userDocRef = doc(db, 'users', user.uid);
+    await updateDoc(userDocRef, { 
+      activeMonthCloseId: monthCloseId,
+      updatedAt: serverTimestamp() 
+    });
+    // Optimistically update local state or refetch user doc
+    setUser(prevUser => prevUser ? { ...prevUser, activeMonthCloseId: monthCloseId } : null);
+  };
+
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, setActiveMonthClose }}>
       {children}
     </AuthContext.Provider>
   );

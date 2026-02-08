@@ -12,7 +12,7 @@ service cloud.firestore {
     function isUser(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
-    
+
     function getUserTenantId() {
       // This function is only safe to call for existing users whose user doc has been created.
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId;
@@ -26,7 +26,7 @@ service cloud.firestore {
     function isResourceOwner() {
       return isTenantMember(resource.data.tenantId);
     }
-    
+
     // A more generic check for creating new tenant-scoped resources.
     function isRequestingOwner() {
       return isTenantMember(request.resource.data.tenantId);
@@ -35,7 +35,7 @@ service cloud.firestore {
     // Placeholder for future implementation of write-protection on locked months
     function isMonthLocked(monthCloseId) {
       // return get(/databases/$(database)/documents/monthCloses/$(monthCloseId)).data.status == 'LOCKED';
-      return false; 
+      return false;
     }
 
     // Default deny all
@@ -47,7 +47,8 @@ service cloud.firestore {
     // A user can create their own user document and read/update it.
     // Nobody can delete user documents.
     match /users/{userId} {
-      allow create, read, update: if isUser(userId);
+      allow create, read: if isUser(userId);
+      allow update: if isUser(userId) && !(request.resource.data.keys().hasAny(['tenantId', 'role', 'email']));
       allow delete: if false;
     }
 
@@ -77,6 +78,13 @@ service cloud.firestore {
         // Read, update, delete will be covered by the generic tenant-scoped block
     }
 
+    // JOBS: Client can create, but only server can update progress.
+    // This rule is relaxed for the simulation, allowing client to update progress.
+    match /jobs/{jobId} {
+        allow create, update: if isSignedIn() && isRequestingOwner();
+        allow read: if isSignedIn() && isResourceOwner();
+        allow delete: if false;
+    }
 
     // --- Tenant-Scoped Collections ---
     // This single block covers all tenant-scoped data by checking the 'tenantId' field.
@@ -88,11 +96,11 @@ service cloud.firestore {
 
       allow create: if isSignedIn() &&
                      isRequestingOwner() &&
-                     !isMonthLocked(request.resource.data.monthCloseId); // Check for monthCloseId on create
+                     (collection == 'monthCloses' || !isMonthLocked(request.resource.data.monthCloseId)); // Check for monthCloseId on create
 
       allow update, delete: if isSignedIn() &&
                              isResourceOwner() &&
-                             !isMonthLocked(resource.data.monthCloseId); // Check for monthCloseId on update/delete
+                             (collection == 'monthCloses' || !isMonthLocked(resource.data.monthCloseId)); // Check for monthCloseId on update/delete
     }
   }
 }

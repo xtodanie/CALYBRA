@@ -7,11 +7,18 @@ export function formatMoney(amount: number, locale: Locale): string {
   }).format(amount);
 }
 
-export function formatDate(date: Date | string | number, locale: Locale): string {
+type DateFormatOptions = {
+    year?: 'numeric' | '2-digit';
+    month?: 'numeric' | '2-digit' | 'long' | 'short' | 'narrow';
+    day?: 'numeric' | '2-digit';
+}
+
+export function formatDate(date: Date | string | number, locale: Locale, options?: DateFormatOptions): string {
     const dateObj = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
-    return new Intl.DateTimeFormat(locale, {
+    const defaultOptions: DateFormatOptions = {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
-    }).format(dateObj);
+    };
+    return new Intl.DateTimeFormat(locale, { ...defaultOptions, ...options }).format(dateObj);
 }

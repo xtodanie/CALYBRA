@@ -11,6 +11,7 @@ export type User = {
   tenantId: string;
   role: UserRole;
   locale: 'en' | 'es';
+  activeMonthCloseId?: string;
   displayName?: string;
   photoURL?: string;
   createdAt: Timestamp;
@@ -166,14 +167,14 @@ export type Exception = {
 };
 
 
-export type JobType = 
-  | "PARSE_BANK_CSV" 
-  | "PARSE_INVOICE_PDF" 
-  | "NORMALIZE" 
-  | "MATCH" 
-  | "SUMMARIZE" 
+export type JobType =
+  | "PARSE_BANK_CSV"
+  | "PARSE_INVOICE_PDF"
+  | "NORMALIZE"
+  | "MATCH"
+  | "SUMMARIZE"
   | "EXPORT";
-  
+
 export type JobStatus = "PENDING" | "RUNNING" | "COMPLETED" | "FAILED";
 
 export type Job = {
@@ -182,13 +183,21 @@ export type Job = {
   monthCloseId: string;
   type: JobType;
   status: JobStatus;
-  progress: number;
-  error?: string | null;
-  refFileId?: string | null;
+  progress: {
+    stepKey: string,
+    pct: number,
+  },
+  error: {
+    code: string,
+    messageKey: string,
+    params?: Record<string, any>,
+  } | null;
+  refFileId: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
   schemaVersion: number;
 };
+
 
 // New AuditEvent contract as per Phase 2 requirements
 export type AuditEvent = {
