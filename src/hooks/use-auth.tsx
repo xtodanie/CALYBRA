@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
+import React, { useState, useEffect, createContext, useContext } from 'react';
 import { 
   onAuthStateChanged, 
   User as FirebaseUser, 
@@ -9,9 +9,10 @@ import {
   signInWithEmailAndPassword,
   signOut
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp, collection, writeBatch, updateDoc } from 'firebase/firestore';
+import { doc, serverTimestamp, collection, writeBatch, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebaseClient';
 import type { User } from '@/lib/types';
+import { ensureUserProfile } from '@/lib/auth/ensureUserProfile';
 
 type AuthContextType = {
   user: User | null;
@@ -28,28 +29,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchUserDoc = useCallback(async (firebaseUser: FirebaseUser) => {
-    const userDocRef = doc(db, 'users', firebaseUser.uid);
-    const userDoc = await getDoc(userDocRef);
-    if (userDoc.exists()) {
-      const userData = { uid: firebaseUser.uid, ...userDoc.data() } as User;
-      setUser(userData);
-      return userData;
-    } else {
-      // This case can happen if the user doc creation fails after auth creation.
-      // Or if the user is from an old system. For now, we sign them out.
-      console.warn("Authenticated user has no user document. Signing out.");
-      await signOut(auth);
-      setUser(null);
-      return null;
-    }
-  }, []);
-
-
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        await fetchUserDoc(firebaseUser);
+        try {
+          const userProfile = await ensureUserProfile(firebaseUser);
+          setUser(userProfile);
+        } catch (error) {
+          // ensureUserProfile will sign the user out and throw an error on failure.
+          // We catch it here to stop execution and keep the user state as null.
+          setUser(null);
+        }
       } else {
         setUser(null);
       }
@@ -57,7 +47,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     return () => unsubscribe();
-  }, [fetchUserDoc]);
+  }, []);
 
   const login = (email: string, pass: string) => {
     return signInWithEmailAndPassword(auth, email, pass);
@@ -86,13 +76,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // 2. Create the user profile document reference
     const userDocRef = doc(db, 'users', firebaseUser.uid);
     batch.set(userDocRef, {
-      tenantId: tenantDocRef.id, // Use the same auto-generated ID for the tenant
+      schemaVersion,
+      tenantId: tenantDocRef.id,
       email: firebaseUser.email,
       role: 'OWNER',
-      locale: 'es', // Default locale to Spanish as per spec
+      locale: 'es', // Default locale
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-      schemaVersion,
     });
 
     // 3. Commit the batch
