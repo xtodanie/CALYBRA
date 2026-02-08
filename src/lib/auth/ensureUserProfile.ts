@@ -4,7 +4,7 @@ import { auth, db } from "@/lib/firebaseClient";
 import type { User } from "@/lib/types";
 
 /**
- * CALYBRA AUTH INTEGRITY GUARD
+ * CALYBRA AUTH INTEGRITY GUARD (READ-ONLY)
  *
  * This function is the client-side safety net for user authentication.
  * Its only job is to ensure that an authenticated user has a corresponding
@@ -13,13 +13,12 @@ import type { User } from "@/lib/types";
  * The primary creation of user and tenant documents is handled by the
  * `onAuthCreate` Cloud Function, which is more reliable and secure.
  *
- * This client-side check handles edge cases, such as:
- * - Firestore data being cleared in the emulator while the auth session persists.
- * - A race condition where the client auth state is resolved before the
- *   `onAuthCreate` function completes.
+ * This client-side check handles edge cases where the client auth state
+ * resolves before the `onAuthCreate` function has completed, or if
+ * Firestore data has been cleared (e.g., in the emulator).
  *
  * If the user document is missing, it signs the user out. It does NOT attempt
- * to create any documents, as that is the backend's responsibility.
+ * to create any documents, as that is the backend's exclusive responsibility.
  *
  * Contract:
  * - Returns User object if the session and profile are valid.

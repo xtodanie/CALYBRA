@@ -40,6 +40,9 @@ export const onAuthCreate = functions.auth.user().onCreate(
         schemaVersion: 1,
         createdAt: now,
         updatedAt: now,
+        metadata: {
+          source: "signup"
+        }
       });
     });
   }
