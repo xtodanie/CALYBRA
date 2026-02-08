@@ -1,3 +1,4 @@
+
 import {
   assertFails,
   assertSucceeds,
@@ -11,6 +12,7 @@ let testEnv: RulesTestEnvironment;
 const MY_PROJECT_ID = 'calybra-test';
 const myAuth = { uid: 'user-abc', email: 'abc@example.com' };
 const otherAuth = { uid: 'user-xyz', email: 'xyz@example.com' };
+const newAuth = { uid: 'user-new', email: 'new@example.com' }; // For creation tests
 const myTenantId = 'tenant-1';
 const otherTenantId = 'tenant-2';
 
@@ -30,7 +32,7 @@ afterAll(async () => {
 
 beforeEach(async () => {
     await testEnv.clearFirestore();
-    // Setup initial user and tenant data
+    // Setup initial user and tenant data for tests that require existing users.
     const adminDb = testEnv.unauthenticatedContext().firestore();
     await setDoc(doc(adminDb, 'users', myAuth.uid), { tenantId: myTenantId, email: myAuth.email });
     await setDoc(doc(adminDb, 'users', otherAuth.uid), { tenantId: otherTenantId, email: otherAuth.email });
@@ -42,13 +44,6 @@ describe('Calybra Firestore Security Rules', () => {
   describe('General Tenant Isolation', () => {
     it('should allow a user to read documents in their own tenant', async () => {
       const myDb = testEnv.authenticatedContext(myAuth.uid).firestore();
-      // We are trying to read a document that doesn't exist, but the rules should allow the read attempt.
-      // The rules are evaluated before the database operation.
-      const docRef = doc(myDb, 'monthCloses', 'test-doc');
-      // For a read to be successful on a non-existent doc, we must check what the rules expect.
-      // Our generic read rule `isResourceOwner()` depends on `resource.data.tenantId`.
-      // For a document that does not exist, `resource` is null. The read will fail.
-      // This is expected behavior. To test a successful read, we must create a document first.
       const adminDb = testEnv.unauthenticatedContext().firestore();
       const adminDocRef = doc(adminDb, 'monthCloses', 'test-doc-read');
       await setDoc(adminDocRef, { tenantId: myTenantId });
@@ -69,7 +64,6 @@ describe('Calybra Firestore Security Rules', () => {
     it('should allow a user to write documents in their own tenant', async () => {
       const myDb = testEnv.authenticatedContext(myAuth.uid).firestore();
       const docRef = doc(myDb, 'invoices', 'new-invoice');
-      // monthCloseId is not required for this test as isMonthLocked returns false
       await assertSucceeds(setDoc(docRef, { tenantId: myTenantId, amount: 100 }));
     });
 
@@ -98,7 +92,52 @@ describe('Calybra Firestore Security Rules', () => {
        const docRef = doc(myDb, 'users', myAuth.uid);
        await assertSucceeds(updateDoc(docRef, { locale: 'en' }));
     });
+
+    it('should allow a user to create their own user document', async () => {
+      const newDb = testEnv.authenticatedContext(newAuth.uid).firestore();
+      const newUserDoc = doc(newDb, 'users', newAuth.uid);
+      await assertSucceeds(setDoc(newUserDoc, { email: newAuth.email, tenantId: 'new-tenant-id' }));
+    });
+
+    it('should PREVENT a user from creating a document for another user', async () => {
+      const myDb = testEnv.authenticatedContext(myAuth.uid).firestore();
+      const anotherUserDoc = doc(myDb, 'users', newAuth.uid);
+      await assertFails(setDoc(anotherUserDoc, { email: newAuth.email, tenantId: myTenantId }));
+    });
   });
+
+  describe('Tenant Rules', () => {
+    it('should allow a user to create a tenant where they are the owner', async () => {
+      const newDb = testEnv.authenticatedContext(newAuth.uid).firestore();
+      const newTenantDoc = doc(newDb, 'tenants', 'new-tenant');
+      await assertSucceeds(setDoc(newTenantDoc, { name: 'NewCo', ownerId: newAuth.uid }));
+    });
+
+    it('should PREVENT a user from creating a tenant and assigning a different owner', async () => {
+      const newDb = testEnv.authenticatedContext(newAuth.uid).firestore();
+      const newTenantDoc = doc(newDb, 'tenants', 'new-tenant');
+      await assertFails(setDoc(newTenantDoc, { name: 'HijackedCo', ownerId: otherAuth.uid }));
+    });
+
+    it('should allow a member to read their own tenant document', async () => {
+      const adminDb = testEnv.unauthenticatedContext().firestore();
+      await setDoc(doc(adminDb, 'tenants', myTenantId), { name: 'MyCo', ownerId: myAuth.uid });
+      
+      const myDb = testEnv.authenticatedContext(myAuth.uid).firestore();
+      const myTenantDoc = doc(myDb, 'tenants', myTenantId);
+      await assertSucceeds(getDoc(myTenantDoc));
+    });
+
+    it('should PREVENT a user from reading a tenant document they are not a member of', async () => {
+      const adminDb = testEnv.unauthenticatedContext().firestore();
+      await setDoc(doc(adminDb, 'tenants', otherTenantId), { name: 'OtherCo', ownerId: otherAuth.uid });
+
+      const myDb = testEnv.authenticatedContext(myAuth.uid).firestore();
+      const otherTenantDoc = doc(myDb, 'tenants', otherTenantId);
+      await assertFails(getDoc(otherTenantDoc));
+    });
+  });
+
 
   describe('Audit Event Rules', () => {
     it('should allow an authenticated user to create an audit event for their own tenant', async () => {

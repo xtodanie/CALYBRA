@@ -9,10 +9,9 @@ import {
   signInWithEmailAndPassword,
   signOut
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp, addDoc, collection } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
-import { User, Tenant } from '@/lib/types';
-import { useT } from '@/i18n/provider';
+import { doc, setDoc, getDoc, serverTimestamp, addDoc, collection, writeBatch } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebaseClient';
+import { User } from '@/lib/types';
 
 type AuthContextType = {
   user: User | null;
@@ -36,7 +35,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (userDoc.exists()) {
           setUser({ uid: firebaseUser.uid, ...userDoc.data() } as User);
         } else {
-          setUser(null); // Or handle case where user doc doesn't exist
+          // This case can happen if the user doc creation fails after auth creation.
+          // Or if the user is from an old system. For now, we sign them out.
+          console.error("Authenticated user has no user document. Signing out.");
+          await signOut(auth);
+          setUser(null);
         }
       } else {
         setUser(null);
@@ -55,7 +58,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
     const firebaseUser = userCredential.user;
 
-    const tenantRef = await addDoc(collection(db, 'tenants'), {
+    // Use a batch to ensure atomic creation of tenant and user docs
+    const batch = writeBatch(db);
+
+    // 1. Create a new tenant document reference with an auto-generated ID
+    const tenantDocRef = doc(collection(db, 'tenants'));
+    batch.set(tenantDocRef, {
       name: companyName,
       ownerId: firebaseUser.uid,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -64,15 +72,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       updatedAt: serverTimestamp(),
     });
 
+    // 2. Create the user profile document reference
     const userDocRef = doc(db, 'users', firebaseUser.uid);
-    await setDoc(userDocRef, {
-      tenantId: tenantRef.id,
+    batch.set(userDocRef, {
+      tenantId: tenantDocRef.id, // Use the same auto-generated ID for the tenant
       email: firebaseUser.email,
       role: 'OWNER',
-      locale: 'es',
+      locale: 'es', // Default locale to Spanish as per spec
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
+
+    // 3. Commit the batch
+    await batch.commit();
 
     return userCredential;
   };

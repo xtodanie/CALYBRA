@@ -1,3 +1,4 @@
+
 'use client';
 import Link from 'next/link';
 import { useT, useLocale } from '@/i18n/provider';
@@ -18,7 +19,7 @@ import { formatMoney } from '@/i18n/format';
 import { ChevronRight, Download } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { db, storage } from '@/lib/firebase';
+import { db, storage } from '@/lib/firebaseClient';
 import { collection, addDoc, serverTimestamp, query, where, onSnapshot } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useToast } from '@/hooks/use-toast';

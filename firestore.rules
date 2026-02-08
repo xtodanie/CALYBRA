@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -13,6 +14,7 @@ service cloud.firestore {
     }
     
     function getUserTenantId() {
+      // This function is only safe to call for existing users whose user doc has been created.
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId;
     }
 
@@ -20,13 +22,14 @@ service cloud.firestore {
        return isSignedIn() && getUserTenantId() == tenantId;
     }
 
-    // A more generic check for tenant-scoped resources
+    // A more generic check for reading/updating/deleting existing tenant-scoped resources.
     function isResourceOwner() {
       return isTenantMember(resource.data.tenantId);
     }
     
+    // A more generic check for creating new tenant-scoped resources.
     function isRequestingOwner() {
-        return isTenantMember(request.resource.data.tenantId);
+      return isTenantMember(request.resource.data.tenantId);
     }
 
     // Placeholder for future implementation
@@ -41,18 +44,24 @@ service cloud.firestore {
     }
 
     // USERS
+    // A user can create their own user document and read/update it.
+    // Nobody can delete user documents.
     match /users/{userId} {
-      allow read, update: if isUser(userId);
-      // Deny create/delete for now. Creation happens via auth triggers.
-      allow create, delete: if false;
+      allow create, read, update: if isUser(userId);
+      allow delete: if false;
     }
 
     // TENANTS
+    // A user can create a tenant if they set themselves as the owner.
+    // They can read/update it only if they are a member of that tenant.
     match /tenants/{tenantId} {
-      allow read, write: if isTenantMember(tenantId);
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow read, update: if isTenantMember(tenantId);
+      allow delete: if false; // Tenants should not be deletable through the client.
     }
 
     // AUDIT EVENTS: Create-only, append-only
+    // An authenticated user can create an audit event for their own tenant.
     match /auditEvents/{eventId} {
       allow create: if isSignedIn() && isRequestingOwner();
       allow read, update, delete: if false;
