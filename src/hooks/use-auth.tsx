@@ -58,12 +58,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return signInWithEmailAndPassword(auth, email, pass);
   };
 
-  const signup = async (email: string, pass: string, companyName: string) => {
+  const signup = async (email: string, pass: string) => {
     // Client only creates the Auth user. The `onAuthCreate` Cloud Function
     // is responsible for creating the tenant and user documents atomically.
-    // We pass the companyName to the function via a temporary mechanism or
-    // have the user update it in a subsequent "onboarding" step.
-    // For now, the Cloud Function will generate a default name.
     return createUserWithEmailAndPassword(auth, email, pass);
   };
   
@@ -74,6 +71,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const setActiveMonthClose = async (monthCloseId: string) => {
     if (!user) return;
     const userDocRef = doc(db, 'users', user.uid);
+    // Note: The Firestore rules only allow a user to update their own document,
+    // but not critical fields. We are only updating a non-critical field here.
+    // In a future phase, we could move this to a Cloud Function if more complex
+    // logic or validation is needed.
     await updateDoc(userDocRef, { 
       activeMonthCloseId: monthCloseId,
       updatedAt: serverTimestamp() 

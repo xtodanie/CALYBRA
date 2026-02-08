@@ -48,12 +48,12 @@ service cloud.firestore {
     }
 
     // USERS
-    // Users can read/create their own doc.
+    // Users can read their own doc.
     // Updates are restricted to prevent self-elevation of roles or tenant switching.
-    // Deletion is forbidden to prevent orphaned auth users.
+    // Creation and Deletion are forbidden from the client to enforce server-side control.
     match /users/{userId} {
       allow read: if isUser(userId);
-      allow create: if isUser(userId);
+      allow create: if false;
       allow update: if isUser(userId) &&
                      // Protect critical fields from being changed by the user
                      request.resource.data.uid == resource.data.uid &&
@@ -66,12 +66,13 @@ service cloud.firestore {
     }
 
     // TENANTS
-    // A user can create a tenant if they set themselves as the owner.
-    // They can read/update it only if they are a member of that tenant.
+    // Tenants cannot be created, updated, or deleted from the client.
+    // They can only be read by a member of that tenant.
     match /tenants/{tenantId} {
-      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
-      allow read, update: if isTenantMember(tenantId);
-      allow delete: if false; // Tenants should not be deletable through the client.
+      allow create: if false;
+      allow read: if isTenantMember(tenantId);
+      allow update: if false;
+      allow delete: if false;
     }
 
     // AUDIT EVENTS: Create-only, append-only
