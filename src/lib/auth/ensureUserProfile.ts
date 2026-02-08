@@ -78,7 +78,7 @@ export async function ensureUserProfile(firebaseUser: FirebaseUser): Promise<Use
     } as unknown as User;
 
   } catch (err) {
-    console.error(
+    console.warn(
       "CALYBRA: CRITICAL - User profile auto-recovery failed. The user will be signed out.",
       { uid: firebaseUser.uid, error: err }
     );
