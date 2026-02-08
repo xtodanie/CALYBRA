@@ -1,16 +1,6 @@
 {
   "functions": [
     {
-      "codebase": "default",
-      "ignore": [
-        "node_modules",
-        ".git",
-        "firebase-debug.log",
-        "firebase-debug.*.log"
-      ],
-      "source": "functions"
-    },
-    {
       "source": "calybra-database",
       "codebase": "calybra-database",
       "disallowLegacyRuntimeConfig": true,

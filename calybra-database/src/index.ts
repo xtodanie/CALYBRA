@@ -1,57 +1,46 @@
-import { onUserCreated, AuthEvent } from "firebase-functions/v2/auth";
-import * as admin from "firebase-admin";
+import {initializeApp} from "firebase-admin/app";
+import {FieldValue, getFirestore} from "firebase-admin/firestore";
+import * as functions from "firebase-functions/v1";
 
-/**
- * CALYBRA — AUTH INVARIANT ENFORCER (v2)
- *
- * Guarantees:
- * - Every Auth user gets a Firestore user profile
- * - Every user belongs to exactly one tenant
- * - Creation is atomic and backend-authoritative
- *
- * Clients NEVER create users or tenants.
- */
+initializeApp();
 
-admin.initializeApp();
+export const onAuthCreate = functions.auth.user().onCreate(
+  async (user: functions.auth.UserRecord): Promise<void> => {
+    const db = getFirestore();
 
-export const onAuthCreate = onUserCreated(async (event: AuthEvent) => {
-  const user = event.data;
-  if (!user) return;
+    // Use user.uid as the stable ID for the user document
+    const userRef = db.collection("users").doc(user.uid);
+    // Generate a new, unique ID for the tenant
+    const tenantRef = db.collection("tenants").doc();
 
-  const db = admin.firestore();
+    await db.runTransaction(async (tx) => {
+      const userSnap = await tx.get(userRef);
+      // Idempotency: if user doc already exists, do nothing.
+      // This handles retries of the function.
+      if (userSnap.exists) return;
 
-  const userRef = db.collection("users").doc(user.uid);
-  const tenantRef = db.collection("tenants").doc();
-  const companyName = user.email ? `Company for ${user.email}` : `Tenant for ${user.uid}`;
+      const now = FieldValue.serverTimestamp();
 
-  await db.runTransaction(async (tx) => {
-    // Create tenant
-    tx.set(tenantRef, {
-      id: tenantRef.id,
-      name: companyName,
-      ownerId: user.uid,
-      timezone: "UTC",
-      currency: "EUR",
-      schemaVersion: 1,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      tx.create(tenantRef, {
+        tenantId: tenantRef.id,
+        ownerId: user.uid,
+        schemaVersion: 1,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      tx.create(userRef, {
+        uid: user.uid,
+        tenantId: tenantRef.id,
+        email: user.email ?? null,
+        role: "OWNER",
+        plan: "free",
+        status: "active",
+        locale: "es",
+        schemaVersion: 1,
+        createdAt: now,
+        updatedAt: now,
+      });
     });
-
-    // Create user profile
-    tx.set(userRef, {
-      uid: user.uid,
-      tenantId: tenantRef.id,
-      email: user.email ?? null,
-      role: "OWNER",
-      plan: "free",
-      status: "active",
-      locale: "es",
-      schemaVersion: 1,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      metadata: {
-        source: "signup",
-      },
-    });
-  });
-});
+  }
+);
