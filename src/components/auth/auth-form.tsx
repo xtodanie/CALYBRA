@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
+import { useT } from "@/i18n/provider";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -25,17 +26,20 @@ import {
 import { Input } from "@/components/ui/input";
 import { Logo } from "@/components/logo";
 
-const formSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email." }),
-  password: z.string().min(8, { message: "Password must be at least 8 characters." }),
-  companyName: z.string().optional(),
-});
-
 type AuthFormProps = {
   type: "login" | "signup";
 };
 
 export function AuthForm({ type }: AuthFormProps) {
+  const t = useT();
+  const isSignup = type === "signup";
+
+  const formSchema = z.object({
+    email: z.string().email({ message: t.auth.validation.email }),
+    password: z.string().min(8, { message: t.auth.validation.password }),
+    companyName: z.string().optional(),
+  });
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -50,8 +54,6 @@ export function AuthForm({ type }: AuthFormProps) {
     // Here you would call your authentication logic
   }
 
-  const isSignup = type === "signup";
-
   return (
     <Card className="w-full max-w-md shadow-2xl">
       <CardHeader className="text-center">
@@ -59,12 +61,12 @@ export function AuthForm({ type }: AuthFormProps) {
           <Logo />
         </div>
         <CardTitle className="font-headline text-3xl">
-          {isSignup ? "Create an Account" : "Welcome Back"}
+          {isSignup ? t.auth.signupTitle : t.auth.loginTitle}
         </CardTitle>
         <CardDescription>
           {isSignup
-            ? "Enter your details to start using Calybra."
-            : "Sign in to access your dashboard."}
+            ? t.auth.signupDescription
+            : t.auth.loginDescription}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -76,9 +78,9 @@ export function AuthForm({ type }: AuthFormProps) {
                 name="companyName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Company Name</FormLabel>
+                    <FormLabel>{t.auth.companyNameLabel}</FormLabel>
                     <FormControl>
-                      <Input placeholder="Your Company Inc." {...field} />
+                      <Input placeholder={t.auth.companyNamePlaceholder} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -90,11 +92,11 @@ export function AuthForm({ type }: AuthFormProps) {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>{t.auth.emailLabel}</FormLabel>
                   <FormControl>
                     <Input
                       type="email"
-                      placeholder="name@company.com"
+                      placeholder={t.auth.emailPlaceholder}
                       {...field}
                     />
                   </FormControl>
@@ -107,26 +109,26 @@ export function AuthForm({ type }: AuthFormProps) {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel>{t.auth.passwordLabel}</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} />
+                    <Input type="password" placeholder={t.auth.passwordPlaceholder} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <Button type="submit" className="w-full">
-              {isSignup ? "Sign Up" : "Log In"}
+              {isSignup ? t.auth.signupButton : t.auth.loginButton}
             </Button>
           </form>
         </Form>
       </CardContent>
       <CardFooter className="flex justify-center">
         <p className="text-sm text-muted-foreground">
-          {isSignup ? "Already have an account?" : "Don't have an account?"}{" "}
+          {isSignup ? t.auth.alreadyHaveAccount : t.auth.dontHaveAccount}{" "}
           <Button variant="link" asChild className="p-0">
             <Link href={isSignup ? "/login" : "/signup"}>
-              {isSignup ? "Log In" : "Sign Up"}
+              {isSignup ? t.auth.loginButton : t.auth.signupButton}
             </Link>
           </Button>
         </p>

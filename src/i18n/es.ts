@@ -1,0 +1,128 @@
+import { Dict } from './types';
+
+export const es: Dict = {
+  appName: 'Calybra',
+  loading: 'Cargando...',
+  sidebar: {
+    monthCloses: 'Cierres Mensuales',
+    upload: 'Subir',
+    matches: 'Coincidencias',
+    exceptions: 'Excepciones',
+    exports: 'Exportaciones',
+    settings: 'Configuración',
+  },
+  userNav: {
+    profile: 'Perfil',
+    billing: 'Facturación',
+    settings: 'Configuración',
+    logOut: 'Cerrar sesión',
+    guestUser: 'Usuario Invitado',
+    guestEmail: 'invitado@ejemplo.com',
+    language: 'Idioma',
+    english: 'Inglés',
+    spanish: 'Español',
+  },
+  dashboard: {
+    title: 'Mes Actual',
+    monthSelectorPlaceholder: 'Selecciona un mes',
+    status: {
+      NO_CLOSE: 'No Iniciado',
+      DRAFT: 'Borrador',
+      PROCESSING: 'Procesando',
+      READY: 'Listo para Revisar',
+      LOCKED: 'Bloqueado',
+    },
+    kpi: {
+      bankTotal: 'Total Banco',
+      bankTotalDescription: 'Del extracto bancario subido',
+      invoiceTotal: 'Total Facturas',
+      invoiceTotalDescription: 'De todas las facturas subidas',
+      difference: 'Diferencia',
+      differenceDescription: 'La cantidad restante por conciliar',
+      exceptions: 'Excepciones',
+      exceptionsOpen: 'Abiertas',
+      exceptionsHighSeverity: 'alta severidad',
+    },
+    workflow: {
+      title: 'Tu Flujo de Conciliación',
+      steps: {
+        uploadBankCsv: 'Subir CSV del Banco',
+        uploadInvoicePdfs: 'Subir PDFs de Facturas',
+        reviewMatches: 'Revisar Coincidencias Propuestas',
+        resolveExceptions: 'Resolver Excepciones',
+        lockAndExport: 'Bloquear y Exportar',
+      },
+    },
+    nextAction: {
+      title: '¿Qué sigue?',
+      cta: {
+        NO_CLOSE: 'Iniciar un Nuevo Mes',
+        DRAFT: 'Subir Extracto Bancario',
+        PROCESSING: 'Procesando Datos...',
+        READY: 'Revisar Excepciones',
+        LOCKED: 'Generar Exportación',
+      },
+      description: {
+        NO_CLOSE: 'Comienza creando un nuevo período de cierre para el mes.',
+        DRAFT: 'Es hora de subir tu extracto bancario para empezar.',
+        PROCESSING: 'Estamos analizando tus datos. Esto podría tardar unos momentos.',
+        READY: 'Tus coincidencias propuestas están listas. Hora de resolver excepciones.',
+        LOCKED: 'Este mes está listo. Ahora puedes exportar tus informes.',
+      },
+      progress: '% completado',
+    },
+    sampleMonths: {
+      june: 'Junio 2024',
+      may: 'Mayo 2024',
+      april: 'Abril 2024',
+    },
+  },
+  auth: {
+    loginTitle: 'Bienvenido de Nuevo',
+    loginDescription: 'Inicia sesión para acceder a tu panel.',
+    loginButton: 'Iniciar Sesión',
+    signupTitle: 'Crear una Cuenta',
+    signupDescription: 'Ingresa tus datos para empezar a usar Calybra.',
+    signupButton: 'Registrarse',
+    companyNameLabel: 'Nombre de la Empresa',
+    companyNamePlaceholder: 'Tu Empresa S.A.',
+    emailLabel: 'Correo Electrónico',
+    emailPlaceholder: 'nombre@empresa.com',
+    passwordLabel: 'Contraseña',
+    passwordPlaceholder: '••••••••',
+    alreadyHaveAccount: '¿Ya tienes una cuenta?',
+    dontHaveAccount: '¿No tienes una cuenta?',
+    validation: {
+      email: 'Por favor, introduce un correo electrónico válido.',
+      password: 'La contraseña debe tener al menos 8 caracteres.',
+    },
+  },
+  billing: {
+    title: 'Facturación',
+    description: 'Gestiona tu suscripción y métodos de pago.',
+  },
+  exceptions: {
+    title: 'Excepciones',
+    description: 'Revisa y resuelve las excepciones de conciliación.',
+  },
+  exports: {
+    title: 'Exportaciones',
+    description: 'Genera y descarga tus informes de conciliación.',
+  },
+  matches: {
+    title: 'Coincidencias',
+    description: 'Revisa las coincidencias propuestas entre transacciones y facturas.',
+  },
+  profile: {
+    title: 'Perfil',
+    description: 'Actualiza tu información personal.',
+  },
+  settings: {
+    title: 'Configuración',
+    description: 'Gestiona tu cuenta y la configuración de la aplicación.',
+  },
+  upload: {
+    title: 'Subir',
+    description: 'Sube tus extractos bancarios y facturas aquí.',
+  },
+};

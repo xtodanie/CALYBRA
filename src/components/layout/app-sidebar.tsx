@@ -22,17 +22,19 @@ import {
   AlertTriangle,
   DownloadCloud,
 } from "lucide-react";
+import { useT } from "@/i18n/provider";
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const t = useT();
 
   const menuItems = [
-    { href: "/dashboard", icon: CalendarClock, label: "Month Closes", active: pathname === '/dashboard' },
-    { href: "/upload", icon: UploadCloud, label: "Upload", active: pathname.startsWith("/upload") },
-    { href: "/matches", icon: CopyCheck, label: "Matches", active: pathname.startsWith("/matches") },
-    { href: "/exceptions", icon: AlertTriangle, label: "Exceptions", active: pathname.startsWith("/exceptions") },
-    { href: "/exports", icon: DownloadCloud, label: "Exports", active: pathname.startsWith("/exports") },
-    { href: "/settings", icon: Settings, label: "Settings", active: pathname.startsWith("/settings") },
+    { href: "/dashboard", icon: CalendarClock, label: t.sidebar.monthCloses, active: pathname.endsWith('/dashboard') },
+    { href: "/upload", icon: UploadCloud, label: t.sidebar.upload, active: pathname.includes("/upload") },
+    { href: "/matches", icon: CopyCheck, label: t.sidebar.matches, active: pathname.includes("/matches") },
+    { href: "/exceptions", icon: AlertTriangle, label: t.sidebar.exceptions, active: pathname.includes("/exceptions") },
+    { href: "/exports", icon: DownloadCloud, label: t.sidebar.exports, active: pathname.includes("/exports") },
+    { href: "/settings", icon: Settings, label: t.sidebar.settings, active: pathname.includes("/settings") },
   ];
 
   return (
@@ -66,10 +68,10 @@ export function AppSidebar() {
           </Avatar>
           <div className="overflow-hidden">
             <p className="truncate text-sm font-medium text-sidebar-accent-foreground">
-              Guest User
+              {t.userNav.guestUser}
             </p>
             <p className="truncate text-xs text-sidebar-foreground">
-              guest@example.com
+              {t.userNav.guestEmail}
             </p>
           </div>
         </div>

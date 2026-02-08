@@ -13,8 +13,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CreditCard, LogOut, Settings, User } from "lucide-react";
+import { useT } from "@/i18n/provider";
+import { LanguageSwitcher } from "./language-switcher";
 
 export function UserNav() {
+  const t = useT();
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -28,9 +32,9 @@ export function UserNav() {
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">Guest User</p>
+            <p className="text-sm font-medium leading-none">{t.userNav.guestUser}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              guest@example.com
+              {t.userNav.guestEmail}
             </p>
           </div>
         </DropdownMenuLabel>
@@ -39,26 +43,27 @@ export function UserNav() {
           <Link href="/profile" passHref>
             <DropdownMenuItem>
               <User className="mr-2 h-4 w-4" />
-              <span>Profile</span>
+              <span>{t.userNav.profile}</span>
             </DropdownMenuItem>
           </Link>
           <Link href="/billing" passHref>
             <DropdownMenuItem>
               <CreditCard className="mr-2 h-4 w-4" />
-              <span>Billing</span>
+              <span>{t.userNav.billing}</span>
             </DropdownMenuItem>
           </Link>
           <Link href="/settings" passHref>
             <DropdownMenuItem>
               <Settings className="mr-2 h-4 w-4" />
-              <span>Settings</span>
+              <span>{t.userNav.settings}</span>
             </DropdownMenuItem>
           </Link>
         </DropdownMenuGroup>
+        <LanguageSwitcher />
         <DropdownMenuSeparator />
         <DropdownMenuItem>
           <LogOut className="mr-2 h-4 w-4" />
-          <span>Log out</span>
+          <span>{t.userNav.logOut}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
