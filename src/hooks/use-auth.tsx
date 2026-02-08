@@ -38,7 +38,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } else {
       // This case can happen if the user doc creation fails after auth creation.
       // Or if the user is from an old system. For now, we sign them out.
-      console.error("Authenticated user has no user document. Signing out.");
+      console.warn("Authenticated user has no user document. Signing out.");
       await signOut(auth);
       setUser(null);
       return null;
