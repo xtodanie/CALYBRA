@@ -32,7 +32,7 @@ service cloud.firestore {
       return isTenantMember(request.resource.data.tenantId);
     }
 
-    // Placeholder for future implementation
+    // Placeholder for future implementation of write-protection on locked months
     function isMonthLocked(monthCloseId) {
       // return get(/databases/$(database)/documents/monthCloses/$(monthCloseId)).data.status == 'LOCKED';
       return false; 
@@ -63,16 +63,28 @@ service cloud.firestore {
     // AUDIT EVENTS: Create-only, append-only
     // An authenticated user can create an audit event for their own tenant.
     match /auditEvents/{eventId} {
-      allow create: if isSignedIn() && isRequestingOwner();
+      allow create: if isSignedIn() && isRequestingOwner() && request.resource.data.createdAt == request.time;
       allow read, update, delete: if false;
     }
+
+    // MATCHES: Client-side finalization protection placeholder
+    match /matches/{matchId} {
+        allow write: if isSignedIn() &&
+                      isRequestingOwner() &&
+                      // The client is NOT allowed to set these server-authoritative fields
+                      !('status' in request.resource.data) &&
+                      !('finalizedBy' in request.resource.data);
+        // Read, update, delete will be covered by the generic tenant-scoped block
+    }
+
 
     // --- Tenant-Scoped Collections ---
     // This single block covers all tenant-scoped data by checking the 'tenantId' field.
     // It denies writes if the associated month is locked.
     match /{collection}/{docId} {
-      allow read: if isSignedIn() &&
-                   isResourceOwner();
+      // This rule applies to collections like: monthCloses, fileAssets, bankTx, invoices, etc.
+      // It does NOT apply to users, tenants, or auditEvents which have their own specific rules.
+      allow read: if isSignedIn() && isResourceOwner();
 
       allow create: if isSignedIn() &&
                      isRequestingOwner() &&

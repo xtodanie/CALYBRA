@@ -138,28 +138,32 @@ describe('Calybra Firestore Security Rules', () => {
     });
   });
 
-
   describe('Audit Event Rules', () => {
-    it('should allow an authenticated user to create an audit event for their own tenant', async () => {
+    it('should allow a user to create an audit event for their own tenant', async () => {
       const myDb = testEnv.authenticatedContext(myAuth.uid).firestore();
       const docRef = doc(myDb, 'auditEvents', 'event-1');
       await assertSucceeds(setDoc(docRef, { 
           tenantId: myTenantId, 
-          actorUserId: myAuth.uid,
-          action: 'test.action' 
+          actor: myAuth.uid,
+          action: 'test.action',
+          createdAt: serverTimestamp() // This is how you test server timestamps
         }));
     });
 
-    it('should PREVENT a user from creating an audit event for another tenant', async () => {
+    it('should PREVENT creating an audit event for another tenant', async () => {
         const myDb = testEnv.authenticatedContext(myAuth.uid).firestore();
         const docRef = doc(myDb, 'auditEvents', 'event-2');
-        await assertFails(setDoc(docRef, { tenantId: otherTenantId, action: 'cross.tenant.write' }));
+        await assertFails(setDoc(docRef, { 
+            tenantId: otherTenantId, 
+            action: 'cross.tenant.write',
+            createdAt: serverTimestamp()
+        }));
     });
 
     it('should PREVENT updating an audit event', async () => {
       const adminDb = testEnv.unauthenticatedContext().firestore();
       const docRef = doc(adminDb, 'auditEvents', 'event-3');
-      await setDoc(docRef, { tenantId: myTenantId, actorUserId: myAuth.uid });
+      await setDoc(docRef, { tenantId: myTenantId, actor: myAuth.uid });
 
       const myDb = testEnv.authenticatedContext(myAuth.uid).firestore();
       const myDocRef = doc(myDb, 'auditEvents', 'event-3');
@@ -169,7 +173,7 @@ describe('Calybra Firestore Security Rules', () => {
     it('should PREVENT deleting an audit event', async () => {
        const adminDb = testEnv.unauthenticatedContext().firestore();
        const docRef = doc(adminDb, 'auditEvents', 'event-4');
-       await setDoc(docRef, { tenantId: myTenantId, actorUserId: myAuth.uid });
+       await setDoc(docRef, { tenantId: myTenantId, actor: myAuth.uid });
 
        const myDb = testEnv.authenticatedContext(myAuth.uid).firestore();
        const myDocRef = doc(myDb, 'auditEvents', 'event-4');
@@ -177,4 +181,32 @@ describe('Calybra Firestore Security Rules', () => {
     });
   });
 
+  describe('Match Finalization Rules', () => {
+    it('should PREVENT a client from setting a match status directly', async () => {
+        const myDb = testEnv.authenticatedContext(myAuth.uid).firestore();
+        const matchRef = doc(myDb, 'matches', 'match-1');
+        await assertFails(setDoc(matchRef, {
+            tenantId: myTenantId,
+            status: 'CONFIRMED' // This is the forbidden field
+        }));
+    });
+    
+    it('should PREVENT a client from setting a match finalizedBy directly', async () => {
+        const myDb = testEnv.authenticatedContext(myAuth.uid).firestore();
+        const matchRef = doc(myDb, 'matches', 'match-2');
+        await assertFails(setDoc(matchRef, {
+            tenantId: myTenantId,
+            finalizedBy: myAuth.uid // This is the forbidden field
+        }));
+    });
+
+    it('should allow creating a match if forbidden fields are not present', async () => {
+        const myDb = testEnv.authenticatedContext(myAuth.uid).firestore();
+        const matchRef = doc(myDb, 'matches', 'match-3');
+        await assertSucceeds(setDoc(matchRef, {
+            tenantId: myTenantId,
+            score: 80 // A client-settable field
+        }));
+    });
+  });
 });

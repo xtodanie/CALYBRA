@@ -9,7 +9,7 @@ import {
   signInWithEmailAndPassword,
   signOut
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp, addDoc, collection, writeBatch } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp, collection, writeBatch } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebaseClient';
 import { User } from '@/lib/types';
 
@@ -60,6 +60,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Use a batch to ensure atomic creation of tenant and user docs
     const batch = writeBatch(db);
+    const schemaVersion = 1;
 
     // 1. Create a new tenant document reference with an auto-generated ID
     const tenantDocRef = doc(collection(db, 'tenants'));
@@ -70,6 +71,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       currency: 'EUR',
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
+      schemaVersion,
     });
 
     // 2. Create the user profile document reference
@@ -81,6 +83,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       locale: 'es', // Default locale to Spanish as per spec
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
+      schemaVersion,
     });
 
     // 3. Commit the batch

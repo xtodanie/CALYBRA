@@ -1,5 +1,8 @@
 import type { Timestamp } from "firebase/firestore";
 
+// Version all core document types
+const SCHEMA_VERSION = 1;
+
 export type UserRole = "OWNER" | "MANAGER" | "ACCOUNTANT" | "VIEWER";
 
 export type User = {
@@ -12,6 +15,7 @@ export type User = {
   photoURL?: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+  schemaVersion: number;
 };
 
 export type Tenant = {
@@ -22,6 +26,7 @@ export type Tenant = {
   currency: 'EUR';
   createdAt: Timestamp;
   updatedAt: Timestamp;
+  schemaVersion: number;
   settings?: {
     csvMappings?: any;
   };
@@ -45,6 +50,7 @@ export type MonthClose = {
   createdBy: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+  schemaVersion: number;
 };
 
 export type FileAssetKind = "BANK_CSV" | "INVOICE_PDF" | "EXPORT";
@@ -62,6 +68,7 @@ export type FileAsset = {
   parseError?: string | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+  schemaVersion: number;
 };
 
 export type BankTx = {
@@ -78,6 +85,7 @@ export type BankTx = {
   sourceFileId: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+  schemaVersion: number;
 };
 
 export type Invoice = {
@@ -94,6 +102,7 @@ export type Invoice = {
   sourceFileId: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+  schemaVersion: number;
 };
 
 export type Counterparty = {
@@ -108,6 +117,7 @@ export type Counterparty = {
   };
   createdAt: Timestamp;
   updatedAt: Timestamp;
+  schemaVersion: number;
 };
 
 export type MatchType = "EXACT" | "FUZZY" | "GROUPED" | "PARTIAL" | "FEE" | "MANUAL";
@@ -128,6 +138,8 @@ export type Match = {
   confirmedAt?: Timestamp | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+  schemaVersion: number;
+  finalizedBy?: string; // Server-only field
 };
 
 export type ExceptionKind = "BANK_NO_INVOICE" | "INVOICE_NO_BANK" | "AMOUNT_MISMATCH" | "DUPLICATE" | "AMBIGUOUS" | "UNKNOWN_SUPPLIER";
@@ -150,6 +162,7 @@ export type Exception = {
   ignoreReason?: string | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+  schemaVersion: number;
 };
 
 
@@ -174,15 +187,35 @@ export type Job = {
   refFileId?: string | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+  schemaVersion: number;
 };
 
+// New AuditEvent contract as per Phase 2 requirements
 export type AuditEvent = {
   id: string;
+  type: string;
+  actor: string; // user id
   tenantId: string;
-  actorUserId: string;
-  entityType: string;
-  entityId: string;
-  action: string;
-  meta: Record<string, any>;
+  monthCloseId?: string;
+  entityRefs: { type: string; id: string }[];
+  before: Record<string, any>;
+  after: Record<string, any>;
+  evidenceRefs?: { type: string; id: string }[];
+  schemaVersion: number;
   createdAt: Timestamp;
+};
+
+// New Evidence contract as per Phase 2 requirements
+export type Evidence = {
+  id: string;
+  fileId: string;
+  storagePath?: string;
+  page?: number;
+  bbox?: number[];
+  textAnchor?: string;
+  snippetHash: string;
+  extractor: string;
+  confidenceRaw: number;
+  confidenceValidated?: number;
+  schemaVersion: number;
 };
