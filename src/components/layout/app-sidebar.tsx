@@ -44,12 +44,12 @@ export function AppSidebar() {
         <SidebarMenu>
           {menuItems.map(({ href, icon: Icon, label, active }) => (
             <SidebarMenuItem key={href}>
-              <Link href={href} legacyBehavior passHref>
-                <SidebarMenuButton isActive={active} tooltip={label}>
+              <SidebarMenuButton asChild isActive={active} tooltip={label}>
+                <Link href={href}>
                   <Icon />
                   <span>{label}</span>
-                </SidebarMenuButton>
-              </Link>
+                </Link>
+              </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
