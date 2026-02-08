@@ -24,6 +24,28 @@ export const en = {
     english: 'English',
     spanish: 'Spanish',
   },
+  jobs: {
+    steps: {
+      queued: 'Queued',
+      downloading: 'Downloading...',
+      preparing: 'Preparing...',
+      finalizing: 'Finalizing...',
+      completed: 'Completed',
+    },
+    statuses: {
+      PENDING: 'Pending',
+      RUNNING: 'Running',
+      COMPLETED: 'Completed',
+      FAILED: 'Failed',
+    },
+    types: {
+      PARSE_BANK_CSV: 'Parse Bank CSV',
+      PARSE_INVOICE_PDF: 'Parse Invoice PDF',
+    },
+    errors: {
+      GENERIC: 'An unexpected error occurred processing the file.',
+    },
+  },
   monthCloses: {
     title: 'Month Closes',
     description: 'Here are all your monthly closing periods. Start a new one or review an existing one.',
@@ -168,44 +190,11 @@ export const en = {
       tableDescription: 'Review the status of your uploaded invoices below.',
       cta: 'Select PDF Files',
       dropzone: 'Drag & drop PDF files here',
-      table: {
-        file: 'File',
-        supplier: 'Supplier',
-        invoiceNumber: 'Invoice #',
-        date: 'Date',
-        total: 'Total',
-        confidence: 'Confidence',
-        status: 'Status',
-        actions: 'Actions',
-      },
-      confidenceLow: 'Low',
-      statuses: {
-        Parsed: 'Parsed',
-        NeedsReview: 'Needs Review',
-      },
-      edit: 'Edit',
     },
     processing: {
       title: '3. Processing Jobs',
       description: 'We are processing your files. You can monitor the progress below.',
       empty: 'No jobs are currently running for this month.',
-      jobStatuses: {
-        PENDING: 'Pending',
-        RUNNING: 'Running',
-        COMPLETED: 'Completed',
-        FAILED: 'Failed',
-      },
-      jobSteps: {
-        queued: 'Queued',
-        downloading: 'Downloading...',
-        preparing: 'Preparing...',
-        finalizing: 'Finalizing...',
-        completed: 'Completed',
-      },
-      jobTypes: {
-        PARSE_BANK_CSV: 'Parse Bank CSV',
-        PARSE_INVOICE_PDF: 'Parse Invoice PDF',
-      }
     },
     uploadedFiles: {
       title: 'Uploaded Files',
@@ -231,7 +220,7 @@ export const en = {
     },
     notifications: {
       successTitle: 'Upload Successful',
-      successDescription: 'has been uploaded and a processing job has been created.',
+      successDescription: '{count} file(s) have been uploaded and processing jobs have been created.',
       errorTitle: 'Upload Failed',
       downloadErrorTitle: 'Download Failed',
     }

@@ -17,14 +17,17 @@ import { Button } from '@/components/ui/button';
 import { AlertCircle, ChevronRight, Download, FileText, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { db, storage } from '@/lib/firebaseClient';
+import { db, storage, functions } from '@/lib/firebaseClient';
 import { collection, doc, setDoc, serverTimestamp, query, where, onSnapshot, writeBatch, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes } from 'firebase/storage';
+import { httpsCallable } from 'firebase/functions';
 import { useToast } from '@/hooks/use-toast';
 import type { FileAsset, Job, MonthClose } from '@/lib/types';
 import { formatDate } from '@/i18n/format';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
+
 
 const MonthContextHeader = ({ monthClose }: { monthClose: MonthClose }) => {
     const t = useT();
@@ -72,42 +75,6 @@ function NoActiveMonth({ t }: { t: any }) {
     );
 }
 
-// Client-side simulation of a backend job processor.
-// This is for demonstration purposes only and should be replaced with Cloud Functions.
-function useJobSimulator(jobs: Job[], isEnabled: boolean) {
-    useEffect(() => {
-        if (!isEnabled || jobs.length === 0) return;
-
-        const pendingJobs = jobs.filter(j => j.status === 'PENDING');
-
-        pendingJobs.forEach(job => {
-            const jobRef = doc(db, 'jobs', job.id);
-            const steps = [
-                { status: 'RUNNING', progress: { stepKey: 'jobs.steps.downloading', pct: 20 }, delay: 1000 },
-                { status: 'RUNNING', progress: { stepKey: 'jobs.steps.preparing', pct: 50 }, delay: 2000 },
-                { status: 'RUNNING', progress: { stepKey: 'jobs.steps.finalizing', pct: 90 }, delay: 1500 },
-                { status: 'COMPLETED', progress: { stepKey: 'jobs.steps.completed', pct: 100 }, delay: 1000 },
-            ];
-
-            let chain = Promise.resolve();
-
-            steps.forEach(step => {
-                chain = chain.then(() => new Promise(resolve => {
-                    setTimeout(() => {
-                        updateDoc(jobRef, {
-                            status: step.status,
-                            progress: step.progress,
-                            updatedAt: serverTimestamp(),
-                        }).then(resolve);
-                    }, step.delay);
-                }));
-            });
-        });
-
-    }, [jobs, isEnabled]);
-}
-
-
 function JobsList({ monthCloseId }: { monthCloseId: string }) {
     const t = useT();
     const [jobs, setJobs] = useState<Job[]>([]);
@@ -138,10 +105,6 @@ function JobsList({ monthCloseId }: { monthCloseId: string }) {
             unsubAssets();
         }
     }, [monthCloseId]);
-
-    // This hook runs the client-side job simulation.
-    // In a real app, this would be handled by backend Cloud Functions.
-    useJobSimulator(jobs, true);
     
     if (isLoading) {
         return <Loader2 className="mx-auto h-8 w-8 animate-spin" />
@@ -160,18 +123,18 @@ function JobsList({ monthCloseId }: { monthCloseId: string }) {
                         <div className="flex items-center justify-between">
                            <div className="flex flex-col gap-1">
                                <p className="font-medium">{file?.filename || '...'}</p>
-                               <p className="text-sm text-muted-foreground">{t.upload.processing.jobTypes[job.type as keyof typeof t.upload.processing.jobTypes]}</p>
+                               <p className="text-sm text-muted-foreground">{t.jobs.types[job.type as keyof typeof t.jobs.types]}</p>
                            </div>
                            <Badge variant={job.status === 'COMPLETED' ? 'outline' : 'default'}>
-                                {t.upload.processing.jobStatuses[job.status as keyof typeof t.upload.processing.jobStatuses]}
+                                {t.jobs.statuses[job.status as keyof typeof t.jobs.statuses]}
                             </Badge>
                         </div>
                         <Progress value={job.progress.pct} className="mt-3 mb-1" />
-                        <p className="text-xs text-muted-foreground text-center">{t.upload.processing.jobSteps[job.progress.stepKey as keyof typeof t.upload.processing.jobSteps]} ({job.progress.pct}%)</p>
+                        <p className="text-xs text-muted-foreground text-center">{t.jobs.steps[job.progress.stepKey as keyof typeof t.jobs.steps]} ({job.progress.pct}%)</p>
                         {job.status === 'FAILED' && job.error &&
                             <Alert variant="destructive" className="mt-2">
                                 <AlertTitle>{t.upload.notifications.errorTitle}</AlertTitle>
-                                <AlertDescription>{job.error.messageKey}</AlertDescription>
+                                <AlertDescription>{t.jobs.errors[job.error.messageKey as keyof typeof t.jobs.errors]}</AlertDescription>
                             </Alert>
                         }
                     </div>
@@ -191,6 +154,7 @@ export default function UploadPage() {
   const [uploadedFiles, setUploadedFiles] = useState<FileAsset[]>([]);
   const [activeMonth, setActiveMonth] = useState<MonthClose | null>(null);
   const [isLoadingMonth, setIsLoadingMonth] = useState(true);
+  const [downloadingFileId, setDownloadingFileId] = useState<string | null>(null);
 
   const monthCloseId = user?.activeMonthCloseId;
   
@@ -200,6 +164,7 @@ export default function UploadPage() {
       setIsLoadingMonth(false);
       return;
     }
+    setIsLoadingMonth(true);
     const unsub = onSnapshot(doc(db, 'monthCloses', monthCloseId), (doc) => {
       if (doc.exists()) {
         setActiveMonth({ id: doc.id, ...doc.data() } as MonthClose);
@@ -213,7 +178,10 @@ export default function UploadPage() {
 
 
   useEffect(() => {
-    if (!user || !monthCloseId) return;
+    if (!user || !monthCloseId) {
+      setUploadedFiles([]);
+      return;
+    };
 
     const q = query(
         collection(db, 'fileAssets'),
@@ -237,7 +205,7 @@ export default function UploadPage() {
         toast({
             variant: "destructive",
             title: t.upload.notifications.errorTitle,
-            description: "You must be logged in and have a month selected to upload files.",
+            description: t.monthClose.context.noActiveMonth.description,
         });
         return;
     }
@@ -245,6 +213,7 @@ export default function UploadPage() {
     setIsUploading(true);
 
     const batch = writeBatch(db);
+    let filesUploadedCount = 0;
 
     for (const file of files) {
         try {
@@ -273,7 +242,6 @@ export default function UploadPage() {
                 updatedAt: serverTimestamp(),
             });
 
-            // Create a corresponding job
             const jobRef = doc(collection(db, 'jobs'));
             batch.set(jobRef, {
                 schemaVersion: 1,
@@ -287,6 +255,7 @@ export default function UploadPage() {
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp(),
             });
+            filesUploadedCount++;
 
         } catch (error) {
             console.error("Upload error:", error);
@@ -298,37 +267,36 @@ export default function UploadPage() {
         }
     }
     
-    // Set month to processing
-    const monthRef = doc(db, 'monthCloses', monthCloseId);
-    batch.update(monthRef, { status: 'PROCESSING', updatedAt: serverTimestamp() });
-    
-    await batch.commit();
-    
-    toast({
-        title: t.upload.notifications.successTitle,
-        description: t.upload.notifications.successDescription,
-    });
+    if (filesUploadedCount > 0) {
+        const monthRef = doc(db, 'monthCloses', monthCloseId);
+        batch.update(monthRef, { status: 'PROCESSING', updatedAt: serverTimestamp() });
+        await batch.commit();
+        toast({
+            title: t.upload.notifications.successTitle,
+            description: t.upload.notifications.successDescription.replace('{count}', filesUploadedCount.toString()),
+        });
+    }
     
     setIsUploading(false);
   };
   
+  const getSignedDownloadUrl = httpsCallable(functions, 'getSignedDownloadUrl');
+
   const handleDownload = async (file: FileAsset) => {
+    setDownloadingFileId(file.id);
     try {
-        const url = await getDownloadURL(ref(storage, file.storagePath));
-        const a = document.createElement('a');
-        a.href = url;
-        a.target = '_blank'; // Open in new tab, which browsers might do instead of downloading
-        a.download = file.filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-    } catch (error) {
+        const result = await getSignedDownloadUrl({ fileAssetId: file.id });
+        const { url } = result.data as { url: string };
+        window.open(url, '_blank');
+    } catch (error: any) {
         console.error("Download failed:", error);
         toast({
             variant: "destructive",
             title: t.upload.notifications.downloadErrorTitle,
-            description: (error as Error).message,
+            description: error.message || t.jobs.errors.GENERIC,
         });
+    } finally {
+        setDownloadingFileId(null);
     }
   }
 
@@ -340,7 +308,7 @@ export default function UploadPage() {
         <p className="text-muted-foreground">{t.upload.description}</p>
       </div>
       
-      {isLoadingMonth ? <Skeleton className="h-16 w-full" /> : !activeMonth ? <NoActiveMonth t={t} /> : (
+      {isLoadingMonth ? <Skeleton className="h-20 w-full" /> : !activeMonth ? <NoActiveMonth t={t} /> : (
       <>
         <MonthContextHeader monthClose={activeMonth} />
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
@@ -412,8 +380,8 @@ export default function UploadPage() {
                                     <Badge variant={file.parseStatus === 'PENDING' ? 'default' : 'outline'}>{t.upload.uploadedFiles.statuses[file.parseStatus as keyof typeof t.upload.uploadedFiles.statuses]}</Badge>
                                 </TableCell>
                                 <TableCell className="text-right">
-                                <Button variant="outline" size="sm" onClick={() => handleDownload(file)}>
-                                    <Download className="mr-2 h-4 w-4" />
+                                <Button variant="outline" size="sm" onClick={() => handleDownload(file)} disabled={!!downloadingFileId}>
+                                    {downloadingFileId === file.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                                     {t.exports.download}
                                 </Button>
                                 </TableCell>

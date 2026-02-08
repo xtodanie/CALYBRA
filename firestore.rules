@@ -13,9 +13,13 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
     function getUserTenantId() {
       // This function is only safe to call for existing users whose user doc has been created.
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId;
+      return getUserData().tenantId;
     }
 
     function isTenantMember(tenantId) {
@@ -47,8 +51,12 @@ service cloud.firestore {
     // A user can create their own user document and read/update it.
     // Nobody can delete user documents.
     match /users/{userId} {
-      allow create, read: if isUser(userId);
-      allow update: if isUser(userId) && !(request.resource.data.keys().hasAny(['tenantId', 'role', 'email']));
+      allow create: if isUser(userId);
+      allow read: if isUser(userId);
+      allow update: if isUser(userId) && 
+                     !('tenantId' in request.resource.data) &&
+                     !('role' in request.resource.data) &&
+                     !('email' in request.resource.data);
       allow delete: if false;
     }
 
@@ -78,12 +86,11 @@ service cloud.firestore {
         // Read, update, delete will be covered by the generic tenant-scoped block
     }
 
-    // JOBS: Client can create, but only server can update progress.
-    // This rule is relaxed for the simulation, allowing client to update progress.
+    // JOBS: Client can create and read, but only server can update.
     match /jobs/{jobId} {
-        allow create, update: if isSignedIn() && isRequestingOwner();
+        allow create: if isSignedIn() && isRequestingOwner();
         allow read: if isSignedIn() && isResourceOwner();
-        allow delete: if false;
+        allow update, delete: if false;
     }
 
     // --- Tenant-Scoped Collections ---

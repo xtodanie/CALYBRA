@@ -26,6 +26,28 @@ export const es: Dict = {
     english: 'Inglés',
     spanish: 'Español',
   },
+  jobs: {
+    steps: {
+      queued: 'En cola',
+      downloading: 'Descargando...',
+      preparing: 'Preparando...',
+      finalizing: 'Finalizando...',
+      completed: 'Completado',
+    },
+    statuses: {
+      PENDING: 'Pendiente',
+      RUNNING: 'En curso',
+      COMPLETED: 'Completado',
+      FAILED: 'Fallido',
+    },
+    types: {
+      PARSE_BANK_CSV: 'Procesar CSV Bancario',
+      PARSE_INVOICE_PDF: 'Procesar PDF de Factura',
+    },
+    errors: {
+      GENERIC: 'Ocurrió un error inesperado al procesar el archivo.',
+    },
+  },
   monthCloses: {
     title: 'Cierres Mensuales',
     description: 'Aquí están todos tus períodos de cierre mensuales. Inicia uno nuevo o revisa uno existente.',
@@ -170,44 +192,11 @@ export const es: Dict = {
       tableDescription: 'Revisa el estado de tus facturas subidas a continuación.',
       cta: 'Seleccionar Archivos PDF',
       dropzone: 'Arrastra y suelta los archivos PDF aquí',
-      table: {
-        file: 'Archivo',
-        supplier: 'Proveedor',
-        invoiceNumber: 'Nº Factura',
-        date: 'Fecha',
-        total: 'Total',
-        confidence: 'Confianza',
-        status: 'Estado',
-        actions: 'Acciones',
-      },
-      confidenceLow: 'Baja',
-      statuses: {
-        Parsed: 'Procesada',
-        NeedsReview: 'Necesita Revisión',
-      },
-      edit: 'Editar',
     },
     processing: {
       title: '3. Tareas de Procesamiento',
       description: 'Estamos procesando tus archivos. Puedes monitorizar el progreso a continuación.',
       empty: 'No hay tareas en ejecución para este mes.',
-      jobStatuses: {
-        PENDING: 'Pendiente',
-        RUNNING: 'En curso',
-        COMPLETED: 'Completado',
-        FAILED: 'Fallido',
-      },
-      jobSteps: {
-        queued: 'En cola',
-        downloading: 'Descargando...',
-        preparing: 'Preparando...',
-        finalizing: 'Finalizando...',
-        completed: 'Completado',
-      },
-      jobTypes: {
-        PARSE_BANK_CSV: 'Procesar CSV Bancario',
-        PARSE_INVOICE_PDF: 'Procesar PDF de Factura',
-      }
     },
     uploadedFiles: {
       title: 'Archivos Subidos',
@@ -233,7 +222,7 @@ export const es: Dict = {
     },
     notifications: {
       successTitle: 'Subida Correcta',
-      successDescription: 'se ha subido y se ha creado una tarea de procesamiento.',
+      successDescription: 'Se han subido {count} archivo(s) y se han creado las tareas de procesamiento.',
       errorTitle: 'Error de Subida',
       downloadErrorTitle: 'Error de Descarga',
     }

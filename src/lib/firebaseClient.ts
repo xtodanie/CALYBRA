@@ -18,6 +18,11 @@ import {
   connectStorageEmulator,
   type FirebaseStorage,
 } from "firebase/storage";
+import {
+  getFunctions,
+  connectFunctionsEmulator,
+  type Functions as FirebaseFunctions,
+} from "firebase/functions";
 
 type FirebaseClientConfig = {
   apiKey: string;
@@ -55,6 +60,8 @@ let _app: FirebaseApp | null = null;
 let _auth: Auth | null = null;
 let _db: Firestore | null = null;
 let _storage: FirebaseStorage | null = null;
+let _functions: FirebaseFunctions | null = null;
+
 
 function shouldUseEmulators(): boolean {
   return (process.env.NEXT_PUBLIC_USE_EMULATORS || "").toLowerCase() === "true";
@@ -72,6 +79,7 @@ export function getFirebaseClient() {
   if (!_auth) _auth = getAuth(_app);
   if (!_db) _db = getFirestore(_app);
   if (!_storage) _storage = getStorage(_app);
+  if (!_functions) _functions = getFunctions(_app);
 
   // Optional emulator wiring (only once)
   if (shouldUseEmulators()) {
@@ -82,12 +90,13 @@ export function getFirebaseClient() {
       connectAuthEmulator(_auth, "http://127.0.0.1:9099", { disableWarnings: true });
       connectFirestoreEmulator(_db, "127.0.0.1", 8080);
       connectStorageEmulator(_storage, "127.0.0.1", 9199);
+      connectFunctionsEmulator(_functions, "127.0.0.1", 5001);
 
       w.__FIREBASE_EMULATORS_CONNECTED__ = true;
     }
   }
 
-  return { app: _app, auth: _auth, db: _db, storage: _storage };
+  return { app: _app, auth: _auth, db: _db, storage: _storage, functions: _functions };
 }
 
 // Convenience named exports (optional)
@@ -96,3 +105,4 @@ export const app = firebaseClient.app;
 export const auth = firebaseClient.auth;
 export const db = firebaseClient.db;
 export const storage = firebaseClient.storage;
+export const functions = firebaseClient.functions;
