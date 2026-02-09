@@ -13,26 +13,35 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid));
     }
     
+    // Checks if the user is signed in and their document exists in Firestore.
+    // This is the foundational check for most authenticated actions.
     function userExists() {
         return isSignedIn() && exists(userDoc().path);
     }
 
+    // Safely gets the tenantId from the user's document.
+    // MUST be called only after userExists() is confirmed true.
     function tenantOfUser() {
       return userDoc().data.tenantId;
     }
 
+    // Safely gets the role from the user's document.
+    // MUST be called only after userExists() is confirmed true.
     function roleOfUser() {
       return userDoc().data.role;
     }
 
+    // Verifies the requesting user is a member of the specified tenant.
     function isTenantMember(tenantId) {
        return userExists() && tenantOfUser() == tenantId;
     }
     
+    // Verifies the user has one of the roles in the provided list.
     function hasRole(roles) {
       return userExists() && roleOfUser() in roles;
     }
     
+    // Verifies if the request is from a server process (simulated with an admin claim).
     function isServer() {
       // In tests, this is simulated by setting the 'admin' custom claim to true.
       return request.auth != null && request.auth.token.admin == true;
@@ -63,11 +72,15 @@ service cloud.firestore {
     match /monthCloses/{monthCloseId} {
       allow read: if userExists() && resource.data.tenantId == tenantOfUser();
 
+      // Only specific roles can create a month close, and they must provide required fields.
+      // The tenantId must match their own.
       allow create: if userExists() &&
                      hasRole(["OWNER", "MANAGER", "ACCOUNTANT"]) &&
                      request.resource.data.keys().hasAll(['tenantId', 'status', 'createdAt', 'updatedAt']) &&
                      request.resource.data.tenantId == tenantOfUser();
 
+      // Only specific roles can update, and only if the month is not finalized.
+      // Tenant ID is immutable.
       allow update: if userExists() &&
                      hasRole(["OWNER", "ACCOUNTANT"]) &&
                      resource.data.tenantId == tenantOfUser() &&
@@ -81,6 +94,7 @@ service cloud.firestore {
     match /fileAssets/{fileAssetId} {
       allow read: if userExists() && resource.data.tenantId == tenantOfUser();
       
+      // Clients can create files but with a very strict shape and initial state.
       allow create: if userExists() &&
                      hasRole(["OWNER", "MANAGER", "ACCOUNTANT"]) &&
                      request.resource.data.tenantId == tenantOfUser() &&
