@@ -1,59 +1,80 @@
-import { doc, getDoc } from "firebase/firestore";
-import type { User as FirebaseUser } from "firebase/auth";
-import { db } from "@/lib/firebaseClient";
+import { doc, getDoc, type DocumentData } from "firebase/firestore";
+import { signOut, type User as FirebaseUser } from "firebase/auth";
+import { auth, db } from "@/lib/firebaseClient";
 import type { User } from "@/lib/types";
 
+const PROVISIONING_TIMEOUT_MS = 20_000;
+const INITIAL_BACKOFF_MS = 150;
+const MAX_BACKOFF_MS = 1_500;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function toUser(uid: string, data: DocumentData): User {
+  return { uid, ...(data as Omit<User, "uid">) } as User;
+}
+
 /**
- * Waits for a user's Firestore document to be created.
+ * CALYBRA AUTH INTEGRITY GUARD (READ-ONLY)
  *
- * This function polls Firestore at a regular interval until the user document
- * exists or a timeout is reached. This is crucial for handling the latency
- * between Firebase Auth user creation and the `onAuthCreate` Cloud Function
- * trigger that creates the corresponding Firestore document.
+ * Backend (onAuthCreate) is authoritative for creating /users + /tenants.
+ * Client waits for /users/{uid} to exist with a hard timeout.
  *
- * @param firebaseUser - The user object from Firebase Authentication.
- * @param timeoutMs - The maximum time to wait in milliseconds.
- * @param pollIntervalMs - The interval between polling attempts.
- * @returns A promise that resolves with the User object once it's found.
- * @throws Throws a `USER_PROFILE_PROVISIONING_TIMEOUT` error if the document
- *         is not found within the timeout period.
- * @throws Throws a `CALYBRA_USER_PROFILE_VERIFICATION_FAILED` for other Firestore errors.
+ * Contract:
+ * - Returns User if profile exists.
+ * - Signs out and returns null if profile does not appear within timeout.
+ * - Signs out and throws on terminal errors (e.g. permission issues).
  */
 export async function ensureUserProfile(
-  firebaseUser: FirebaseUser,
-  timeoutMs = 15000, // 15 seconds
-  pollIntervalMs = 500
-): Promise<User> {
+  firebaseUser: FirebaseUser
+): Promise<User | null> {
+  if (!firebaseUser?.uid) {
+    await signOut(auth);
+    return null;
+  }
+
   const userDocRef = doc(db, "users", firebaseUser.uid);
-  const startTime = Date.now();
 
-  function sleep(ms: number) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
+  const deadline = Date.now() + PROVISIONING_TIMEOUT_MS;
+  let backoff = INITIAL_BACKOFF_MS;
+  let lastErr: unknown = null;
 
-  while (Date.now() - startTime < timeoutMs) {
+  while (Date.now() < deadline) {
     try {
-      const userDocSnap = await getDoc(userDocRef);
-      if (userDocSnap.exists()) {
-        // HAPPY PATH — user profile exists.
-        return {
-          uid: firebaseUser.uid,
-          ...userDocSnap.data(),
-        } as User;
+      const snap = await getDoc(userDocRef);
+
+      if (snap.exists()) {
+        return toUser(firebaseUser.uid, snap.data());
       }
-      // Document doesn't exist yet, wait before polling again.
-      await sleep(pollIntervalMs);
+
+      // Not yet provisioned. Fall through to retry.
+      lastErr = null;
     } catch (err) {
-      // This catches Firestore-level errors (e.g., permissions).
-      // We shouldn't retry in this case, so we fail fast.
-      console.warn(
-        "CALYBRA: A terminal error occurred while trying to poll for user profile.",
-        { uid: firebaseUser.uid, error: err }
-      );
-      throw new Error("CALYBRA_USER_PROFILE_VERIFICATION_FAILED");
+      lastErr = err;
+
+      // Terminal: permission issues should not be retried.
+      // Firestore errors often carry a "code" string.
+      const code = typeof err === "object" && err !== null && "code" in err
+        ? String((err as { code: unknown }).code)
+        : "";
+
+      if (code === "permission-denied" || code === "unauthenticated") {
+        await signOut(auth);
+        throw new Error("CALYBRA_USER_PROFILE_PERMISSION_DENIED");
+      }
     }
+
+    await sleep(backoff);
+    backoff = Math.min(MAX_BACKOFF_MS, Math.floor(backoff * 1.6));
   }
 
-  // If we exit the loop, it means we timed out.
-  throw new Error("USER_PROFILE_PROVISIONING_TIMEOUT");
+  // Timeout: profile never appeared. Keep your integrity stance.
+  console.warn(
+    "CALYBRA: User document did not appear within provisioning timeout. Signing out.",
+    { uid: firebaseUser.uid, lastErr }
+  );
+
+  await signOut(auth);
+  return null;
 }

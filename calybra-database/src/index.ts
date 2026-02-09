@@ -41,9 +41,9 @@ export const onAuthCreate = functions.auth.user().onCreate(
         createdAt: now,
         updatedAt: now,
         metadata: {
-          source: "signup"
-        }
+          source: "signup",
+        },
       });
     });
-  }
+  },
 );
