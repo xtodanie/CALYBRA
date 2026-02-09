@@ -1,12 +1,12 @@
 
+import { readFileSync } from "node:fs";
 import {
   assertFails,
   assertSucceeds,
   initializeTestEnvironment,
-  RulesTestEnvironment,
-  withSecurityRulesDisabled
+  type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 
 let testEnv: RulesTestEnvironment;
 
@@ -15,7 +15,7 @@ const PROJECT_ID = 'calybra-test-rules';
 // Define user identities for testing
 const myAuth = { uid: 'user-owner', email: 'owner@example.com', token: { admin: false } };
 const myManagerAuth = { uid: 'user-manager', email: 'manager@example.com', token: { admin: false } };
-const myMemberAuth = { uid: 'user-member', email: 'member@example.com', token: { admin: false } }; // Per prompt spec
+const myMemberAuth = { uid: 'user-member', email: 'member@example.com', token: { admin: false } };
 const otherTenantAuth = { uid: 'user-other', email: 'other@example.com', token: { admin: false } };
 const serverAuth = { uid: 'server-process', email: 'server@example.com', token: { admin: true } }; // Simulates server
 
@@ -36,7 +36,11 @@ const db = (auth?: { uid: string, token?: { admin: boolean } }) => {
 beforeAll(async () => {
   testEnv = await initializeTestEnvironment({
     projectId: PROJECT_ID,
-    firestore: { host: '127.0.0.1', port: 8080 },
+    firestore: { 
+        rules: readFileSync("firestore.rules", "utf8"),
+        host: '127.0.0.1', 
+        port: 8080 
+    },
   });
 });
 
@@ -48,7 +52,7 @@ beforeEach(async () => {
   await testEnv.clearFirestore();
 
   // Seed initial data using an admin context to bypass security rules for setup
-  await withSecurityRulesDisabled(async (context) => {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
     const adminDb = context.firestore();
     // Seed users with roles and tenant assignments
     await setDoc(doc(adminDb, 'users', myAuth.uid), { tenantId: myTenantId, role: 'OWNER' });
@@ -99,8 +103,8 @@ describe('Calybra Firestore Security Rules', () => {
           sha256: "hash",
           parseStatus: "PENDING",
           status: "DRAFT",
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
           schemaVersion: 1
         };
         const docRef = doc(db(myAuth), 'fileAssets', 'cross-tenant-write');
@@ -142,8 +146,8 @@ describe('Calybra Firestore Security Rules', () => {
       sha256: "somehash123",
       parseStatus: "PENDING",
       status: "DRAFT",
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
       schemaVersion: 1
     };
 

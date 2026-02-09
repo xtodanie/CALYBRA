@@ -1,8 +1,16 @@
-/** @type {import('ts-jest').JestConfigWithTsJest} */
+/** @type {import('jest').Config} */
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  // Automatically clear mock calls and instances between every test
+  testMatch: ["<rootDir>/tests/**/*.test.ts"],
+  modulePathIgnorePatterns: [
+    "<rootDir>/functions/",
+    "<rootDir>/calybra-database/",
+    "<rootDir>/.next/",
+    "<rootDir>/dist/",
+    "<rootDir>/build/",
+  ],
+   // Automatically clear mock calls and instances between every test
   clearMocks: true,
   // The directory where Jest should output its coverage files
   coverageDirectory: 'coverage',
