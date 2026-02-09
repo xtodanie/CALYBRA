@@ -14,7 +14,7 @@ service cloud.firestore {
     }
     
     function userExists() {
-        return exists(userDoc().path);
+        return isSignedIn() && exists(userDoc().path);
     }
 
     function tenantOfUser() {
@@ -26,16 +26,15 @@ service cloud.firestore {
     }
 
     function isTenantMember(tenantId) {
-       return isSignedIn() && userExists() && tenantOfUser() == tenantId;
+       return userExists() && tenantOfUser() == tenantId;
     }
     
     function hasRole(roles) {
-      return isSignedIn() && userExists() && roleOfUser() in roles;
+      return userExists() && roleOfUser() in roles;
     }
     
     function isServer() {
       // In tests, this is simulated by setting the 'admin' custom claim to true.
-      // In production, this would be used by a trusted server process (e.g., Cloud Functions with a service account).
       return request.auth != null && request.auth.token.admin == true;
     }
     
@@ -62,16 +61,16 @@ service cloud.firestore {
 
     // MONTH CLOSES: Granular control based on role and status.
     match /monthCloses/{monthCloseId} {
-      allow read: if isSignedIn() && userExists() && resource.data.tenantId == tenantOfUser();
+      allow read: if userExists() && resource.data.tenantId == tenantOfUser();
 
-      allow create: if isSignedIn() && userExists() &&
-                     request.resource.data.tenantId == tenantOfUser() &&
+      allow create: if userExists() &&
                      hasRole(["OWNER", "MANAGER", "ACCOUNTANT"]) &&
-                     request.resource.data.keys().hasAll(['tenantId', 'status', 'createdAt', 'updatedAt']);
+                     request.resource.data.keys().hasAll(['tenantId', 'status', 'createdAt', 'updatedAt']) &&
+                     request.resource.data.tenantId == tenantOfUser();
 
-      allow update: if isSignedIn() && userExists() &&
-                     resource.data.tenantId == tenantOfUser() &&
+      allow update: if userExists() &&
                      hasRole(["OWNER", "ACCOUNTANT"]) &&
+                     resource.data.tenantId == tenantOfUser() &&
                      request.resource.data.tenantId == resource.data.tenantId && // tenantId is immutable
                      resource.data.status != "FINALIZED"; // deny updates if finalized
 
@@ -80,13 +79,13 @@ service cloud.firestore {
     
     // FILE ASSETS: Clients can create with strict constraints. Updates are server-only.
     match /fileAssets/{fileAssetId} {
-      allow read: if isSignedIn() && userExists() && resource.data.tenantId == tenantOfUser();
+      allow read: if userExists() && resource.data.tenantId == tenantOfUser();
       
-      allow create: if isSignedIn() && userExists() &&
-                     request.resource.data.tenantId == tenantOfUser() &&
+      allow create: if userExists() &&
                      hasRole(["OWNER", "MANAGER", "ACCOUNTANT"]) &&
+                     request.resource.data.tenantId == tenantOfUser() &&
                      // Enforce that clients can ONLY set these specific keys
-                     request.resource.data.keys().hasOnly(['tenantId', 'monthCloseId', 'kind', 'filename', 'storagePath', 'sha256', 'parseStatus', 'createdAt', 'updatedAt', 'status', 'schemaVersion']) &&
+                     request.resource.data.keys().hasOnly(['tenantId', 'monthCloseId', 'kind', 'filename', 'storagePath', 'sha256', 'parseStatus', 'status', 'createdAt', 'updatedAt', 'schemaVersion']) &&
                      // Enforce required initial state for new files
                      request.resource.data.parseStatus == "PENDING" &&
                      request.resource.data.status == "DRAFT";
@@ -98,29 +97,29 @@ service cloud.firestore {
     // These collections can be read by tenant members but only written to by the server.
     
     match /jobs/{jobId} {
-        allow read: if isSignedIn() && userExists() && resource.data.tenantId == tenantOfUser();
+        allow read: if userExists() && resource.data.tenantId == tenantOfUser();
         allow write: if isServer();
     }
     
     match /invoices/{invoiceId} {
-        allow read: if isSignedIn() && userExists() && resource.data.tenantId == tenantOfUser();
+        allow read: if userExists() && resource.data.tenantId == tenantOfUser();
         allow write: if isServer();
     }
 
     match /bankTx/{txId} {
-        allow read: if isSignedIn() && userExists() && resource.data.tenantId == tenantOfUser();
+        allow read: if userExists() && resource.data.tenantId == tenantOfUser();
         allow write: if isServer();
     }
     
     match /matches/{matchId} {
-        allow read: if isSignedIn() && userExists() && resource.data.tenantId == tenantOfUser();
+        allow read: if userExists() && resource.data.tenantId == tenantOfUser();
         // For Phase 1, only the server can create/update/delete. Client is denied.
         // Finalization rule is implicitly handled; once FINALIZED, the server would need a separate path if it also needed to be blocked.
         allow write: if isServer(); 
     }
 
     match /exceptions/{exceptionId} {
-        allow read: if isSignedIn() && userExists() && resource.data.tenantId == tenantOfUser();
+        allow read: if userExists() && resource.data.tenantId == tenantOfUser();
         allow write: if isServer();
     }
   }

@@ -20,7 +20,7 @@ import {
   ExceptionSeverity,
   ExceptionStatus,
   AuditAction,
-} from "@/lib/types";
+} from "../lib/types";
 
 // =================================================================
 // BASE SCHEMAS
