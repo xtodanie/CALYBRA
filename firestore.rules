@@ -1,119 +1,127 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper Functions
+    // --- Helper Functions ---
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function isUser(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+    function userDoc() {
+      // Memoized for performance within a single rule evaluation
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+    
+    function userExists() {
+        return exists(userDoc().path);
     }
 
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    function tenantOfUser() {
+      return userDoc().data.tenantId;
     }
 
-    function getUserTenantId() {
-      // This function is only safe to call for existing users whose user doc has been created.
-      return getUserData().tenantId;
+    function roleOfUser() {
+      return userDoc().data.role;
     }
 
     function isTenantMember(tenantId) {
-       return isSignedIn() && getUserTenantId() == tenantId;
+       return isSignedIn() && userExists() && tenantOfUser() == tenantId;
     }
-
-    // A more generic check for reading/updating/deleting existing tenant-scoped resources.
-    function isResourceOwner() {
-      return isTenantMember(resource.data.tenantId);
+    
+    function hasRole(roles) {
+      return isSignedIn() && userExists() && roleOfUser() in roles;
     }
-
-    // A more generic check for creating new tenant-scoped resources.
-    function isRequestingOwner() {
-      return isTenantMember(request.resource.data.tenantId);
+    
+    function isServer() {
+      // In tests, this is simulated by setting the 'admin' custom claim to true.
+      // In production, this would be used by a trusted server process (e.g., Cloud Functions with a service account).
+      return request.auth != null && request.auth.token.admin == true;
     }
+    
+    // --- Global Rules ---
 
-    // Placeholder for future implementation of write-protection on locked months
-    function isMonthLocked(monthCloseId) {
-      // return get(/databases/$(database)/documents/monthCloses/$(monthCloseId)).data.status == 'LOCKED';
-      return false;
-    }
-
-    // Default deny all
+    // Default deny all access to prevent accidental exposure.
     match /{path=**} {
       allow read, write: if false;
     }
-
-    // USERS
-    // Users can read their own doc.
-    // Updates are restricted to prevent self-elevation of roles or tenant switching.
-    // Creation and Deletion are forbidden from the client to enforce server-side control.
-    match /users/{userId} {
-      allow read: if isUser(userId);
-      allow create: if false;
-      allow update: if isUser(userId) &&
-                     // Protect critical fields from being changed by the user
-                     request.resource.data.uid == resource.data.uid &&
-                     request.resource.data.email == resource.data.email &&
-                     request.resource.data.tenantId == resource.data.tenantId &&
-                     request.resource.data.role == resource.data.role &&
-                     request.resource.data.plan == resource.data.plan &&
-                     request.resource.data.createdAt == resource.data.createdAt;
-      allow delete: if false;
-    }
-
-    // TENANTS
-    // Tenants cannot be created, updated, or deleted from the client.
-    // They can only be read by a member of that tenant.
+    
+    // --- Collection-Specific Rules ---
+    
+    // TENANTS: Can only be read by their members. Write access is server-only.
     match /tenants/{tenantId} {
-      allow create: if false;
       allow read: if isTenantMember(tenantId);
-      allow update: if false;
-      allow delete: if false;
+      allow write: if isServer();
+    }
+    
+    // USERS: Users can read their own document. All modifications are server-only.
+    match /users/{userId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow write: if isServer();
     }
 
-    // AUDIT EVENTS: Create-only, append-only
-    // An authenticated user can create an audit event for their own tenant.
-    match /auditEvents/{eventId} {
-      allow create: if isSignedIn() && isRequestingOwner() && request.resource.data.createdAt == request.time;
-      allow read, update, delete: if false;
-    }
+    // MONTH CLOSES: Granular control based on role and status.
+    match /monthCloses/{monthCloseId} {
+      allow read: if isSignedIn() && userExists() && resource.data.tenantId == tenantOfUser();
 
-    // MATCHES: Client-side finalization protection placeholder
-    match /matches/{matchId} {
-        allow write: if isSignedIn() &&
-                      isRequestingOwner() &&
-                      // The client is NOT allowed to set these server-authoritative fields
-                      !('status' in request.resource.data) &&
-                      !('finalizedBy' in request.resource.data);
-        // Read, update, delete will be covered by the generic tenant-scoped block
-    }
+      allow create: if isSignedIn() && userExists() &&
+                     request.resource.data.tenantId == tenantOfUser() &&
+                     hasRole(["OWNER", "MANAGER", "ACCOUNTANT"]) &&
+                     request.resource.data.keys().hasAll(['tenantId', 'status', 'createdAt', 'updatedAt']);
 
-    // JOBS: Client can create and read, but only server can update.
+      allow update: if isSignedIn() && userExists() &&
+                     resource.data.tenantId == tenantOfUser() &&
+                     hasRole(["OWNER", "ACCOUNTANT"]) &&
+                     request.resource.data.tenantId == resource.data.tenantId && // tenantId is immutable
+                     resource.data.status != "FINALIZED"; // deny updates if finalized
+
+      allow delete: if isServer();
+    }
+    
+    // FILE ASSETS: Clients can create with strict constraints. Updates are server-only.
+    match /fileAssets/{fileAssetId} {
+      allow read: if isSignedIn() && userExists() && resource.data.tenantId == tenantOfUser();
+      
+      allow create: if isSignedIn() && userExists() &&
+                     request.resource.data.tenantId == tenantOfUser() &&
+                     hasRole(["OWNER", "MANAGER", "ACCOUNTANT"]) &&
+                     // Enforce that clients can ONLY set these specific keys
+                     request.resource.data.keys().hasOnly(['tenantId', 'monthCloseId', 'kind', 'filename', 'storagePath', 'sha256', 'parseStatus', 'createdAt', 'updatedAt', 'status', 'schemaVersion']) &&
+                     // Enforce required initial state for new files
+                     request.resource.data.parseStatus == "PENDING" &&
+                     request.resource.data.status == "DRAFT";
+      
+      allow update, delete: if isServer();
+    }
+    
+    // SERVER-ONLY WRITE COLLECTIONS
+    // These collections can be read by tenant members but only written to by the server.
+    
     match /jobs/{jobId} {
-        allow create: if isSignedIn() && isRequestingOwner();
-        allow read: if isSignedIn() && isResourceOwner();
-        allow update, delete: if false; // Updates must be server-side only.
+        allow read: if isSignedIn() && userExists() && resource.data.tenantId == tenantOfUser();
+        allow write: if isServer();
+    }
+    
+    match /invoices/{invoiceId} {
+        allow read: if isSignedIn() && userExists() && resource.data.tenantId == tenantOfUser();
+        allow write: if isServer();
     }
 
-    // --- Tenant-Scoped Collections ---
-    // This single block covers all tenant-scoped data by checking the 'tenantId' field.
-    // It denies writes if the associated month is locked.
-    match /{collection}/{docId} {
-      // This rule applies to collections like: monthCloses, fileAssets, bankTx, invoices, etc.
-      // It does NOT apply to users, tenants, or auditEvents which have their own specific rules.
-      allow read: if isSignedIn() && isResourceOwner();
+    match /bankTx/{txId} {
+        allow read: if isSignedIn() && userExists() && resource.data.tenantId == tenantOfUser();
+        allow write: if isServer();
+    }
+    
+    match /matches/{matchId} {
+        allow read: if isSignedIn() && userExists() && resource.data.tenantId == tenantOfUser();
+        // For Phase 1, only the server can create/update/delete. Client is denied.
+        // Finalization rule is implicitly handled; once FINALIZED, the server would need a separate path if it also needed to be blocked.
+        allow write: if isServer(); 
+    }
 
-      allow create: if isSignedIn() &&
-                     isRequestingOwner() &&
-                     (collection == 'monthCloses' || !isMonthLocked(request.resource.data.monthCloseId)); // Check for monthCloseId on create
-
-      allow update, delete: if isSignedIn() &&
-                             isResourceOwner() &&
-                             (collection == 'monthCloses' || !isMonthLocked(resource.data.monthCloseId)); // Check for monthCloseId on update/delete
+    match /exceptions/{exceptionId} {
+        allow read: if isSignedIn() && userExists() && resource.data.tenantId == tenantOfUser();
+        allow write: if isServer();
     }
   }
 }
