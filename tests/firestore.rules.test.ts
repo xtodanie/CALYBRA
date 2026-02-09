@@ -15,7 +15,7 @@ const PROJECT_ID = 'calybra-test-rules';
 // Define user identities for testing
 const myAuth = { uid: 'user-owner', email: 'owner@example.com', token: { admin: false } };
 const myManagerAuth = { uid: 'user-manager', email: 'manager@example.com', token: { admin: false } };
-const myMemberAuth = { uid: 'user-member', email: 'member@example.com', token: { admin: false } };
+const myViewerAuth = { uid: 'user-viewer', email: 'viewer@example.com', token: { admin: false } };
 const otherTenantAuth = { uid: 'user-other', email: 'other@example.com', token: { admin: false } };
 const serverAuth = { uid: 'server-process', email: 'server@example.com', token: { admin: true } }; // Simulates server
 
@@ -57,7 +57,7 @@ beforeEach(async () => {
     // Seed users with roles and tenant assignments
     await setDoc(doc(adminDb, 'users', myAuth.uid), { tenantId: myTenantId, role: 'OWNER' });
     await setDoc(doc(adminDb, 'users', myManagerAuth.uid), { tenantId: myTenantId, role: 'MANAGER' });
-    await setDoc(doc(adminDb, 'users', myMemberAuth.uid), { tenantId: myTenantId, role: 'MEMBER' });
+    await setDoc(doc(adminDb, 'users', myViewerAuth.uid), { tenantId: myTenantId, role: 'VIEWER' });
     await setDoc(doc(adminDb, 'users', otherTenantAuth.uid), { tenantId: otherTenantId, role: 'OWNER' });
 
     // Seed tenant-owned data for read/update tests
@@ -93,7 +93,7 @@ describe('Calybra Firestore Security Rules', () => {
       await assertFails(getDoc(docRef));
     });
 
-    it('should PREVENT a user from creating documents in another tenant', async () => {
+    it('should PREVENT a user from creating a document with a forged tenantId', async () => {
         const fullDocData = {
           tenantId: otherTenantId, // Attempting to write into another tenant
           monthCloseId: "any",
@@ -118,8 +118,8 @@ describe('Calybra Firestore Security Rules', () => {
       await assertSucceeds(updateDoc(docRef, { health: 'MATCHED' }));
     });
 
-    it('should PREVENT a MEMBER from updating a monthClose', async () => {
-      const docRef = doc(db(myMemberAuth), 'monthCloses', myMonthCloseId);
+    it('should PREVENT a VIEWER from updating a monthClose', async () => {
+      const docRef = doc(db(myViewerAuth), 'monthCloses', myMonthCloseId);
       await assertFails(updateDoc(docRef, { health: 'MATCHED' }));
     });
   });
@@ -187,7 +187,7 @@ describe('Calybra Firestore Security Rules', () => {
     
     it('should ALLOW a server to write to /users', async () => {
       const docRef = doc(db(serverAuth), 'users', 'new-server-user');
-      await assertSucceeds(setDoc(docRef, { tenantId: myTenantId, role: 'MEMBER' }));
+      await assertSucceeds(setDoc(docRef, { tenantId: myTenantId, role: 'VIEWER' }));
     });
   });
 });
