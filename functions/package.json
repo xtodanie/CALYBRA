@@ -1,5 +1,5 @@
 {
-  "name": "functions",
+  "name": "functions-legacy",
   "description": "Cloud Functions for Calybra",
   "scripts": {
     "build": "tsc",

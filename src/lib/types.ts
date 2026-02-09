@@ -1,14 +1,126 @@
 import type { Timestamp } from "firebase/firestore";
 
 // Version all core document types
-const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 1;
 
-export type UserRole = "OWNER" | "MANAGER" | "ACCOUNTANT" | "VIEWER";
-export type UserPlan = "free" | "pro" | "enterprise";
-export type UserStatus = "active" | "disabled";
+// =================================================================
+// ENUMS - Single source of truth for status, kind, role literals.
+// =================================================================
 
-export type User = {
-  uid: string;
+export enum UserRole {
+  OWNER = "OWNER",
+  MANAGER = "MANAGER",
+  ACCOUNTANT = "ACCOUNTANT",
+  VIEWER = "VIEWER",
+}
+
+export enum UserPlan {
+  FREE = "free",
+  PRO = "pro",
+  ENTERPRISE = "enterprise",
+}
+
+export enum UserStatus {
+  ACTIVE = "active",
+  DISABLED = "disabled",
+}
+
+export enum MonthCloseStatus {
+  DRAFT = "DRAFT",
+  PROCESSING = "PROCESSING",
+  READY = "READY",
+  LOCKED = "LOCKED",
+}
+
+export enum FileAssetKind {
+  BANK_CSV = "BANK_CSV",
+  INVOICE_PDF = "INVOICE_PDF",
+  EXPORT = "EXPORT",
+}
+
+export enum ParseStatus {
+  PENDING = "PENDING",
+  PARSED = "PARSED",
+  FAILED = "FAILED",
+}
+
+export enum JobType {
+  PARSE_BANK_CSV = "PARSE_BANK_CSV",
+  PARSE_INVOICE_PDF = "PARSE_INVOICE_PDF",
+  NORMALIZE = "NORMALIZE",
+  MATCH = "MATCH",
+  SUMMARIZE = "SUMMARIZE",
+  EXPORT = "EXPORT",
+}
+
+export enum JobStatus {
+  PENDING = "PENDING",
+  RUNNING = "RUNNING",
+  COMPLETED = "COMPLETED",
+  FAILED = "FAILED",
+}
+
+export enum MatchType {
+  EXACT = "EXACT",
+  FUZZY = "FUZZY",
+  GROUPED = "GROUPED",
+  PARTIAL = "PARTIAL",
+  FEE = "FEE",
+  MANUAL = "MANUAL",
+}
+
+export enum MatchStatus {
+  PROPOSED = "PROPOSED",
+  CONFIRMED = "CONFIRMED",
+  REJECTED = "REJECTED",
+}
+
+export enum ExceptionKind {
+  BANK_NO_INVOICE = "BANK_NO_INVOICE",
+  INVOICE_NO_BANK = "INVOICE_NO_BANK",
+  AMOUNT_MISMATCH = "AMOUNT_MISMATCH",
+  DUPLICATE = "DUPLICATE",
+  AMBIGUOUS = "AMBIGUOUS",
+  UNKNOWN_SUPPLIER = "UNKNOWN_SUPPLIER",
+}
+
+export enum ExceptionSeverity {
+  LOW = "LOW",
+  MEDIUM = "MEDIUM",
+  HIGH = "HIGH",
+}
+
+export enum ExceptionStatus {
+  OPEN = "OPEN",
+  RESOLVED = "RESOLVED",
+  IGNORED = "IGNORED",
+}
+
+export enum AuditAction {
+    JOB_STATE_CHANGED = "JOB_STATE_CHANGED",
+    MATCH_CONFIRMED = "MATCH_CONFIRMED",
+    EXCEPTION_RESOLVED = "EXCEPTION_RESOLVED",
+    MONTH_LOCKED = "MONTH_LOCKED",
+    SIGNED_URL_GENERATED = "SIGNED_URL_GENERATED"
+}
+
+// =================================================================
+// BASE & DOCUMENT INTERFACES
+// =================================================================
+
+interface BaseDocument {
+  id: string;
+  schemaVersion: number;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+interface TenantOwnedDocument extends BaseDocument {
+  tenantId: string;
+}
+
+export interface User extends BaseDocument {
+  uid: string; // Overwrites BaseDocument `id` for clarity
   email: string | null;
   tenantId: string;
   role: UserRole;
@@ -16,56 +128,35 @@ export type User = {
   status: UserStatus;
   locale: 'en' | 'es';
   activeMonthCloseId?: string;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-  schemaVersion: number;
   metadata: {
     source: "signup" | "auto-recovery";
     recoveryCount?: number;
   };
-};
+}
 
-export type Tenant = {
-  id: string;
+export interface Tenant extends BaseDocument {
   name: string;
   ownerId: string;
   timezone: string;
   currency: 'EUR';
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-  schemaVersion: number;
   settings?: {
     csvMappings?: any;
   };
-};
+}
 
-export type MonthCloseStatus = "DRAFT" | "PROCESSING" | "READY" | "LOCKED";
-export type MonthCloseHealth = "MATCHED" | "MATCHED_WITH_NOTES" | "NOT_MATCHED";
-
-export type MonthClose = {
-  id: string;
-  tenantId: string;
+export interface MonthClose extends TenantOwnedDocument {
   periodStart: Timestamp;
   periodEnd: Timestamp;
   status: MonthCloseStatus;
-  health: MonthCloseHealth;
   bankTotal: number;
   invoiceTotal: number;
   diff: number;
   openExceptionsCount: number;
   highExceptionsCount: number;
   createdBy: string;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-  schemaVersion: number;
-};
+}
 
-export type FileAssetKind = "BANK_CSV" | "INVOICE_PDF" | "EXPORT";
-export type ParseStatus = "PENDING" | "PARSED" | "FAILED";
-
-export type FileAsset = {
-  id: string;
-  tenantId: string;
+export interface FileAsset extends TenantOwnedDocument {
   monthCloseId: string;
   kind: FileAssetKind;
   filename: string;
@@ -73,14 +164,9 @@ export type FileAsset = {
   sha256: string;
   parseStatus: ParseStatus;
   parseError?: string | null;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-  schemaVersion: number;
-};
+}
 
-export type BankTx = {
-  id: string;
-  tenantId: string;
+export interface BankTx extends TenantOwnedDocument {
   monthCloseId: string;
   bookingDate: string; // YYYY-MM-DD
   amount: number;
@@ -90,14 +176,9 @@ export type BankTx = {
   counterpartyId?: string | null;
   fingerprint: string; // sha256
   sourceFileId: string;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-  schemaVersion: number;
-};
+}
 
-export type Invoice = {
-  id: string;
-  tenantId: string;
+export interface Invoice extends TenantOwnedDocument {
   monthCloseId: string;
   supplierId?: string | null; // counterpartyId
   supplierNameRaw: string;
@@ -107,14 +188,9 @@ export type Invoice = {
   extractionConfidence: number; // 0-100
   needsReview: boolean;
   sourceFileId: string;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-  schemaVersion: number;
-};
+}
 
-export type Counterparty = {
-  id: string;
-  tenantId: string;
+export interface Counterparty extends TenantOwnedDocument {
   displayName: string;
   aliases: string[];
   rules: {
@@ -122,17 +198,9 @@ export type Counterparty = {
     dateWindowDays: number;
     typicalFeeAbs?: number | null;
   };
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-  schemaVersion: number;
-};
+}
 
-export type MatchType = "EXACT" | "FUZZY" | "GROUPED" | "PARTIAL" | "FEE" | "MANUAL";
-export type MatchStatus = "PROPOSED" | "CONFIRMED" | "REJECTED";
-
-export type Match = {
-  id: string;
-  tenantId: string;
+export interface Match extends TenantOwnedDocument {
   monthCloseId: string;
   bankTxIds: string[];
   invoiceIds: string[];
@@ -143,19 +211,10 @@ export type Match = {
   explanationParams: Record<string, string | number>;
   confirmedBy?: string | null;
   confirmedAt?: Timestamp | null;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-  schemaVersion: number;
-  finalizedBy?: string; // Server-only field
-};
+  finalizedBy?: string;
+}
 
-export type ExceptionKind = "BANK_NO_INVOICE" | "INVOICE_NO_BANK" | "AMOUNT_MISMATCH" | "DUPLICATE" | "AMBIGUOUS" | "UNKNOWN_SUPPLIER";
-export type ExceptionSeverity = "LOW" | "MEDIUM" | "HIGH";
-export type ExceptionStatus = "OPEN" | "RESOLVED" | "IGNORED";
-
-export type Exception = {
-  id: string;
-  tenantId: string;
+export interface Exception extends TenantOwnedDocument {
   monthCloseId: string;
   kind: ExceptionKind;
   severity: ExceptionSeverity;
@@ -167,25 +226,9 @@ export type Exception = {
   resolvedBy?: string | null;
   resolvedAt?: Timestamp | null;
   ignoreReason?: string | null;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-  schemaVersion: number;
-};
+}
 
-
-export type JobType =
-  | "PARSE_BANK_CSV"
-  | "PARSE_INVOICE_PDF"
-  | "NORMALIZE"
-  | "MATCH"
-  | "SUMMARIZE"
-  | "EXPORT";
-
-export type JobStatus = "PENDING" | "RUNNING" | "COMPLETED" | "FAILED";
-
-export type Job = {
-  id: string;
-  tenantId: string;
+export interface Job extends TenantOwnedDocument {
   monthCloseId: string;
   type: JobType;
   status: JobStatus;
@@ -199,30 +242,16 @@ export type Job = {
     params?: Record<string, any>,
   } | null;
   refFileId: string;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-  schemaVersion: number;
-};
+}
 
+export interface AuditEvent extends TenantOwnedDocument {
+    actorUid: string;
+    action: AuditAction;
+    entityRef: { type: string, id: string };
+    details: Record<string, any>;
+}
 
-// New AuditEvent contract as per Phase 2 requirements
-export type AuditEvent = {
-  id: string;
-  type: string;
-  actor: string; // user id
-  tenantId: string;
-  monthCloseId?: string;
-  entityRefs: { type: string; id: string }[];
-  before: Record<string, any>;
-  after: Record<string, any>;
-  evidenceRefs?: { type: string; id: string }[];
-  schemaVersion: number;
-  createdAt: Timestamp;
-};
-
-// New Evidence contract as per Phase 2 requirements
-export type Evidence = {
-  id: string;
+export interface Evidence extends TenantOwnedDocument {
   fileId: string;
   storagePath?: string;
   page?: number;
@@ -232,5 +261,4 @@ export type Evidence = {
   extractor: string;
   confidenceRaw: number;
   confidenceValidated?: number;
-  schemaVersion: number;
-};
+}

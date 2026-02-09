@@ -5,7 +5,7 @@ module.exports = {
   testMatch: ["<rootDir>/tests/**/*.test.ts"],
   modulePathIgnorePatterns: [
     "<rootDir>/functions/",
-    "<rootDir>/calybra-database/",
+    // "<rootDir>/calybra-database/", // Temporarily remove to allow testing validation schemas
     "<rootDir>/.next/",
     "<rootDir>/dist/",
     "<rootDir>/build/",
