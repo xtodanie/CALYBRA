@@ -26,7 +26,7 @@ import {
 // BASE SCHEMAS
 // =================================================================
 
-// Fields managed by the server on every document. Not part of client payloads.
+// Fields managed by the server on every document. Not part of client payloads for create.
 const ServerManagedFields = {
   id: z.string(),
   schemaVersion: z.literal(SCHEMA_VERSION),
@@ -125,4 +125,35 @@ export const BankTxServerCreateSchema = z.object({
   counterpartyRaw: z.string().nullable().optional(),
   referenceRaw: z.string().nullable().optional(),
   counterpartyId: z.string().nullable().optional(),
+}).strict();
+
+export const MatchServerCreateSchema = z.object({
+  monthCloseId: z.string().min(1),
+  bankTxIds: z.array(z.string()).min(1),
+  invoiceIds: z.array(z.string()).min(1),
+  matchType: z.nativeEnum(MatchType),
+  score: z.number().min(0).max(100),
+  status: z.literal(MatchStatus.PROPOSED),
+  explanationKey: z.string(),
+  explanationParams: z.record(z.any()),
+}).strict();
+
+export const ExceptionServerCreateSchema = z.object({
+  monthCloseId: z.string().min(1),
+  kind: z.nativeEnum(ExceptionKind),
+  severity: z.nativeEnum(ExceptionSeverity),
+  status: z.literal(ExceptionStatus.OPEN),
+  suggestedActionKey: z.string(),
+  bankTxId: z.string().optional().nullable(),
+  invoiceId: z.string().optional().nullable(),
+}).strict();
+
+export const AuditEventServerCreateSchema = z.object({
+  actorUid: z.string(),
+  action: z.nativeEnum(AuditAction),
+  entityRef: z.object({
+    type: z.string(),
+    id: z.string(),
+  }),
+  details: z.record(z.any()),
 }).strict();
