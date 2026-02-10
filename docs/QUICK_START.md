@@ -11,7 +11,7 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:9002
+- Application: http://localhost:9002
 
 ### With Full Backend (Firestore, Auth, Functions)
 

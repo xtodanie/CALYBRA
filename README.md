@@ -76,6 +76,8 @@ npm run dev
 
 The application will be available at: **http://localhost:9002**
 
+> **Note:** On first load, you'll be redirected to the authentication page. The application is a financial reconciliation platform for managing month-end close processes.
+
 ### Option 2: Full Stack with Firebase Emulators (Recommended for Full Development)
 
 For complete backend functionality including Firestore, Authentication, and Cloud Functions, run the application with Firebase emulators:
@@ -96,7 +98,8 @@ For complete backend functionality including Firestore, Authentication, and Clou
    npm run dev
    ```
    
-   The application will be available at: **http://localhost:9002**
+   - Application: **http://localhost:9002**
+   - Emulator UI: **http://127.0.0.1:4001**
 
 The emulators provide a complete local environment with:
 - Firestore database
@@ -187,7 +190,7 @@ CALYBRA/
 │   ├── lib/             # Utility functions and libraries
 │   ├── ai/              # Genkit AI flows and prompts
 │   └── middleware.ts    # Next.js middleware (i18n routing)
-├── functions/           # Firebase Cloud Functions (not yet implemented)
+├── functions/           # Firebase Cloud Functions (job processing, etc.)
 ├── calybra-database/    # Firebase Functions for database operations
 ├── tests/              # Security rules and unit tests
 ├── docs/               # Additional documentation
