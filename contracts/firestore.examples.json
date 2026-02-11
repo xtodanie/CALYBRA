@@ -288,5 +288,116 @@
       "updatedAt": "2026-02-01T09:40:00Z",
       "schemaVersion": 1
     }
+  ],
+  "periods": [
+    {
+      "id": "2026-01",
+      "tenantId": "tenant_alpha",
+      "status": "FINALIZED",
+      "finalizedAt": "2026-02-05T12:00:00Z",
+      "closeConfig": { "asOfDays": [5, 10, 20] },
+      "periodLockHash": "hash_alpha_2026_01",
+      "createdAt": "2026-02-01T09:00:00Z",
+      "updatedAt": "2026-02-05T12:00:00Z",
+      "createdBy": "system",
+      "updatedBy": "system",
+      "schemaVersion": 1
+    }
+  ],
+  "events": [
+    {
+      "id": "evt_alpha_001",
+      "tenantId": "tenant_alpha",
+      "type": "BANK_TX_ARRIVED",
+      "occurredAt": "2026-01-06T08:00:00Z",
+      "recordedAt": "2026-01-06T08:05:00Z",
+      "monthKey": "2026-01",
+      "deterministicId": "tx_alpha_001",
+      "payload": {
+        "txId": "tx_alpha_001",
+        "bookingDate": "2026-01-06",
+        "amountCents": -124050,
+        "currency": "USD",
+        "descriptionRaw": "ACH ROASTER SUPPLY CO"
+      },
+      "schemaVersion": 1
+    },
+    {
+      "id": "evt_alpha_002",
+      "tenantId": "tenant_alpha",
+      "type": "INVOICE_CREATED",
+      "occurredAt": "2026-01-05T09:00:00Z",
+      "recordedAt": "2026-01-05T09:01:00Z",
+      "monthKey": "2026-01",
+      "deterministicId": "inv_alpha_001",
+      "payload": {
+        "invoiceId": "inv_alpha_001",
+        "issueDate": "2026-01-05",
+        "invoiceNumber": "AC-1001",
+        "supplierNameRaw": "Roaster Supply Co",
+        "totalGrossCents": 124050,
+        "vatRatePercent": 21,
+        "currency": "USD",
+        "direction": "EXPENSE"
+      },
+      "schemaVersion": 1
+    }
+  ],
+  "readmodels": [
+    {
+      "path": "tenants/tenant_alpha/readmodels/monthCloseTimeline/2026-01/snapshot",
+      "tenantId": "tenant_alpha",
+      "monthKey": "2026-01",
+      "periodEnd": "2026-01-31",
+      "asOfDays": [5, 10, 20],
+      "entries": [],
+      "insights": ["Final accuracy was reached on Day 10.", "80% of variance resolved in the last 10 days."],
+      "generatedAt": "2026-02-05T12:00:00Z",
+      "periodLockHash": "hash_alpha_2026_01",
+      "schemaVersion": 1
+    }
+  ],
+  "exports": [
+    {
+      "path": "tenants/tenant_alpha/exports/2026-01/artifacts/ledgerCsv",
+      "tenantId": "tenant_alpha",
+      "monthKey": "2026-01",
+      "periodLockHash": "hash_alpha_2026_01",
+      "contentHash": "hash_content_ledger",
+      "contentType": "text/csv",
+      "filename": "ledger_2026-01_tenant_alpha.csv",
+      "content": "recordType,recordId,date,description,amountCents,currency,matchedIds",
+      "generatedAt": "2026-02-05T12:00:00Z",
+      "schemaVersion": 1
+    },
+    {
+      "path": "tenants/tenant_alpha/exports/2026-01/artifacts/summaryPdf",
+      "tenantId": "tenant_alpha",
+      "monthKey": "2026-01",
+      "periodLockHash": "hash_alpha_2026_01",
+      "contentHash": "hash_content_pdf",
+      "contentType": "application/pdf",
+      "filename": "summary_2026-01_tenant_alpha.pdf",
+      "contentBase64": "JVBERi0xLjQK",
+      "generatedAt": "2026-02-05T12:00:00Z",
+      "schemaVersion": 1
+    }
+  ],
+  "jobs": [
+    {
+      "id": "periodFinalized:tenant_alpha:2026-01:hash_alpha_2026_01",
+      "tenantId": "tenant_alpha",
+      "monthKey": "2026-01",
+      "action": "periodFinalized",
+      "status": "COMPLETED",
+      "periodLockHash": "hash_alpha_2026_01",
+      "startedAt": "2026-02-05T12:00:00Z",
+      "completedAt": "2026-02-05T12:01:00Z",
+      "outputsRefs": {
+        "ledgerCsv": "tenants/tenant_alpha/exports/2026-01/artifacts/ledgerCsv",
+        "summaryPdf": "tenants/tenant_alpha/exports/2026-01/artifacts/summaryPdf"
+      },
+      "schemaVersion": 1
+    }
   ]
 }

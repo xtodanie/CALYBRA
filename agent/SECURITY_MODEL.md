@@ -101,7 +101,7 @@ The actual active model must be recorded in `agent/TRUTH_SNAPSHOT.md`.
 
 Non-negotiable invariant:
 
-- A user may only read/write documents belonging to their `users/{uid}.tenantId`.
+- A user can only read/write documents belonging to their `users/{uid}.tenantId`.
 
 ---
 
@@ -133,14 +133,14 @@ This matrix is only valid if it matches rules. If rules differ, update this matr
 | Create matches | No | No | No | No |
 | Confirm matches | No | No | No | No |
 | Create monthCloses | No | Yes | Yes | Yes |
-| Change monthClose status | No | Yes (if allowed) | Yes | Yes |
-| Finalize monthClose | No | No/Yes (truth) | Yes/No (truth) | Yes |
+| Change monthClose status | No | No | No | No |
+| Finalize monthClose | No | No | No | No |
 | Create fileAssets metadata | No | Yes | Yes | Yes |
 | Update fileAssets privileged fields | No | No | No | No (server only) |
 
 Truth note:
 
-- “Finalize” and privileged status updates may be server-only depending on rules.
+- “Finalize” and privileged status updates are server-only.
 
 ---
 
@@ -151,12 +151,16 @@ Truth note:
 - `users/*` (identity)
 - `tenants/*` (tenant metadata)
 - `bankTx/*` writes (ingestion)
-- privileged transitions (finalization, verification) if enforced server-side
+- privileged transitions (finalization, verification)
 - derived totals and reconciliation outputs
+- `events/*` writes (authoritative event stream)
+- `periods/*` writes (period control)
+- `readmodels/*` writes (derived projections)
+- `exports/*` writes (generated artifacts)
 
 ### Client-limited writes (Typical, must match truth)
 
-- monthCloses draft/review transitions (if permitted) + RBAC
+- monthCloses non-status field updates within allowlist + RBAC
 - fileAssets minimal metadata create (no privileged fields)
 
 ### Server-only (Enforced by current rules)
@@ -184,7 +188,7 @@ Security requirements:
 
 - Allowed transitions succeed only with required role(s).
 - Disallowed transitions are denied.
-- Finalized states are immutable (if present in truth).
+- Finalized states are immutable.
 
 Examples of invariants (truth-dependent):
 
@@ -220,8 +224,6 @@ Must enforce:
 - authenticated user
 - tenant membership
 - tenant-scoped storage paths
-- optional coupling to Firestore metadata doc:
-  - upload allowed only if corresponding `fileAssets` doc exists and is in an allowed state
 
 Hard rule:
 
@@ -240,7 +242,7 @@ Must cover:
 - unauthenticated denied (read + write)
 - cross-tenant denied (read + write) for each core collection
 - RBAC gates for privileged writes
-- finalized immutability (if applicable)
+- finalized immutability enforced
 - forbidden client fields denied
 
 Command:
@@ -249,12 +251,12 @@ Command:
 firebase emulators:exec --only firestore "npm test"
 ```
 
-### Invariant tests (recommended P0)
+### Invariant tests (required P0)
 
-- tenantId required on tenant-owned docs
-- forbidden client fields cannot be set
+- tenant isolation (read + write) enforced
+- RBAC enforced per role
 - status transitions enforced
-- cross-tenant references denied (e.g., matches linking cross-tenant docs)
+- server-only writes enforced
 
 ---
 

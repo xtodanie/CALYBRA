@@ -7,11 +7,15 @@
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "NODE_ENV=production next build",
+    "build:server": "tsc --project server/tsconfig.json",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-    "truth-lock": "node scripts/truth.mjs && node scripts/consistency.mjs"
+    "truth-lock": "node scripts/truth.mjs && node scripts/consistency.mjs",
+    "local:clean": "node scripts/local_clean.mjs",
+    "local:up": "node scripts/local_up.mjs",
+    "local:e2e": "node scripts/local_e2e.mjs"
   },
   "dependencies": {
     "@formatjs/intl-localematcher": "^0.5.4",

@@ -106,6 +106,132 @@ Allowed role actions:
 Invariants:
 - FINALIZED monthCloses are immutable
 
+## periods
+**Path:** tenants/{tenantId}/periods/{monthKey}
+
+Required fields:
+- id: string (must match monthKey)
+- tenantId: string
+- status: "OPEN" | "FINALIZED"
+- schemaVersion: number (server, default 1)
+
+Optional fields:
+- finalizedAt: Timestamp (server)
+- closeConfig: { asOfDays: number[] }
+- periodLockHash: string (server)
+- createdAt: Timestamp (server)
+- updatedAt: Timestamp (server)
+- createdBy: string (server)
+- updatedBy: string (server)
+
+Server-owned fields:
+- createdAt, updatedAt, createdBy, updatedBy, schemaVersion, finalizedAt, periodLockHash
+
+Allowed role actions:
+- Read: OWNER, MANAGER, ACCOUNTANT, VIEWER (tenant members only)
+- Write: server-only
+
+Invariants:
+- FINALIZED period is immutable unless server updates readmodels/exports
+
+## events
+**Path:** tenants/{tenantId}/events/{eventId}
+
+Required fields:
+- id: string (must match document id)
+- tenantId: string
+- type: string (see contract: counterfactual-month-close.contract.md)
+- occurredAt: string (ISO)
+- recordedAt: string (ISO)
+- monthKey: string (YYYY-MM)
+- deterministicId: string (idempotency key)
+- payload: object (typed per event type)
+- schemaVersion: number (server, default 1)
+
+Server-owned fields:
+- all fields (server-authoritative)
+
+Allowed role actions:
+- Read: OWNER, MANAGER, ACCOUNTANT, VIEWER (tenant members only)
+- Write: server-only
+
+Invariants:
+- deterministicId must be unique per event
+
+## readmodels
+**Path:** tenants/{tenantId}/readmodels/{modelName}/{monthKey}/snapshot
+
+Derived read models (non-authoritative):
+- monthCloseTimeline
+- closeFriction
+- vatSummary
+- mismatchSummary
+
+Auditor replay snapshots:
+- tenants/{tenantId}/readmodels/auditorReplay/{monthKey}/{asOfDateKey}
+
+Allowed role actions:
+- Read: OWNER, MANAGER, ACCOUNTANT, VIEWER (tenant members only)
+- Write: server-only
+
+Invariants:
+- Readmodels are rebuildable from events
+
+## exports
+**Path:** tenants/{tenantId}/exports/{monthKey}/artifacts/{artifactId}
+
+Required fields:
+- tenantId: string
+- monthKey: string
+- periodLockHash: string
+- contentHash: string (sha256)
+- contentType: "text/csv" | "application/pdf"
+- filename: string
+- generatedAt: string (ISO)
+- schemaVersion: number (server, default 1)
+
+Optional fields:
+- content: string (CSV)
+- contentBase64: string (PDF)
+
+Allowed role actions:
+- Read: OWNER, MANAGER, ACCOUNTANT, VIEWER (tenant members only)
+- Write: server-only
+
+## jobs
+**Path:** jobs/{jobId}
+
+Required fields:
+- id: string (must match document id)
+- tenantId: string
+- monthKey: string
+- action: string
+- status: "RUNNING" | "COMPLETED" | "FAILED"
+- periodLockHash: string
+- startedAt: Timestamp (server)
+- schemaVersion: number (server, default 1)
+
+Optional fields:
+- completedAt: Timestamp (server)
+- outputsRefs: object
+- errorCode: string
+- errorMessage: string
+
+Allowed role actions:
+- Read: tenant members only
+- Write: server-only
+
+## exceptions
+**Path:** exceptions/{exceptionId}
+
+Required fields:
+- tenantId: string
+- message: string
+
+Allowed role actions:
+- Read: tenant members only
+- Write: server-only
+
 ## invoices
 **Path:** tenants/{tenantId}/invoices/{invoiceId}
 

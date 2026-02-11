@@ -95,7 +95,7 @@ Enforce in:
 ## 5) TypeScript / Next.js
 - No `any` unless justified in code comment.
 - Do not silence errors by widening types without a contract reference.
-- Prefer narrow types with explicit parsing/validation at boundaries.
+- Use narrow types with explicit parsing/validation at boundaries.
 - Keep business logic out of React components:
   - domain logic in `src/domain/**`
   - UI components do rendering + calls domain functions.

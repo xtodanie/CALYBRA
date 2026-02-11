@@ -21,10 +21,10 @@ This is an execution document. If a command here does not work, fix the runbook 
    - Do not merge or deploy with emulator tests failing.
 
 4) **No secrets in repo**  
-   Only `NEXT_PUBLIC_*` may be public. Everything else is local-only or managed by Firebase/Secret Manager.
+   Only `NEXT_PUBLIC_*` are public. Everything else is local-only or managed by Firebase/Secret Manager.
 
 5) **One command == one source of truth**  
-   Prefer the runbook commands over ad-hoc alternates. If your team uses wrappers, they must call the same underlying commands.
+   Use the runbook commands over ad-hoc alternates. If your team uses wrappers, they must call the same underlying commands.
 
 6) **Emulators for proof**  
    Security proofs (rules tests) must run against emulators, not production.
@@ -73,14 +73,14 @@ Rules:
 - Never use production secrets locally.
 - If a variable is required for local dev, it must be documented here.
 
-### Functions local (if used)
+### Functions local
 
 File: `functions/.env` (ignored by git)
 
 Rules:
 
 - Treat everything here as secret.
-- Prefer emulators + local stubs over real third-party credentials.
+- Use emulators + local stubs over real third-party credentials.
 
 ### Production config
 
@@ -123,7 +123,7 @@ npm --prefix calybra-database install
 
 ### 2) Ensure Firebase CLI is available
 
-Preferred: installed globally and stable:
+Install globally and keep stable:
 
 ```bash
 firebase --version
@@ -136,7 +136,7 @@ npm i -g firebase-tools
 firebase --version
 ```
 
-Policy: use `firebase ...` directly (standardized). Avoid alternates unless repo scripts enforce them.
+Policy: use `firebase ...` directly (standardized). Avoid alternates.
 
 ### 3) Select Firebase project
 
@@ -198,7 +198,7 @@ node scripts/emulators.mjs
 
 Rules:
 
-- Prefer `--only` when debugging a specific area.
+- Use `--only` when debugging a specific area.
 - Keep emulator ports stable via `firebase.json` to avoid flaky tooling.
 
 ### Step 2: Start Next.js dev server
@@ -208,6 +208,26 @@ npm run dev
 ```
 
 Rule: if Next.js depends on emulators, ensure your app points to emulator hosts (typically configured in code or `.env.local`).
+
+### Step 3: Zero-Drift Local Run (Non-Interactive)
+
+Run the single orchestrator command:
+
+```bash
+npm run local:e2e
+```
+
+This command:
+
+- Cleans repo-local build artifacts
+- Installs dependencies (root + subpackages)
+- Runs truth lock
+- Boots emulators and Next.js
+- Runs workflow contract tests and emulator-backed invariant tests
+- Tears everything down
+- Writes logs to `artifacts/step3/local_e2e.log`
+
+If this command fails, Step 3 fails.
 
 ---
 
@@ -302,7 +322,7 @@ firebase deploy --only hosting
 Rules:
 
 - Never deploy rules without proofs passing.
-- Rules deploys should be small and reviewable.
+- Rules deploys are small and reviewable.
 - If hosting depends on functions/rules changes, keep the deploy sequence.
 
 ---

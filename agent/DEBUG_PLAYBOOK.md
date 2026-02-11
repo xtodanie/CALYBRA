@@ -164,7 +164,7 @@ Checks:
 Fix:
 
 - Correct client payload to meet allowed transition.
-- Or adjust rules + tests if transition should be allowed (ADR required).
+- Or adjust rules + tests if transition must be allowed (ADR required).
 
 Prevention:
 

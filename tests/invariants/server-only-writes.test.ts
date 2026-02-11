@@ -8,6 +8,10 @@
  * - invoices
  * - bankTx
  * - matches
+ * - events
+ * - periods
+ * - readmodels
+ * - exports
  * - jobs
  * - exceptions
  */
@@ -17,8 +21,10 @@ import {
   type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
 import { initTestEnv } from "../helpers/testEnv";
+import { shouldRunFirestoreEmulatorTests } from "../helpers/emulatorGuard";
 import { doc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
 
+const describeIfEmulator = shouldRunFirestoreEmulatorTests() ? describe : describe.skip;
 let testEnv: RulesTestEnvironment;
 const PROJECT_ID = "calybra-invariants-serveronly";
 
@@ -49,12 +55,16 @@ beforeEach(async () => {
     await setDoc(doc(adminDb, "tenants", tenantId, "invoices", "inv-1"), { tenantId });
     await setDoc(doc(adminDb, "tenants", tenantId, "bankTx", "tx-1"), { tenantId, amount: 100 });
     await setDoc(doc(adminDb, "tenants", tenantId, "matches", "match-1"), { tenantId, status: "PROPOSED" });
+    await setDoc(doc(adminDb, "tenants", tenantId, "events", "evt-1"), { tenantId, type: "BANK_TX_ARRIVED" });
+    await setDoc(doc(adminDb, "tenants", tenantId, "periods", "2026-01"), { tenantId, status: "OPEN" });
+    await setDoc(doc(adminDb, "tenants", tenantId, "readmodels", "monthCloseTimeline", "2026-01", "snapshot"), { tenantId });
+    await setDoc(doc(adminDb, "tenants", tenantId, "exports", "2026-01", "artifacts", "ledgerCsv"), { tenantId });
     await setDoc(doc(adminDb, "jobs", "job-1"), { tenantId, status: "PENDING" });
     await setDoc(doc(adminDb, "exceptions", "exc-1"), { tenantId, message: "Error" });
   });
 });
 
-describe("INVARIANT: Server-Only Writes", () => {
+describeIfEmulator("INVARIANT: Server-Only Writes", () => {
   describe("/tenants collection", () => {
     it("client CANNOT create tenant", async () => {
       await assertFails(setDoc(doc(db(ownerAuth), "tenants", "client-tenant"), { name: "Client Created" }));
@@ -131,6 +141,46 @@ describe("INVARIANT: Server-Only Writes", () => {
     it("server CAN write to matches", async () => {
       // Server must create matches with initial status PROPOSED (per state machine)
       await assertSucceeds(setDoc(doc(db(serverAuth), "tenants", tenantId, "matches", "server-match"), { tenantId, status: "PROPOSED" }));
+    });
+  });
+
+  describe("/events subcollection", () => {
+    it("client CANNOT create event", async () => {
+      await assertFails(setDoc(doc(db(ownerAuth), "tenants", tenantId, "events", "client-evt"), { tenantId }));
+    });
+
+    it("server CAN write to events", async () => {
+      await assertSucceeds(setDoc(doc(db(serverAuth), "tenants", tenantId, "events", "server-evt"), { tenantId }));
+    });
+  });
+
+  describe("/periods subcollection", () => {
+    it("client CANNOT create period", async () => {
+      await assertFails(setDoc(doc(db(ownerAuth), "tenants", tenantId, "periods", "2026-01"), { tenantId }));
+    });
+
+    it("server CAN write to periods", async () => {
+      await assertSucceeds(setDoc(doc(db(serverAuth), "tenants", tenantId, "periods", "2026-02"), { tenantId }));
+    });
+  });
+
+  describe("/readmodels subcollection", () => {
+    it("client CANNOT create readmodel", async () => {
+      await assertFails(setDoc(doc(db(ownerAuth), "tenants", tenantId, "readmodels", "monthCloseTimeline", "2026-01", "snapshot"), { tenantId }));
+    });
+
+    it("server CAN write to readmodels", async () => {
+      await assertSucceeds(setDoc(doc(db(serverAuth), "tenants", tenantId, "readmodels", "monthCloseTimeline", "2026-02", "snapshot"), { tenantId }));
+    });
+  });
+
+  describe("/exports subcollection", () => {
+    it("client CANNOT create export", async () => {
+      await assertFails(setDoc(doc(db(ownerAuth), "tenants", tenantId, "exports", "2026-01", "artifacts", "ledgerCsv"), { tenantId }));
+    });
+
+    it("server CAN write to exports", async () => {
+      await assertSucceeds(setDoc(doc(db(serverAuth), "tenants", tenantId, "exports", "2026-02", "artifacts", "ledgerCsv"), { tenantId }));
     });
   });
 

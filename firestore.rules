@@ -137,6 +137,11 @@ service cloud.firestore {
         && request.resource.data.keys().hasAll(required);
     }
 
+    function hasKey(data, key) {
+      return data != null
+        && data.keys().hasAll([key]);
+    }
+
     function isTimestamp(value) {
       return value is timestamp;
     }
@@ -168,22 +173,28 @@ service cloud.firestore {
 
     // Check if status field is being changed
     function statusChanging() {
-      return request.resource.data.status != resource.data.status;
+      return hasKey(resource.data, 'status')
+        && hasKey(request.resource.data, 'status')
+        && request.resource.data.status != resource.data.status;
     }
 
     // Check if match is in terminal state
     function matchIsTerminal() {
-      return resource.data.status == "CONFIRMED" || resource.data.status == "REJECTED";
+      return !hasKey(resource.data, 'status')
+        || resource.data.status == "CONFIRMED"
+        || resource.data.status == "REJECTED";
     }
 
     // Check if monthClose is in terminal state
     function monthCloseIsTerminal() {
-      return resource.data.status == "FINALIZED";
+      return !hasKey(resource.data, 'status')
+        || resource.data.status == "FINALIZED";
     }
 
     // Check if fileAsset is in terminal state
     function fileAssetIsTerminal() {
-      return resource.data.status == "DELETED";
+      return !hasKey(resource.data, 'status')
+        || resource.data.status == "DELETED";
     }
 
     // --- Global Rules ---
@@ -248,6 +259,36 @@ service cloud.firestore {
         allow delete: if isServer();
       }
 
+      match /events/{eventId} {
+        allow read: if isTenantMember(tenantId);
+        allow write: if isServer();
+      }
+
+      match /periods/{monthKey} {
+        allow read: if isTenantMember(tenantId);
+        allow write: if isServer();
+      }
+
+      match /readmodels/{modelId}/{docId}/{subDocId} {
+        allow read: if isTenantMember(tenantId);
+        allow write: if isServer();
+      }
+
+      match /readmodels/{modelId}/{docId} {
+        allow read: if isTenantMember(tenantId);
+        allow write: if isServer();
+      }
+
+      match /exports/{monthKey} {
+        allow read: if isTenantMember(tenantId);
+        allow write: if isServer();
+
+        match /artifacts/{artifactId} {
+          allow read: if isTenantMember(tenantId);
+          allow write: if isServer();
+        }
+      }
+
       match /fileAssets/{fileAssetId} {
         allow read: if isTenantMember(tenantId);
 
@@ -270,8 +311,8 @@ service cloud.firestore {
             ])
             && request.resource.data.tenantId == tenantId
             && request.resource.data.status == "PENDING_UPLOAD"
-            && (!('parseStatus' in request.resource.data) || request.resource.data.parseStatus == "PENDING")
-            && (!('parseError' in request.resource.data) || request.resource.data.parseError == null)
+            && (!hasKey(request.resource.data, 'parseStatus') || request.resource.data.parseStatus == "PENDING")
+            && (!hasKey(request.resource.data, 'parseError') || request.resource.data.parseError == null)
           );
 
         // UPDATE: Server must follow state machine. DELETED is terminal (immutable for ALL actors).

@@ -1,9 +1,38 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+import { onPeriodFinalizedWorkflow } from "../../server/dist/workflows/onPeriodFinalized.workflow";
+import type { CurrencyCode } from "../../server/domain/money";
 
 admin.initializeApp();
 
 const db = admin.firestore();
+
+const ALLOWED_ROLES = ["OWNER", "MANAGER", "ACCOUNTANT", "VIEWER"] as const;
+
+async function requireUser(context: functions.https.CallableContext) {
+  if (!context.auth) {
+    throw new functions.https.HttpsError(
+      "unauthenticated",
+      "The function must be called while authenticated."
+    );
+  }
+
+  const uid = context.auth.uid;
+  const userDoc = await db.collection("users").doc(uid).get();
+  if (!userDoc.exists) {
+    throw new functions.https.HttpsError("not-found", "User not found.");
+  }
+
+  const userData = userDoc.data() as { tenantId: string; role: string };
+  if (!ALLOWED_ROLES.includes(userData.role as typeof ALLOWED_ROLES[number])) {
+    throw new functions.https.HttpsError(
+      "permission-denied",
+      "You do not have permission to access this resource."
+    );
+  }
+
+  return { uid, tenantId: userData.tenantId, role: userData.role };
+}
 
 /**
  * Simulates a job process by updating the job document in Firestore through several steps.
@@ -165,5 +194,197 @@ export const getSignedDownloadUrl = functions.https.onCall(
         "An unexpected error occurred."
       );
     }
+  }
+);
+
+/**
+ * Trigger: Period finalized -> compute readmodels + exports
+ */
+export const onPeriodFinalized = functions.firestore
+  .document("tenants/{tenantId}/periods/{monthKey}")
+  .onWrite(async (change, context) => {
+    const after = change.after.data();
+    const before = change.before.data();
+
+    if (!after || after.status !== "FINALIZED") {
+      return null;
+    }
+
+    if (before && before.status === "FINALIZED") {
+      return null;
+    }
+
+    const { tenantId, monthKey } = context.params as {
+      tenantId: string;
+      monthKey: string;
+    };
+
+    const tenantDoc = await db.collection("tenants").doc(tenantId).get();
+    if (!tenantDoc.exists) {
+      functions.logger.warn("Tenant not found for period", { tenantId, monthKey });
+      return null;
+    }
+
+    const tenantData = tenantDoc.data() as { currency?: CurrencyCode };
+    const currency = tenantData.currency ?? "EUR";
+
+    await onPeriodFinalizedWorkflow(db, {
+      tenantId,
+      monthKey,
+      actorId: "system",
+      now: admin.firestore.Timestamp.now(),
+      currency,
+    });
+
+    return null;
+  });
+
+export const getMonthCloseTimeline = functions.https.onCall(
+  async (data: { monthKey?: string }, context) => {
+    const user = await requireUser(context);
+    if (!data.monthKey) {
+      throw new functions.https.HttpsError("invalid-argument", "monthKey is required");
+    }
+
+    const doc = await db
+      .collection("tenants")
+      .doc(user.tenantId)
+      .collection("readmodels")
+      .doc("monthCloseTimeline")
+      .collection(data.monthKey)
+      .doc("snapshot")
+      .get();
+
+    if (!doc.exists) {
+      throw new functions.https.HttpsError("not-found", "Timeline not found");
+    }
+
+    return doc.data();
+  }
+);
+
+export const getCloseFriction = functions.https.onCall(
+  async (data: { monthKey?: string }, context) => {
+    const user = await requireUser(context);
+    if (!data.monthKey) {
+      throw new functions.https.HttpsError("invalid-argument", "monthKey is required");
+    }
+
+    const doc = await db
+      .collection("tenants")
+      .doc(user.tenantId)
+      .collection("readmodels")
+      .doc("closeFriction")
+      .collection(data.monthKey)
+      .doc("snapshot")
+      .get();
+
+    if (!doc.exists) {
+      throw new functions.https.HttpsError("not-found", "Close friction not found");
+    }
+
+    return doc.data();
+  }
+);
+
+export const getVatSummary = functions.https.onCall(
+  async (data: { monthKey?: string }, context) => {
+    const user = await requireUser(context);
+    if (!data.monthKey) {
+      throw new functions.https.HttpsError("invalid-argument", "monthKey is required");
+    }
+
+    const doc = await db
+      .collection("tenants")
+      .doc(user.tenantId)
+      .collection("readmodels")
+      .doc("vatSummary")
+      .collection(data.monthKey)
+      .doc("snapshot")
+      .get();
+
+    if (!doc.exists) {
+      throw new functions.https.HttpsError("not-found", "VAT summary not found");
+    }
+
+    return doc.data();
+  }
+);
+
+export const getMismatchSummary = functions.https.onCall(
+  async (data: { monthKey?: string }, context) => {
+    const user = await requireUser(context);
+    if (!data.monthKey) {
+      throw new functions.https.HttpsError("invalid-argument", "monthKey is required");
+    }
+
+    const doc = await db
+      .collection("tenants")
+      .doc(user.tenantId)
+      .collection("readmodels")
+      .doc("mismatchSummary")
+      .collection(data.monthKey)
+      .doc("snapshot")
+      .get();
+
+    if (!doc.exists) {
+      throw new functions.https.HttpsError("not-found", "Mismatch summary not found");
+    }
+
+    return doc.data();
+  }
+);
+
+export const getAuditorReplay = functions.https.onCall(
+  async (data: { monthKey?: string; asOfDateKey?: string }, context) => {
+    const user = await requireUser(context);
+    if (!data.monthKey || !data.asOfDateKey) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "monthKey and asOfDateKey are required"
+      );
+    }
+
+    const doc = await db
+      .collection("tenants")
+      .doc(user.tenantId)
+      .collection("readmodels")
+      .doc("auditorReplay")
+      .collection(data.monthKey)
+      .doc(data.asOfDateKey)
+      .get();
+
+    if (!doc.exists) {
+      throw new functions.https.HttpsError("not-found", "Snapshot not found");
+    }
+
+    return doc.data();
+  }
+);
+
+export const getExportArtifact = functions.https.onCall(
+  async (data: { monthKey?: string; artifactId?: "ledgerCsv" | "summaryPdf" }, context) => {
+    const user = await requireUser(context);
+    if (!data.monthKey || !data.artifactId) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "monthKey and artifactId are required"
+      );
+    }
+
+    const doc = await db
+      .collection("tenants")
+      .doc(user.tenantId)
+      .collection("exports")
+      .doc(data.monthKey)
+      .collection("artifacts")
+      .doc(data.artifactId)
+      .get();
+
+    if (!doc.exists) {
+      throw new functions.https.HttpsError("not-found", "Export not found");
+    }
+
+    return doc.data();
   }
 );

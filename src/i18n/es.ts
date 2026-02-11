@@ -6,6 +6,7 @@ export const es: Dict = {
   sidebar: {
     monthCloses: 'Cierres Mensuales',
     upload: 'Subir',
+    invoices: 'Facturas',
     matches: 'Coincidencias',
     exceptions: 'Excepciones',
     exports: 'Exportaciones',
@@ -255,6 +256,30 @@ export const es: Dict = {
         amountAndDate: 'El importe coincide, la fecha es cercana, se reconoció un alias del proveedor.',
         manualConfirmation: 'Confirmado manualmente por el usuario.',
     }
+  },
+  invoices: {
+    title: 'Facturas',
+    description: 'Ver facturas canónicas tal como fueron escritas por la ingesta. Capa de verdad de solo lectura.',
+    empty: 'No se encontraron facturas para este período.',
+    table: {
+      invoiceNumber: 'Nº Factura',
+      vendor: 'Proveedor',
+      totalGross: 'Total Bruto',
+      currency: 'Moneda',
+      issueDate: 'Fecha Emisión',
+      dueDate: 'Fecha Vencimiento',
+      sourceJobId: 'Trabajo Origen',
+      createdAt: 'Creado',
+    },
+    blocking: {
+      userNotProvisioned: 'Usuario no aprovisionado. Por favor, inicia sesión de nuevo.',
+      tenantNotResolved: 'Inquilino no resuelto. Por favor, contacta con soporte.',
+      noActivePeriod: 'No se ha seleccionado un período activo. Por favor, selecciona un cierre mensual.',
+    },
+    errors: {
+      permissionDenied: 'Permiso denegado. No tienes acceso para ver facturas.',
+      loadFailed: 'No se pudieron cargar las facturas. Por favor, inténtalo de nuevo.',
+    },
   },
   exceptions: {
     title: 'Excepciones',

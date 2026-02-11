@@ -70,7 +70,7 @@ Responsibilities:
 
 All tenant-owned documents must be isolated by tenant identity.
 
-Two acceptable canonical models exist, but exactly ONE may be used. The active model MUST match the current `firestore.rules` implementation.
+Two acceptable canonical models exist, but exactly ONE is used. The active model MUST match the current `firestore.rules` implementation.
 
 #### Model A: Tenant Subcollections (Leaving No Doubt)
 
@@ -134,7 +134,7 @@ Canonical role strings MUST match rules/tests exactly and are recorded in `agent
 
 - Payables to reconcile.
 - Server-only writes (current truth), with client read access only.
-- Server may augment with derived data and audit metadata.
+- Server augments with derived data and audit metadata.
 
 ### Bank Transactions (`bankTx`)
 
@@ -153,6 +153,27 @@ Canonical role strings MUST match rules/tests exactly and are recorded in `agent
 - Month-end closure workflow.
 - Status machine enforced.
 - Finalized month closes are immutable.
+
+### Periods
+
+- Period control docs for month-level status (OPEN/FINALIZED).
+- Drives counterfactual timelines and readmodel generation.
+- Finalized periods are immutable (server-only updates to readmodels/exports).
+
+### Events
+
+- Authoritative event stream for month-level recomputation.
+- Read-only for clients; server-only writes.
+
+### Read Models
+
+- Derived projections (timeline, close friction, VAT summary, mismatches, auditor replay).
+- Rebuildable and non-authoritative.
+
+### Exports
+
+- Deterministic ledger CSV and summary PDF artifacts.
+- Generated at finalization time, read-only for clients.
 
 ### File Assets
 
@@ -173,28 +194,26 @@ Canonical role strings MUST match rules/tests exactly and are recorded in `agent
   - `monthCloses`
   - `matches`
   - `fileAssets`
-- Finalized month closes are immutable (if present in truth)
+- Finalized month closes are immutable
 - Field allowlists prevent client-forged server fields
 
 ### Storage Rules (Hard Requirements)
 
 - Default deny
 - Allow writes only to tenant-scoped object paths by tenant members
-- Prefer metadata-driven authorization:
-  - upload allowed only if corresponding `fileAssets` doc exists and is in an allowed state
 
 Hard rule: storage paths must not allow traversal into other tenant paths.
 
 ---
 
-## Server-Authoritative Operations (If Functions Present)
+## Server-Authoritative Operations
 
 Server-only operations to prevent client forgery:
 
 - user provisioning (create `users/{uid}` on auth create)
 - bankTx ingestion and normalization
 - file verification/parsing and setting verified/parsed statuses
-- privileged month close finalization (if enforced server-side)
+- privileged month close finalization
 
 Hard rule: if a field is server-authoritative, it cannot be set by clients at create or update time.
 
@@ -210,11 +229,12 @@ Hard rule: if a field is server-authoritative, it cannot be set by clients at cr
 - Status transitions enforced
 - Finalization immutability enforced
 
-### Invariant Tests (Recommended)
+### Invariant Tests (Required)
 
-- tenantId required on tenant-owned docs
-- forbidden client fields cannot be set
-- reference integrity (match invoiceId and bankTxId belong to same tenant if represented)
+- tenant isolation enforced
+- RBAC enforced per role
+- status transitions enforced
+- server-only writes enforced
 
 ### Emulator Execution
 
@@ -230,9 +250,7 @@ This ensures host/port discovery and consistent behavior.
 
 ## Observability and Auditability
 
-### Minimal Audit Fields (Recommended)
-
-Where appropriate:
+### Minimal Audit Fields
 
 - `createdAt`, `createdBy`
 - `updatedAt`, `updatedBy`

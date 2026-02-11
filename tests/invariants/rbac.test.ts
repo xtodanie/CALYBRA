@@ -13,8 +13,10 @@ import {
   type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
 import { initTestEnv } from "../helpers/testEnv";
+import { shouldRunFirestoreEmulatorTests } from "../helpers/emulatorGuard";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 
+const describeIfEmulator = shouldRunFirestoreEmulatorTests() ? describe : describe.skip;
 let testEnv: RulesTestEnvironment;
 const PROJECT_ID = "calybra-invariants-rbac";
 
@@ -85,7 +87,7 @@ const validFileAssetCreate = () => ({
   schemaVersion: 1,
 });
 
-describe("INVARIANT: RBAC Permissions", () => {
+describeIfEmulator("INVARIANT: RBAC Permissions", () => {
   describe("VIEWER role", () => {
     it("can read tenant data", async () => {
       await assertSucceeds(getDoc(doc(db(viewerAuth), "tenants", tenantId)));

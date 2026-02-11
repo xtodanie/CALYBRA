@@ -15,6 +15,10 @@ must be recorded here BEFORE implementation (or immediately if discovered mid-fi
 - Every decision must state consequences.
 - No “silent assumptions”.
 
+## Exception: Release History Immutability
+Historical release notes are immutable; any legacy “optional/next step” language is non-authoritative and does not imply roadmap or obligation.
+This exception applies only to immutable historical entries in `agent/RELEASE.md`.
+
 ---
 
 ## ADR Index
@@ -23,8 +27,16 @@ must be recorded here BEFORE implementation (or immediately if discovered mid-fi
 - ADR-0003: Truth Lock + Consistency Gates Required
 - ADR-0004: Proof-First Releases (No “Proof Pending”)
 - ADR-0005: Invariant Test Suite Enforced in CI
-- ADR-0006: Smallest Shippable Increment (SSI) + Max Two Surfaces Rule- ADR-0007: Truth Snapshot Committed Artifact
+- ADR-0006: Smallest Shippable Increment (SSI) + Max Two Surfaces Rule
+- ADR-0007: Truth Snapshot Committed Artifact
 - ADR-0008: Server-Only Invoices/Matches + MonthCloseStatus IN_REVIEW + Tenant-Scoped FileAsset Downloads
+- ADR-0009: Defense-in-Depth Status Transition Enforcement at Rules Level
+- ADR-0010: Server Business Logic Layer (/server module)
+- ADR-0011: Observability & Telemetry Layer (Read-Only, Non-Blocking)
+- ADR-0012: Phase 3 - UX-Driven Orchestration Layer
+- ADR-0013: Observability 2030 Enhancements (Async Context, OTEL Export, Streaming, Privacy, SLO)
+- ADR-0014: Jobs + Exports + Auditor Replay Pathing
+- ADR-0015: Server-Authoritative Ingestion Pipeline
 ---
 
 ## ADR-0001: Tenant Isolation is Non-Negotiable
@@ -53,7 +65,7 @@ must be recorded here BEFORE implementation (or immediately if discovered mid-fi
 
 ## ADR-0004: Proof-First Releases (No “Proof Pending”)
 **Status:** Accepted  
-**Decision:** `agent/RELEASE.md` may only be updated after proofs are executed and PASS results are recorded. No release notes with “proof pending”.  
+**Decision:** `agent/RELEASE.md` is updated only after proofs are executed and PASS results are recorded. No release notes with “proof pending”.  
 **Rationale:** Prevents false confidence and shipping broken builds.  
 **Consequences:** Work-in-progress is tracked in TASKS only until proofs pass.
 
@@ -146,3 +158,226 @@ Rollback approach:
 - Revert firestore.rules to allow server writes without transition checks.
 - Remove new test cases.
 - Redeploy rules.
+---
+
+## ADR-0010: Server Business Logic Layer (/server module)
+**Status:** Accepted  
+**Decision:**
+- Create `/server` module with strict layered architecture for all business logic.
+- Layer structure: `/domain` (pure value objects) → `/logic` (pure functions) → `/state` (status machines) → `/persistence` (Firestore IO) → `/workflows` (orchestration)
+- Enforce determinism: no Date.now(), no Math.random(), no locale-dependent behavior in /domain or /logic.
+- Enforce IO isolation: Firestore access ONLY in /persistence, called ONLY from /workflows.
+- Use integer arithmetic (cents) for all monetary calculations with banker's rounding.
+- Status machines are canonical in /state/statusMachine.ts - all transitions validated before persistence.
+- Workflows are idempotent and recomputable.
+**Rationale:**
+- Enables testable, deterministic business logic independent of Firestore.
+- "Delete and rebuild" invariant: recomputing with same inputs produces identical results.
+- Separation of concerns:
+  - Domain: What is money, what is a date, what is a match
+  - Logic: How to parse, score, reconcile (no IO)
+  - State: What transitions are valid
+  - Persistence: How to read/write Firestore
+  - Workflows: Orchestrate the above with idempotency
+**Consequences:**
+- All business logic changes go through /server module.
+- Cloud Functions become thin wrappers calling workflows.
+- Tests can validate purity (no side effects), determinism (same input → same output), and recomputability.
+- No auth, RBAC, or tenant checks in business logic layer (handled at rules/functions layer).
+**Proof requirements:**
+- `npx tsc --project server/tsconfig.json --noEmit`
+- Unit tests in /server/tests validate determinism and idempotency
+- Integration tests (with emulator) validate workflow orchestration
+**Rollback approach:**
+- `rm -rf server/`
+- No deployed surfaces affected.
+
+---
+
+## ADR-0011: Observability & Telemetry Layer (Read-Only, Non-Blocking)
+**Status:** Accepted  
+**Decision:**
+- Create `/observability` module with isolated observability code that is purely read-only and non-blocking.
+- Layer structure: `/context` (TraceContext, WorkflowContext) → `/logging` (structured logger) → `/metrics` (timing, counters) → `/tracing` (span observation) → `/transitions` (status transition observation)
+- All observability is a shadow: it watches reality but never alters it.
+- Core invariants:
+  - INVARIANT: If all observability code were removed, system behavior is IDENTICAL
+  - INVARIANT: Telemetry failures do NOT break workflows
+  - INVARIANT: No conditional logic in business code based on telemetry success/failure
+  - INVARIANT: No writes that influence business state
+  - INVARIANT: No retries of core logic based on telemetry
+- TraceContext: Immutable once created, generated at system entry, propagated through all layers.
+- WorkflowExecutionContext: Spans multiple requests, metadata-only (not persisted as authoritative state).
+- Structured logging: All logs are structured objects with mandatory fields (level, timestamp, traceId, workflowExecutionId, tenantId, actor, component, operation, result, durationMs).
+- Status transition observation: Records fromStatus, toStatus, actor, timestamp, traceId AFTER transitions occur (never validates or blocks).
+- Error telemetry: Captures errors AFTER they occur, preserves original error, never throws telemetry errors upward.
+- Timing metrics: Wall-clock only, no timeouts or retries introduced.
+**Rationale:**
+- Enables post-mortem debugging and operational visibility without affecting system behavior.
+- UX team can rely on telemetry for Phase 3 progress indicators.
+- Security model untouched, status machines untouched, workflows untouched.
+**Consequences:**
+- Non-interference tests must prove observability removal doesn't change behavior.
+- All integration points use try/catch with silent observation failure handling.
+- Dashboards are read-only (no mutation buttons).
+**Proof requirements:**
+- `npx tsc --project observability/tsconfig.json --noEmit`
+- `npx jest observability/tests --no-coverage`
+- Non-interference test: business logic tests pass with observability mocked/disabled
+- No changes to firestore.rules, storage.rules, status machines, or workflow logic
+**Rollback approach:**
+- `rm -rf observability/`
+- Remove integration points from server/workflows (they handle missing observability gracefully).
+- No deployed surfaces affected (observability is metadata-only).
+
+---
+
+## ADR-0012: Phase 3 - UX-Driven Orchestration Layer
+**Status:** Accepted  
+**Decision:**
+- Create `/src/client` module with orchestration layer for mapping user intents to server workflows.
+- Layer structure:
+  - `/orchestration` (intents, guards, action executor)
+  - `/events` (progress tracking, errors, explanations)
+  - `/state` (selectors, projections)
+  - `/workflows` (action handlers calling Cloud Functions)
+  - `/ui/flows` (React flow components with render props)
+- Core invariants:
+  - INVARIANT: Every UX action MUST route through intent → guard → workflow (no bypassing)
+  - INVARIANT: Each intent triggers exactly ONE workflow
+  - INVARIANT: Invalid intents are blocked BEFORE network calls
+  - INVARIANT: Progress events are emitted at each workflow step
+  - INVARIANT: Failures surface with structured errors and recovery guidance
+- Intents: Explicit, typed, immutable (Object.freeze), auditable (timestamp, tenantId).
+- Guards: Synchronous permission and state validation before action execution.
+- ActionExecutor: Maps intents to Cloud Function calls with structured results.
+- UX Flows: Render props pattern + hooks for observable, explainable, interruptible operations.
+**Rationale:**
+- System state becomes observable, explainable, and interruptible.
+- UX actions map 1:1 to server workflows - no ambiguity.
+- Fail-fast guards prevent wasted network calls.
+- Structured errors enable recovery guidance in UI.
+- Separation of concerns: UI renders, flows orchestrate, guards validate, workflows execute.
+**Consequences:**
+- UI components must use flow components or hooks, not direct workflow calls.
+- All permission checks run twice: client (fail-fast) and server (authoritative).
+- Progress events are simulated client-side (not server-pushed).
+- State is derived via selectors, projections are computed not stored.
+**Proof requirements:**
+- Intent types enforce immutability via Object.freeze
+- Guard tests prove invalid operations are blocked
+- Flow components expose controlled interface (render props)
+- Orchestration tests in `/src/client/__tests__/orchestration.test.ts`
+**Rollback approach:**
+- `rm -rf src/client/`
+- Remove PHASE_3_COMPLETION.md
+- No deployed surfaces affected (client-only code).
+
+---
+
+## ADR-0013: Counterfactual Month Close + EU Read Models (Event-Sourced)
+**Status:** Accepted  
+**Decision:**
+- Introduce authoritative event collection under tenant scope: `tenants/{tenantId}/events/{eventId}`.
+- Introduce period control documents under tenant scope: `tenants/{tenantId}/periods/{monthKey}` with `status`, `finalizedAt`, `closeConfig`, and `periodLockHash`.
+- Derive counterfactual close timeline, close friction metrics, VAT summary, mismatch summary, and auditor replay as read models only.
+- Use tenant timezone as canonical for period boundaries, cutoff calculations, and monthKey derivation.
+- Define data arrival as `recordedAt` (ingestion time) and counterfactual cutoffs by `occurredAt`.
+- Compute narrative outputs only as:
+  - "Final accuracy was reached on Day X."
+  - "Y% of variance resolved in the last Z days."
+**Rationale:**
+- Enables deterministic, rebuildable audit views without mutating authoritative records.
+- Aligns with server-authoritative boundaries and multi-tenant isolation.
+- Provides EU-required VAT and mismatch clarity while keeping workflows read-only.
+**Consequences:**
+- New schema requires rules updates and emulator/invariant tests.
+- Period lock hash becomes part of idempotency key for finalize workflows.
+- Read models are non-authoritative and must be rebuildable from events.
+**Proof requirements (tests/commands):**
+- `npm run typecheck`
+- `npm test -- server/tests/logic/*counterfactual*`
+- `npm test -- server/tests/readmodels/*`
+- `npm test -- server/tests/workflows/*periodFinalized*`
+- `firebase emulators:exec --only firestore "npm test"`
+**Rollback approach:**
+- Remove new readmodels and exports write paths.
+- Revert rules and delete `events`/`periods` documents.
+- Re-run truth lock and emulator tests.
+
+---
+
+## ADR-0014: Jobs + Exports + Auditor Replay Pathing
+**Status:** Accepted  
+**Decision:**
+- Idempotency job records remain in top-level `jobs/{jobId}` per `firestore.rules` and truth snapshot.
+- Exports are stored under `tenants/{tenantId}/exports/{monthKey}/artifacts/{artifactId}` where `artifactId` is `ledgerCsv` or `summaryPdf`.
+- Auditor replay snapshots are stored under `tenants/{tenantId}/readmodels/auditorReplay/{monthKey}/{asOfDateKey}` (collection per monthKey).
+**Rationale:**
+- Matches repo truth: `jobs` is already top-level and server-only.
+- Firestore requires even path segments for documents; `artifacts` subcollection avoids ambiguity.
+- Auditor replay path aligns with requested shape while remaining valid Firestore structure.
+**Consequences:**
+- Rules and contracts must reflect these paths.
+- Readmodel rebuilders must target the exact collections above.
+**Proof requirements (tests/commands):**
+- `node scripts/truth.mjs`
+- `node scripts/consistency.mjs`
+- `firebase emulators:exec --only firestore "npm test"`
+**Rollback approach:**
+- Revert path changes in rules/contracts and remove new docs.
+
+---
+
+## ADR-0013: Observability 2030 Enhancements (Async Context, OTEL Export, Streaming, Privacy, SLO)
+**Status:** Accepted  
+**Decision:**
+- Extend `/observability` with:
+  - `context/asyncContext.ts` using AsyncLocalStorage for automatic context propagation.
+  - `export/otel.ts` providing OTEL-compatible span/log export formats and OTLP HTTP export.
+  - `streaming/progress.ts` for real-time progress events (non-blocking pub/sub).
+  - `privacy/scrubber.ts` for PII scrubbing of telemetry payloads.
+  - `slo/tracker.ts` for performance budget tracking (no behavior changes).
+- Keep all telemetry paths read-only and non-blocking; no workflow or rules changes.
+- No new vendors; OTEL support is export format only.
+**Rationale:**
+- Automatic context propagation and streaming enable best-in-class UX diagnostics.
+- OTEL compatibility enables vendor integration without lock-in.
+- Privacy scrubbing and SLO tracking improve operational safety and accountability.
+**Consequences:**
+- New observability modules must remain safe if unused.
+- Tests are required for async context propagation, OTEL export formatting, streaming isolation, scrubbing rules, and SLO violations.
+**Proof requirements (tests/commands):**
+- `npx tsc --project observability/tsconfig.json --noEmit`
+- `npx jest observability/tests --no-coverage` (include new tests)
+**Rollback approach:**
+- Remove new modules and root exports under `/observability`.
+- No deployed surfaces affected.
+
+---
+
+## ADR-0015: Server-Authoritative Ingestion Pipeline
+**Status:** Accepted  
+**Decision:**
+- Jobs collection is server-only (write protected from clients by firestore.rules).
+- New `createJob` callable in `calybra-database/src/ingestion.ts` is the ONLY way to create jobs.
+- New `processJob` Firestore trigger runs the full deterministic pipeline on job creation.
+- Upload page calls `createJob` callable instead of direct job writes.
+- Pipeline stages: PENDING → PROCESSING → PARSED → MATCHED → COMPLETED (or FAILED).
+- Idempotent processing via SHA256 fingerprints prevents duplicate records.
+- MonthClose summary recomputed from raw counts (no stale increments).
+**Rationale:**
+- Jobs were previously fake/simulated (not deployed) - breaking the contract.
+- Client writes to jobs were blocked by rules but UI tried anyway - silent failures.
+- Server authority ensures deterministic, auditable processing with proper error handling.
+**Consequences:**
+- Upload page must use callable (implemented).
+- Real file processing requires proper storage bucket configuration.
+- Matching engine is deterministic but may need tuning for edge cases.
+**Proof requirements (tests/commands):**
+- `cd calybra-database ; npm run build` (TypeScript compiles)
+- `firebase emulators:exec --only firestore,functions "npm test"` (e2e with triggers)
+**Rollback approach:**
+- `git revert <sha>` to remove ingestion.ts changes.
+- `firebase deploy --only functions` to redeploy without ingestion.
+- Upload page would need revert as well (jobs would fail silently until fixed).

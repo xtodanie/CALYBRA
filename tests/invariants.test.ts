@@ -19,8 +19,10 @@ import {
   type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
 import { initTestEnv } from "./helpers/testEnv";
+import { shouldRunFirestoreEmulatorTests } from "./helpers/emulatorGuard";
 import { doc, getDoc, setDoc, updateDoc, deleteDoc, Timestamp } from "firebase/firestore";
 
+const describeIfEmulator = shouldRunFirestoreEmulatorTests() ? describe : describe.skip;
 let testEnv: RulesTestEnvironment;
 
 const PROJECT_ID = "calybra-invariant-tests";
@@ -107,7 +109,7 @@ beforeEach(async () => {
   });
 });
 
-describe("INVARIANT TESTS - Security Enforcement", () => {
+describeIfEmulator("INVARIANT TESTS - Security Enforcement", () => {
   // =========================================================================
   // INVARIANT 1: Cross-tenant access is denied
   // =========================================================================

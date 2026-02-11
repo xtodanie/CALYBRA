@@ -22,6 +22,7 @@ import {
   CopyCheck,
   AlertTriangle,
   DownloadCloud,
+  FileText,
 } from "lucide-react";
 import { useT } from "@/i18n/provider";
 import { useAuth } from "@/hooks/use-auth";
@@ -35,6 +36,7 @@ export function AppSidebar() {
   const menuItems = [
     { href: "/month-closes", icon: CalendarClock, label: t.sidebar.monthCloses, active: pathname.includes("/month-closes") },
     { href: "/upload", icon: UploadCloud, label: t.sidebar.upload, active: pathname.includes("/upload") },
+    { href: "/invoices", icon: FileText, label: t.sidebar.invoices, active: pathname.includes("/invoices") },
     { href: "/matches", icon: CopyCheck, label: t.sidebar.matches, active: pathname.includes("/matches") },
     { href: "/exceptions", icon: AlertTriangle, label: t.sidebar.exceptions, active: pathname.includes("/exceptions") },
     { href: "/exports", icon: DownloadCloud, label: t.sidebar.exports, active: pathname.includes("/exports") },

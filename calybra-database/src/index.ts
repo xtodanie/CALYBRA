@@ -9,6 +9,9 @@ initializeApp();
 // Re-export transition functions (server-authoritative status changes)
 export { transitionMonthClose, transitionMatch } from "./transitions";
 
+// Re-export ingestion pipeline (server-authoritative job processing)
+export { createJob, processJob, retryJob } from "./ingestion";
+
 export const onAuthCreate = functions.auth.user().onCreate(
   async (user: functions.auth.UserRecord): Promise<void> => {
     const db = getFirestore();

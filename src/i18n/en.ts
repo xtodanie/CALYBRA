@@ -4,6 +4,7 @@ export const en = {
   sidebar: {
     monthCloses: 'Month Closes',
     upload: 'Upload',
+    invoices: 'Invoices',
     matches: 'Matches',
     exceptions: 'Exceptions',
     exports: 'Exports',
@@ -253,6 +254,30 @@ export const en = {
         amountAndDate: 'Amount matches, date is close, supplier alias recognized.',
         manualConfirmation: 'Manually confirmed by user.',
     }
+  },
+  invoices: {
+    title: 'Invoices',
+    description: 'View canonical invoices as written by ingestion. Read-only truth layer.',
+    empty: 'No invoices found for this period.',
+    table: {
+      invoiceNumber: 'Invoice #',
+      vendor: 'Vendor',
+      totalGross: 'Total Gross',
+      currency: 'Currency',
+      issueDate: 'Issue Date',
+      dueDate: 'Due Date',
+      sourceJobId: 'Source Job',
+      createdAt: 'Created',
+    },
+    blocking: {
+      userNotProvisioned: 'User not provisioned. Please sign in again.',
+      tenantNotResolved: 'Tenant not resolved. Please contact support.',
+      noActivePeriod: 'No active period selected. Please select a month close.',
+    },
+    errors: {
+      permissionDenied: 'Permission denied. You do not have access to view invoices.',
+      loadFailed: 'Failed to load invoices. Please try again.',
+    },
   },
   exceptions: {
     title: 'Exceptions',

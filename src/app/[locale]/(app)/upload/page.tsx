@@ -221,6 +221,8 @@ export default function UploadPage() {
     setIsUploading(true);
 
     const batch = writeBatch(db);
+    const createJob = httpsCallable(functions, 'createJob');
+    const pendingJobs: { fileAssetId: string; storagePath: string; kind: 'BANK_CSV' | 'INVOICE_PDF' }[] = [];
     let filesUploadedCount = 0;
 
     for (const file of files) {
@@ -236,6 +238,7 @@ export default function UploadPage() {
 
             await uploadBytes(storageRef, file);
 
+            // Client creates fileAsset with PENDING_UPLOAD (allowed by rules)
             batch.set(fileAssetRef, {
                 schemaVersion: 1,
                 tenantId: user.tenantId,
@@ -251,18 +254,11 @@ export default function UploadPage() {
                 updatedAt: serverTimestamp(),
             });
 
-            const jobRef = doc(collection(db, 'jobs'));
-            batch.set(jobRef, {
-                schemaVersion: 1,
-                tenantId: user.tenantId,
-                monthCloseId: monthCloseId,
-                type: kind === 'BANK_CSV' ? 'PARSE_BANK_CSV' : 'PARSE_INVOICE_PDF',
-                status: 'PENDING',
-                progress: { stepKey: 'jobs.steps.queued', pct: 0 },
-                error: null,
-                refFileId: fileAssetRef.id,
-                createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp(),
+            // Queue job creation for after batch commit (jobs are server-authoritative)
+            pendingJobs.push({
+                fileAssetId: fileAssetRef.id,
+                storagePath: storagePath,
+                kind: kind,
             });
             filesUploadedCount++;
 
@@ -277,7 +273,23 @@ export default function UploadPage() {
     }
     
     if (filesUploadedCount > 0) {
+        // Commit fileAsset batch first
         await batch.commit();
+        
+        // Create jobs via server-authoritative callable (triggers processJob automatically)
+        for (const pending of pendingJobs) {
+            try {
+                await createJob({
+                    monthCloseId,
+                    fileAssetId: pending.fileAssetId,
+                    storagePath: pending.storagePath,
+                    kind: pending.kind,
+                });
+            } catch (jobError) {
+                console.error("Job creation failed:", jobError);
+                // Continue with other jobs - individual failures don't block batch
+            }
+        }
         
         // Transition status via server function (client cannot set status)
         const transitionMonthClose = httpsCallable(functions, 'transitionMonthClose');

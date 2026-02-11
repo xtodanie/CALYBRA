@@ -24,7 +24,7 @@ These are product roles; actual RBAC strings must match repo truth and are recor
 - OWNER: tenant administrator, final approver
 - MANAGER: reviewer/approver
 - ACCOUNTANT: operational reconciliation user
-- VIEWER: read-only observer
+- VIEWER: read-only observer (see `agent/TRUTH_SNAPSHOT.md` for canonical RBAC)
 
 ---
 
@@ -125,13 +125,13 @@ If full audit logs are added, define schema and tests.
 A feature is not shippable unless:
 - `agent/DEFINITION_OF_DONE.md` gates are met
 - EVALS E0–E4 PASS in CI
-- Relevant Golden Paths PASS (manual if needed)
+- Relevant Golden Paths PASS (manual or automated)
 - Release notes contain executed proof results (no pending)
 
 ---
 
 ## 8) Success Metrics (MVP)
-- Reconciliation time per month reduced vs baseline (tracked later)
+- Reconciliation time per month reduced vs baseline
 - Zero cross-tenant access regressions in CI
 - Zero “proof pending” releases
 - Decrease in manual mismatch correction time

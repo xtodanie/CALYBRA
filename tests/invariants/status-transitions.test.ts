@@ -10,8 +10,10 @@ import {
   type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
 import { initTestEnv } from "../helpers/testEnv";
+import { shouldRunFirestoreEmulatorTests } from "../helpers/emulatorGuard";
 import { doc, setDoc, updateDoc } from "firebase/firestore";
 
+const describeIfEmulator = shouldRunFirestoreEmulatorTests() ? describe : describe.skip;
 let testEnv: RulesTestEnvironment;
 const PROJECT_ID = "calybra-invariants-status";
 
@@ -56,7 +58,7 @@ beforeEach(async () => {
   });
 });
 
-describe("INVARIANT: Status Transitions", () => {
+describeIfEmulator("INVARIANT: Status Transitions", () => {
   describe("MonthClose status", () => {
     it("OWNER cannot change status from DRAFT to IN_REVIEW", async () => {
       const docRef = doc(db(ownerAuth), "tenants", tenantId, "monthCloses", monthCloseId);

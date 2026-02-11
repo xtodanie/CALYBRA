@@ -1,7 +1,11 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { useT, useLocale } from '@/i18n/provider';
+import { useT } from '@/i18n/provider';
+import { useAuth } from '@/hooks/use-auth';
+import { db, functions } from '@/lib/firebaseClient';
+import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 import {
   Card,
   CardContent,
@@ -17,86 +21,239 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { formatMoney } from '@/i18n/format';
-import { ChevronRight } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { AlertCircle, ChevronRight, Loader2 } from 'lucide-react';
+// formatMoney, formatDate available for future use when displaying denormalized match data
+import { MatchStatus } from '@/lib/types';
+import type { Match, BankTx, Invoice } from '@/lib/types';
 
-const initialProposedMatches = [
-  {
-    id: 1,
-    score: 98,
-    explanationKey: 'amountAndName',
-    bankTx: { date: '2024-06-16', description: 'GLOBAL FOODS INC', amount: 450.75 },
-    invoice: { number: 'INV-123', supplier: 'Global Foods Inc.', amount: 450.75 },
-  },
-  {
-    id: 2,
-    score: 85,
-    explanationKey: 'amountAndDate',
-    bankTx: { date: '2024-06-22', description: 'OFFICE SPLY', amount: 120.00 },
-    invoice: { number: '8872', supplier: 'Office Supplies Co.', amount: 120.00 },
-  },
-];
+// Callable for transitions
+const transitionMatchCallable = httpsCallable<{ matchId: string; toStatus: string }, { success: boolean; status: string }>(
+  functions,
+  'transitionMatch'
+);
 
-const initialConfirmedMatches = [
-  {
-    id: 3,
-    score: 100,
-    explanationKey: 'manualConfirmation',
-    bankTx: { date: '2024-05-10', description: 'CITY UTILITIES', amount: 210.55 },
-    invoice: { number: 'MAY-UTIL-24', supplier: 'City Utilities', amount: 210.55 },
-  },
-]
+// Badge variant mapping for match status
+const statusVariantMap: Record<MatchStatus, "default" | "secondary" | "outline" | "destructive"> = {
+  [MatchStatus.PROPOSED]: 'outline',
+  [MatchStatus.CONFIRMED]: 'default',
+  [MatchStatus.REJECTED]: 'destructive',
+};
 
-type MatchRow = (typeof initialProposedMatches)[number];
-
+// Month Context Header (uses real user data)
 const MonthContextHeader = () => {
-    const t = useT();
-    // Mock data for now, would come from context/props
-    const month = {
-      id: 'june-2024',
-      period: t.monthClose.sampleMonths.june,
-      status: 'IN_REVIEW' as const
-    };
-    const statusMap: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
-        IN_REVIEW: 'default',
-        FINALIZED: 'secondary',
-    };
-  
-    return (
-      <div className="mb-4 flex items-center justify-between rounded-lg border bg-card p-3 text-card-foreground shadow-sm">
-        <div className="flex items-center gap-4">
-          <span className="text-sm font-medium text-muted-foreground">{t.monthClose.context.activeMonth}</span>
-          <span className="font-semibold">{month.period}</span>
-          <Badge variant={statusMap[month.status]}>{t.monthCloses.status[month.status]}</Badge>
-        </div>
-        <Button variant="ghost" asChild>
-          <Link href={`/month-closes/${month.id}`}>
-              {t.monthClose.context.viewOverview} <ChevronRight className="h-4 w-4" />
-          </Link>
-        </Button>
+  const t = useT();
+  const { user } = useAuth();
+
+  if (!user?.activeMonthCloseId) {
+    return null;
+  }
+
+  // Simple display - just show the active month ID
+  // Full monthClose data would require another query
+  const monthId = user.activeMonthCloseId;
+
+  return (
+    <div className="mb-4 flex items-center justify-between rounded-lg border bg-card p-3 text-card-foreground shadow-sm">
+      <div className="flex items-center gap-4">
+        <span className="text-sm font-medium text-muted-foreground">{t.monthClose.context.activeMonth}</span>
+        <span className="font-semibold">{monthId}</span>
       </div>
-    );
+      <Button variant="ghost" asChild>
+        <Link href={`/month-closes/${monthId}`}>
+          {t.monthClose.context.viewOverview} <ChevronRight className="h-4 w-4" />
+        </Link>
+      </Button>
+    </div>
+  );
+};
+
+// Loading skeleton
+const LoadingSkeleton = () => (
+  <Card>
+    <CardContent className="p-4 space-y-4">
+      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-10 w-full" />
+    </CardContent>
+  </Card>
+);
+
+// Empty state
+const EmptyState = ({ message }: { message: string }) => (
+  <Card>
+    <CardContent className="p-8 text-center text-muted-foreground">
+      {message}
+    </CardContent>
+  </Card>
+);
+
+// Error state
+const ErrorState = ({ message }: { message: string }) => (
+  <Card className="border-destructive">
+    <CardContent className="p-4 flex items-center gap-2 text-destructive">
+      <AlertCircle className="h-5 w-5" />
+      <span>{message}</span>
+    </CardContent>
+  </Card>
+);
+
+// Blocking state for missing context
+const BlockingState = ({ t }: { t: ReturnType<typeof useT> }) => (
+  <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
+    <div>
+      <h1 className="font-headline text-3xl font-bold tracking-tight">{t.matches.title}</h1>
+      <p className="text-muted-foreground">{t.matches.description}</p>
+    </div>
+    <Card className="border-amber-500">
+      <CardContent className="p-4 text-amber-700">
+        Please select a month close to view matches.
+      </CardContent>
+    </Card>
+  </div>
+);
+
+// Extended match type with resolved data
+interface MatchWithDetails extends Match {
+  bankTxData: BankTx[];
+  invoiceData: Invoice[];
 }
 
 export default function MatchesPage() {
   const t = useT();
-  const locale = useLocale();
+  const { user, loading: authLoading } = useAuth();
 
-  const [proposedMatches, setProposedMatches] = useState<MatchRow[]>(initialProposedMatches);
-  const [confirmedMatches, setConfirmedMatches] = useState<MatchRow[]>(initialConfirmedMatches);
+  const [matches, setMatches] = useState<MatchWithDetails[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [transitioningIds, setTransitioningIds] = useState<Set<string>>(new Set());
 
-  const handleConfirm = (matchToConfirm: MatchRow) => {
-    setProposedMatches(current => current.filter(m => m.id !== matchToConfirm.id));
-    setConfirmedMatches(current => [...current, { ...matchToConfirm, score: 100, explanationKey: 'manualConfirmation' }]);
+  // Fetch matches with live subscription
+  useEffect(() => {
+    if (!user?.tenantId || !user?.activeMonthCloseId) {
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    const matchesQuery = query(
+      collection(db, 'tenants', user.tenantId, 'matches'),
+      where('monthCloseId', '==', user.activeMonthCloseId),
+      orderBy('createdAt', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(
+      matchesQuery,
+      async (snapshot) => {
+        const matchDocs: Match[] = [];
+        snapshot.forEach((doc) => {
+          matchDocs.push({ id: doc.id, ...doc.data() } as Match);
+        });
+
+        // For now, we'll display matches without resolving bankTx/invoice details
+        // This avoids N+1 queries. In production, could use a cloud function or denormalize.
+        const matchesWithDetails: MatchWithDetails[] = matchDocs.map((m) => ({
+          ...m,
+          bankTxData: [], // Would need separate queries to resolve
+          invoiceData: [], // Would need separate queries to resolve
+        }));
+
+        setMatches(matchesWithDetails);
+        setIsLoading(false);
+      },
+      (err) => {
+        console.error('Error fetching matches:', err);
+        setError(err.message || 'Failed to load matches');
+        setIsLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [user?.tenantId, user?.activeMonthCloseId]);
+
+  // Handle confirm via callable
+  const handleConfirm = useCallback(async (matchId: string) => {
+    setTransitioningIds((prev) => new Set(prev).add(matchId));
+    try {
+      await transitionMatchCallable({ matchId, toStatus: MatchStatus.CONFIRMED });
+      // UI will update via onSnapshot
+    } catch (err) {
+      console.error('Failed to confirm match:', err);
+      // Could show a toast here
+    } finally {
+      setTransitioningIds((prev) => {
+        const next = new Set(prev);
+        next.delete(matchId);
+        return next;
+      });
+    }
+  }, []);
+
+  // Handle reject via callable
+  const handleReject = useCallback(async (matchId: string) => {
+    setTransitioningIds((prev) => new Set(prev).add(matchId));
+    try {
+      await transitionMatchCallable({ matchId, toStatus: MatchStatus.REJECTED });
+      // UI will update via onSnapshot
+    } catch (err) {
+      console.error('Failed to reject match:', err);
+      // Could show a toast here
+    } finally {
+      setTransitioningIds((prev) => {
+        const next = new Set(prev);
+        next.delete(matchId);
+        return next;
+      });
+    }
+  }, []);
+
+  // Wait for auth
+  if (authLoading) {
+    return (
+      <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
+        <Skeleton className="h-10 w-48" />
+        <LoadingSkeleton />
+      </div>
+    );
   }
 
-  const handleReject = (matchToReject: MatchRow) => {
-    setProposedMatches(current => current.filter(m => m.id !== matchToReject.id));
-    // In a real app, this would likely create an exception
+  // Blocking state: no user or no activeMonthCloseId
+  if (!user?.tenantId || !user?.activeMonthCloseId) {
+    return <BlockingState t={t} />;
   }
 
-  const MatchTable = ({ matches, isProposed }: { matches: MatchRow[]; isProposed: boolean }) => (
-     <Card>
+  // Separate matches by status
+  const proposedMatches = matches.filter((m) => m.status === MatchStatus.PROPOSED);
+  const confirmedMatches = matches.filter((m) => m.status === MatchStatus.CONFIRMED);
+  const rejectedMatches = matches.filter((m) => m.status === MatchStatus.REJECTED);
+
+  const MatchTable = ({
+    matchList,
+    isProposed,
+  }: {
+    matchList: MatchWithDetails[];
+    isProposed: boolean;
+  }) => {
+    if (isLoading) {
+      return <LoadingSkeleton />;
+    }
+
+    if (error) {
+      return <ErrorState message={error} />;
+    }
+
+    if (matchList.length === 0) {
+      return (
+        <EmptyState
+          message={isProposed ? t.matches.empty.proposed : t.matches.empty.confirmed}
+        />
+      );
+    }
+
+    return (
+      <Card>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -109,45 +266,77 @@ export default function MatchesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {matches.length > 0 ? matches.map((match) => (
-                <TableRow key={match.id}>
-                  <TableCell className="text-center">
-                    <Badge variant={match.score < 90 ? "secondary" : "default"}>{match.score}</Badge>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {t.matches.explanations[match.explanationKey as keyof typeof t.matches.explanations]}
-                  </TableCell>
-                  <TableCell>
-                    <div className="font-medium">{match.bankTx.description}</div>
-                    <div>{formatMoney(match.bankTx.amount, locale)} on {match.bankTx.date}</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="font-medium">{match.invoice.supplier}</div>
-                    <div>#{match.invoice.number} - {formatMoney(match.invoice.amount, locale)}</div>
-                  </TableCell>
-                  <TableCell className="text-right space-x-2">
-                    {isProposed ? (
-                        <>
-                            <Button variant="outline" size="sm" onClick={() => handleReject(match)}>{t.matches.reject}</Button>
-                            <Button variant="default" size="sm" onClick={() => handleConfirm(match)}>{t.matches.confirm}</Button>
-                        </>
-                    ) : (
-                        <Badge variant="outline">{t.matches.confirmed}</Badge>
-                    )}
-                  </TableCell>
-                </TableRow>
-              )) : (
-                <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">
-                        {isProposed ? t.matches.empty.proposed : t.matches.empty.confirmed}
+              {matchList.map((match) => {
+                const isTransitioning = transitioningIds.has(match.id);
+                const explanationText =
+                  t.matches.explanations[match.explanationKey as keyof typeof t.matches.explanations] ||
+                  match.explanationKey;
+
+                return (
+                  <TableRow key={match.id}>
+                    <TableCell className="text-center">
+                      <Badge variant={match.score < 90 ? 'secondary' : 'default'}>
+                        {match.score}
+                      </Badge>
                     </TableCell>
-                </TableRow>
-              )}
+                    <TableCell className="text-sm text-muted-foreground">
+                      {explanationText}
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium text-xs text-muted-foreground">
+                        {match.bankTxIds.length} transaction(s)
+                      </div>
+                      <div className="text-xs">IDs: {match.bankTxIds.join(', ').substring(0, 30)}...</div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium text-xs text-muted-foreground">
+                        {match.invoiceIds.length} invoice(s)
+                      </div>
+                      <div className="text-xs">IDs: {match.invoiceIds.join(', ').substring(0, 30)}...</div>
+                    </TableCell>
+                    <TableCell className="text-right space-x-2">
+                      {isProposed ? (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleReject(match.id)}
+                            disabled={isTransitioning}
+                          >
+                            {isTransitioning ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              t.matches.reject
+                            )}
+                          </Button>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => handleConfirm(match.id)}
+                            disabled={isTransitioning}
+                          >
+                            {isTransitioning ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              t.matches.confirm
+                            )}
+                          </Button>
+                        </>
+                      ) : (
+                        <Badge variant={statusVariantMap[match.status]}>
+                          {match.status}
+                        </Badge>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
-  )
+    );
+  };
 
   return (
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
@@ -160,14 +349,24 @@ export default function MatchesPage() {
 
       <Tabs defaultValue="proposed">
         <TabsList>
-          <TabsTrigger value="proposed">{t.matches.tabs.proposed} ({proposedMatches.length})</TabsTrigger>
-          <TabsTrigger value="confirmed">{t.matches.tabs.confirmed} ({confirmedMatches.length})</TabsTrigger>
+          <TabsTrigger value="proposed">
+            {t.matches.tabs.proposed} ({proposedMatches.length})
+          </TabsTrigger>
+          <TabsTrigger value="confirmed">
+            {t.matches.tabs.confirmed} ({confirmedMatches.length})
+          </TabsTrigger>
+          <TabsTrigger value="rejected">
+            Rejected ({rejectedMatches.length})
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="proposed">
-          <MatchTable matches={proposedMatches} isProposed={true} />
+          <MatchTable matchList={proposedMatches} isProposed={true} />
         </TabsContent>
         <TabsContent value="confirmed">
-           <MatchTable matches={confirmedMatches} isProposed={false} />
+          <MatchTable matchList={confirmedMatches} isProposed={false} />
+        </TabsContent>
+        <TabsContent value="rejected">
+          <MatchTable matchList={rejectedMatches} isProposed={false} />
         </TabsContent>
       </Tabs>
     </div>

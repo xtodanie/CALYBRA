@@ -2,7 +2,11 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  testMatch: ["<rootDir>/tests/**/*.test.ts"],
+  testMatch: [
+    "<rootDir>/tests/**/*.test.ts",
+    "<rootDir>/server/tests/**/*.test.ts",
+    "<rootDir>/observability/tests/**/*.test.ts"
+  ],
   modulePathIgnorePatterns: [
     "<rootDir>/functions/",
     // "<rootDir>/calybra-database/", // Temporarily remove to allow testing validation schemas

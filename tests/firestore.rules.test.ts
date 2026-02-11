@@ -4,8 +4,10 @@ import {
   type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
 import { initTestEnv } from "./helpers/testEnv";
+import { shouldRunFirestoreEmulatorTests } from "./helpers/emulatorGuard";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 
+const describeIfEmulator = shouldRunFirestoreEmulatorTests() ? describe : describe.skip;
 let testEnv: RulesTestEnvironment;
 
 const PROJECT_ID = "calybra-test-rules";
@@ -92,7 +94,7 @@ beforeEach(async () => {
   });
 });
 
-describe("Calybra Firestore Security Rules", () => {
+describeIfEmulator("Calybra Firestore Security Rules", () => {
   describe("Unauthenticated Access", () => {
     it("should PREVENT unauthenticated reads to monthCloses", async () => {
       const docRef = doc(db(), "tenants", myTenantId, "monthCloses", myMonthCloseId);
@@ -144,6 +146,28 @@ describe("Calybra Firestore Security Rules", () => {
     it("should PREVENT a VIEWER from updating a monthClose", async () => {
       const docRef = doc(db(myViewerAuth), "tenants", myTenantId, "monthCloses", myMonthCloseId);
       await assertFails(updateDoc(docRef, { health: "MATCHED" }));
+    });
+  });
+
+  describe("Events and Readmodels", () => {
+    it("should PREVENT client writes to events", async () => {
+      const docRef = doc(db(myAuth), "tenants", myTenantId, "events", "evt-1");
+      await assertFails(setDoc(docRef, { tenantId: myTenantId, type: "BANK_TX_ARRIVED" }));
+    });
+
+    it("should ALLOW server writes to events", async () => {
+      const docRef = doc(db(serverAuth), "tenants", myTenantId, "events", "evt-2");
+      await assertSucceeds(setDoc(docRef, { tenantId: myTenantId, type: "BANK_TX_ARRIVED" }));
+    });
+
+    it("should PREVENT client writes to readmodels", async () => {
+      const docRef = doc(db(myAuth), "tenants", myTenantId, "readmodels", "monthCloseTimeline", "2026-01", "snapshot");
+      await assertFails(setDoc(docRef, { tenantId: myTenantId }));
+    });
+
+    it("should ALLOW server writes to readmodels", async () => {
+      const docRef = doc(db(serverAuth), "tenants", myTenantId, "readmodels", "monthCloseTimeline", "2026-01", "snapshot");
+      await assertSucceeds(setDoc(docRef, { tenantId: myTenantId }));
     });
   });
 
