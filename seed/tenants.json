@@ -1,0 +1,32 @@
+[
+  {
+    "id": "tenant_alpha",
+    "tenantId": "tenant_alpha",
+    "name": "Alpha Coffee LLC",
+    "ownerId": "user_alpha_owner",
+    "timezone": "America/New_York",
+    "currency": "USD",
+    "status": "ACTIVE",
+    "billingEmail": "billing@alpha-coffee.example",
+    "createdAt": "2026-02-01T08:00:00Z",
+    "updatedAt": "2026-02-01T08:00:00Z",
+    "createdBy": "system",
+    "updatedBy": "system",
+    "schemaVersion": 1
+  },
+  {
+    "id": "tenant_bravo",
+    "tenantId": "tenant_bravo",
+    "name": "Bravo Hardware Inc",
+    "ownerId": "user_bravo_owner",
+    "timezone": "America/Chicago",
+    "currency": "USD",
+    "status": "ACTIVE",
+    "billingEmail": "billing@bravo-hw.example",
+    "createdAt": "2026-02-01T08:00:00Z",
+    "updatedAt": "2026-02-01T08:00:00Z",
+    "createdBy": "system",
+    "updatedBy": "system",
+    "schemaVersion": 1
+  }
+]

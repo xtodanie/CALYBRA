@@ -1,0 +1,29 @@
+[
+  {
+    "id": "fa_alpha_001",
+    "tenantId": "tenant_alpha",
+    "monthCloseId": "mc_alpha_2026_01",
+    "kind": "BANK_CSV",
+    "filename": "alpha-jan-2026.csv",
+    "storagePath": "tenants/tenant_alpha/monthCloses/mc_alpha_2026_01/bank/fa_alpha_001.csv",
+    "sha256": "c3ab8ff13720e8ad9047dd39466b3c8973e592c2fa383d4a3960714caef0c4f2",
+    "status": "PENDING_UPLOAD",
+    "parseStatus": "PENDING",
+    "createdAt": "2026-02-01T09:30:00Z",
+    "updatedAt": "2026-02-02T10:00:00Z",
+    "schemaVersion": 1
+  },
+  {
+    "id": "fa_bravo_001",
+    "tenantId": "tenant_bravo",
+    "monthCloseId": "mc_bravo_2026_01",
+    "kind": "INVOICE_PDF",
+    "filename": "bravo-inv-2001.pdf",
+    "storagePath": "tenants/tenant_bravo/monthCloses/mc_bravo_2026_01/invoices/fa_bravo_001.pdf",
+    "status": "PENDING_UPLOAD",
+    "parseStatus": "PENDING",
+    "createdAt": "2026-02-01T09:40:00Z",
+    "updatedAt": "2026-02-01T09:40:00Z",
+    "schemaVersion": 1
+  }
+]

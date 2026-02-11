@@ -1,0 +1,32 @@
+[
+  {
+    "id": "tx_alpha_001",
+    "tenantId": "tenant_alpha",
+    "monthCloseId": "mc_alpha_2026_01",
+    "bookingDate": "2026-01-06",
+    "amount": -1240.5,
+    "descriptionRaw": "ACH ROASTER SUPPLY CO",
+    "fingerprint": "a12f3a9c7b1d6b44b5bb7f9f0e6a5b2b",
+    "sourceFileId": "fa_alpha_001",
+    "createdAt": "2026-01-06T12:00:00Z",
+    "updatedAt": "2026-01-06T12:00:00Z",
+    "createdBy": "system",
+    "updatedBy": "system",
+    "schemaVersion": 1
+  },
+  {
+    "id": "tx_bravo_001",
+    "tenantId": "tenant_bravo",
+    "monthCloseId": "mc_bravo_2026_01",
+    "bookingDate": "2026-01-09",
+    "amount": -875.0,
+    "descriptionRaw": "WIRE INDUSTRIAL TOOLS",
+    "fingerprint": "b84c2c4f9f6713c9a2b5c7d8e9f0a1b2",
+    "sourceFileId": "fa_bravo_001",
+    "createdAt": "2026-01-09T12:00:00Z",
+    "updatedAt": "2026-01-09T12:00:00Z",
+    "createdBy": "system",
+    "updatedBy": "system",
+    "schemaVersion": 1
+  }
+]

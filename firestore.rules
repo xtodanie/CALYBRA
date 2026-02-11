@@ -1,0 +1,332 @@
+rules_version = '2';
+
+// ╔══════════════════════════════════════════════════════════════════════════════╗
+// ║                                                                              ║
+// ║   ██████╗  ██████╗     ███╗   ██╗ ██████╗ ████████╗    ██████╗ ██████╗       ║
+// ║   ██╔══██╗██╔═══██╗    ████╗  ██║██╔═══██╗╚══██╔══╝    ██╔══██╗██╔══██╗      ║
+// ║   ██║  ██║██║   ██║    ██╔██╗ ██║██║   ██║   ██║       ██████╔╝██████╔╝      ║
+// ║   ██║  ██║██║   ██║    ██║╚██╗██║██║   ██║   ██║       ██╔══██╗██╔══██╗      ║
+// ║   ██████╔╝╚██████╔╝    ██║ ╚████║╚██████╔╝   ██║       ██████╔╝██║  ██║      ║
+// ║   ╚═════╝  ╚═════╝     ╚═╝  ╚═══╝ ╚═════╝    ╚═╝       ╚═════╝ ╚═╝  ╚═╝      ║
+// ║                                                                              ║
+// ║   ███████╗ █████╗ ██╗  ██╗███████╗    ██████╗ ██╗   ██╗██╗     ███████╗███████╗║
+// ║   ██╔════╝██╔══██╗██║ ██╔╝██╔════╝    ██╔══██╗██║   ██║██║     ██╔════╝██╔════╝║
+// ║   █████╗  ███████║█████╔╝ █████╗      ██████╔╝██║   ██║██║     █████╗  ███████╗║
+// ║   ██╔══╝  ██╔══██║██╔═██╗ ██╔══╝      ██╔══██╗██║   ██║██║     ██╔══╝  ╚════██║║
+// ║   ██║     ██║  ██║██║  ██╗███████╗    ██║  ██║╚██████╔╝███████╗███████╗███████║║
+// ║   ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝    ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚══════╝╚══════╝║
+// ║                                                                              ║
+// ╠══════════════════════════════════════════════════════════════════════════════╣
+// ║                                                                              ║
+// ║   WARNING: SECURITY-CRITICAL FILE                                            ║
+// ║                                                                              ║
+// ║   These rules enforce HARD SECURITY INVARIANTS. Read SECURITY_INVARIANTS.md  ║
+// ║   before making ANY changes. This is not a suggestion — it is a requirement. ║
+// ║                                                                              ║
+// ╠══════════════════════════════════════════════════════════════════════════════╣
+// ║                                                                              ║
+// ║   INVARIANTS ENFORCED BY THESE RULES:                                        ║
+// ║                                                                              ║
+// ║   1. TENANT ISOLATION                                                        ║
+// ║      Users can ONLY access data belonging to their assigned tenant.          ║
+// ║      Cross-tenant access is ALWAYS denied.                                   ║
+// ║                                                                              ║
+// ║   2. TERMINAL STATE IMMUTABILITY                                             ║
+// ║      Documents in terminal states (FINALIZED, DELETED, CONFIRMED, REJECTED)  ║
+// ║      are IMMUTABLE. NO ACTOR, INCLUDING SERVER, may modify them.             ║
+// ║                                                                              ║
+// ║   3. STATE MACHINE ENFORCEMENT                                               ║
+// ║      Status transitions MUST follow the defined state machines.              ║
+// ║      Invalid transitions are DENIED for ALL actors, including server.        ║
+// ║                                                                              ║
+// ║   4. SERVER ≠ OMNIPOTENT                                                     ║
+// ║      Server bypasses RBAC and tenant checks for automation.                  ║
+// ║      Server DOES NOT bypass state machine or terminal state rules.           ║
+// ║      This is intentional. Do not "fix" it.                                   ║
+// ║                                                                              ║
+// ║   5. CLIENT CANNOT CHANGE STATUS                                             ║
+// ║      Status fields are SERVER-CONTROLLED on all entities.                    ║
+// ║      Clients may update other fields but status must remain unchanged.       ║
+// ║                                                                              ║
+// ║   6. SERVER-ONLY COLLECTIONS                                                 ║
+// ║      tenants, users, invoices, bankTx, matches, jobs, exceptions             ║
+// ║      are WRITE-PROTECTED from clients. Only server may write.                ║
+// ║                                                                              ║
+// ╠══════════════════════════════════════════════════════════════════════════════╣
+// ║                                                                              ║
+// ║   PROHIBITED ACTIONS:                                                        ║
+// ║                                                                              ║
+// ║   ✗ DO NOT relax rules to "fix tests" — fix the code instead                 ║
+// ║   ✗ DO NOT remove terminal state checks for "edge cases"                     ║
+// ║   ✗ DO NOT allow server to bypass state machine enforcement                  ║
+// ║   ✗ DO NOT remove tenant isolation for "convenience"                         ║
+// ║   ✗ DO NOT add "super-admin" or "maintenance mode" bypasses                  ║
+// ║   ✗ DO NOT modify without reading SECURITY_INVARIANTS.md                     ║
+// ║                                                                              ║
+// ╠══════════════════════════════════════════════════════════════════════════════╣
+// ║                                                                              ║
+// ║   CHANGE REQUIREMENTS:                                                       ║
+// ║                                                                              ║
+// ║   1. Read SECURITY_INVARIANTS.md (mandatory)                                 ║
+// ║   2. Document which invariant is affected                                    ║
+// ║   3. Add/update tests proving invariant still holds                          ║
+// ║   4. Obtain architectural review sign-off                                    ║
+// ║   5. Create ADR for significant changes                                      ║
+// ║                                                                              ║
+// ╠══════════════════════════════════════════════════════════════════════════════╣
+// ║                                                                              ║
+// ║   CANONICAL REFERENCE: /SECURITY_INVARIANTS.md                               ║
+// ║                                                                              ║
+// ║   Last Security Audit: 2026-02-11 (Phase Locked)                             ║
+// ║                                                                              ║
+// ╚══════════════════════════════════════════════════════════════════════════════╝
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- Helper Functions ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userPath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    function userExists() {
+      return isSignedIn() && exists(userPath());
+    }
+
+    function userData() {
+      return get(userPath()).data;
+    }
+
+    function tenantOfUser() {
+      return userData().tenantId;
+    }
+
+    function roleOfUser() {
+      return userData().role;
+    }
+
+    function isTenantMember(tenantId) {
+      return userExists()
+        && userData().keys().hasAll(['tenantId'])
+        && tenantOfUser() == tenantId;
+    }
+
+    function hasRole(roles) {
+      return userExists()
+        && userData().keys().hasAll(['role'])
+        && roleOfUser() in roles;
+    }
+
+    function isServer() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+
+    function hasOnly(allowed) {
+      return request.resource != null
+        && request.resource.data != null
+        && request.resource.data.keys().hasOnly(allowed);
+    }
+
+    function hasAll(required) {
+      return request.resource != null
+        && request.resource.data != null
+        && request.resource.data.keys().hasAll(required);
+    }
+
+    function isTimestamp(value) {
+      return value is timestamp;
+    }
+
+    // --- Status Machine Enforcement ---
+    // MonthClose: DRAFT -> IN_REVIEW -> FINALIZED (or IN_REVIEW -> DRAFT)
+    function isValidMonthCloseTransition(fromStatus, toStatus) {
+      return (fromStatus == "DRAFT" && toStatus == "IN_REVIEW")
+          || (fromStatus == "IN_REVIEW" && toStatus == "DRAFT")
+          || (fromStatus == "IN_REVIEW" && toStatus == "FINALIZED");
+    }
+
+    // FileAsset: PENDING_UPLOAD -> UPLOADED -> VERIFIED/REJECTED -> DELETED
+    function isValidFileAssetTransition(fromStatus, toStatus) {
+      return (fromStatus == "PENDING_UPLOAD" && toStatus == "UPLOADED")
+          || (fromStatus == "PENDING_UPLOAD" && toStatus == "DELETED")
+          || (fromStatus == "UPLOADED" && toStatus == "VERIFIED")
+          || (fromStatus == "UPLOADED" && toStatus == "REJECTED")
+          || (fromStatus == "UPLOADED" && toStatus == "DELETED")
+          || (fromStatus == "VERIFIED" && toStatus == "DELETED")
+          || (fromStatus == "REJECTED" && toStatus == "DELETED");
+    }
+
+    // Match: PROPOSED -> CONFIRMED / REJECTED (terminal)
+    function isValidMatchTransition(fromStatus, toStatus) {
+      return (fromStatus == "PROPOSED" && toStatus == "CONFIRMED")
+          || (fromStatus == "PROPOSED" && toStatus == "REJECTED");
+    }
+
+    // Check if status field is being changed
+    function statusChanging() {
+      return request.resource.data.status != resource.data.status;
+    }
+
+    // Check if match is in terminal state
+    function matchIsTerminal() {
+      return resource.data.status == "CONFIRMED" || resource.data.status == "REJECTED";
+    }
+
+    // Check if monthClose is in terminal state
+    function monthCloseIsTerminal() {
+      return resource.data.status == "FINALIZED";
+    }
+
+    // Check if fileAsset is in terminal state
+    function fileAssetIsTerminal() {
+      return resource.data.status == "DELETED";
+    }
+
+    // --- Global Rules ---
+    match /{path=**} {
+      allow read, write: if false;
+    }
+
+    // --- Top-Level Collections ---
+
+    match /tenants/{tenantId} {
+      allow read: if isTenantMember(tenantId);
+      allow write: if isServer();
+
+      // --- Tenant Subcollections ---
+
+      match /monthCloses/{monthCloseId} {
+        allow read: if isTenantMember(tenantId);
+
+        // CREATE: Server must create with DRAFT. Client can create with status=DRAFT only.
+        allow create: if (
+            isServer()
+            && request.resource.data.status == "DRAFT"
+          )
+          || (
+            isTenantMember(tenantId)
+            && hasRole(["OWNER", "MANAGER", "ACCOUNTANT"])
+            && hasAll([
+              'tenantId', 'periodStart', 'periodEnd', 'status',
+              'createdAt', 'updatedAt', 'createdBy', 'updatedBy', 'schemaVersion'
+            ])
+            && hasOnly([
+              'id', 'tenantId', 'periodStart', 'periodEnd', 'status',
+              'bankTotal', 'invoiceTotal', 'diff', 'openExceptionsCount',
+              'highExceptionsCount', 'notes', 'createdAt', 'updatedAt',
+              'createdBy', 'updatedBy', 'schemaVersion'
+            ])
+            && request.resource.data.tenantId == tenantId
+            && request.resource.data.status == "DRAFT"
+            && isTimestamp(request.resource.data.periodStart)
+            && isTimestamp(request.resource.data.periodEnd)
+          );
+
+        // UPDATE: Server must follow state machine. FINALIZED is terminal (immutable for ALL actors).
+        allow update: if (
+            isServer()
+            && !monthCloseIsTerminal()
+            && (!statusChanging() || isValidMonthCloseTransition(resource.data.status, request.resource.data.status))
+          )
+          || (
+            isTenantMember(tenantId)
+            && hasRole(["OWNER", "ACCOUNTANT"])
+            && resource.data.tenantId == tenantId
+            && resource.data.status != "FINALIZED"
+            // Client cannot change status - must remain same
+            && request.resource.data.status == resource.data.status
+            // Client cannot overwrite server-controlled fields
+            && request.resource.data.tenantId == resource.data.tenantId
+            && request.resource.data.createdAt == resource.data.createdAt
+            && request.resource.data.createdBy == resource.data.createdBy
+          );
+
+        allow delete: if isServer();
+      }
+
+      match /fileAssets/{fileAssetId} {
+        allow read: if isTenantMember(tenantId);
+
+        // CREATE: Server must create with PENDING_UPLOAD. Client can create with status=PENDING_UPLOAD only.
+        allow create: if (
+            isServer()
+            && request.resource.data.status == "PENDING_UPLOAD"
+          )
+          || (
+            isTenantMember(tenantId)
+            && hasRole(["OWNER", "MANAGER", "ACCOUNTANT"])
+            && hasAll([
+              'tenantId', 'monthCloseId', 'kind', 'filename', 'storagePath',
+              'status', 'createdAt', 'updatedAt', 'schemaVersion'
+            ])
+            && hasOnly([
+              'id', 'tenantId', 'monthCloseId', 'kind', 'filename', 'storagePath',
+              'status', 'parseStatus', 'parseError', 'sha256',
+              'createdAt', 'updatedAt', 'schemaVersion'
+            ])
+            && request.resource.data.tenantId == tenantId
+            && request.resource.data.status == "PENDING_UPLOAD"
+            && (!('parseStatus' in request.resource.data) || request.resource.data.parseStatus == "PENDING")
+            && (!('parseError' in request.resource.data) || request.resource.data.parseError == null)
+          );
+
+        // UPDATE: Server must follow state machine. DELETED is terminal (immutable for ALL actors).
+        allow update: if isServer()
+          && !fileAssetIsTerminal()
+          && (!statusChanging() || isValidFileAssetTransition(resource.data.status, request.resource.data.status));
+
+        // DELETE: Server only
+        allow delete: if isServer();
+      }
+
+      match /invoices/{invoiceId} {
+        allow read: if isTenantMember(tenantId);
+        allow write: if isServer();
+      }
+
+      match /bankTx/{txId} {
+        allow read: if isTenantMember(tenantId);
+        allow write: if isServer();
+      }
+
+      match /matches/{matchId} {
+        allow read: if isTenantMember(tenantId);
+        
+        // CREATE: Server must create with PROPOSED
+        allow create: if isServer()
+          && request.resource.data.status == "PROPOSED";
+        
+        // UPDATE: Server must follow state machine. CONFIRMED/REJECTED are terminal.
+        allow update: if isServer()
+          && !matchIsTerminal()
+          && (!statusChanging() || isValidMatchTransition(resource.data.status, request.resource.data.status));
+        
+        // DELETE: Server only
+        allow delete: if isServer();
+      }
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow write: if isServer();
+    }
+
+    match /jobs/{jobId} {
+      allow read: if userExists()
+        && resource.data.keys().hasAll(['tenantId'])
+        && resource.data.tenantId == tenantOfUser();
+      allow write: if isServer();
+    }
+
+    match /exceptions/{exceptionId} {
+      allow read: if userExists()
+        && resource.data.keys().hasAll(['tenantId'])
+        && resource.data.tenantId == tenantOfUser();
+      allow write: if isServer();
+    }
+  }
+}

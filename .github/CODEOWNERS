@@ -1,0 +1,13 @@
+# Core ownership
+* @xtodanie
+
+# Security and rules
+firestore.rules @xtodanie
+storage.rules @xtodanie
+
+# Agent docs and contracts
+/agent/** @xtodanie
+/contracts/** @xtodanie
+/scripts/** @xtodanie
+/migrations/** @xtodanie
+/.github/workflows/** @xtodanie

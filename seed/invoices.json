@@ -1,0 +1,36 @@
+[
+  {
+    "id": "inv_alpha_001",
+    "tenantId": "tenant_alpha",
+    "monthCloseId": "mc_alpha_2026_01",
+    "supplierNameRaw": "Roaster Supply Co",
+    "invoiceNumber": "AC-1001",
+    "issueDate": "2026-01-05",
+    "totalGross": 1240.5,
+    "extractionConfidence": 98,
+    "needsReview": false,
+    "sourceFileId": "fa_alpha_001",
+    "createdAt": "2026-01-05T10:00:00Z",
+    "updatedAt": "2026-01-05T10:00:00Z",
+    "createdBy": "system",
+    "updatedBy": "system",
+    "schemaVersion": 1
+  },
+  {
+    "id": "inv_bravo_001",
+    "tenantId": "tenant_bravo",
+    "monthCloseId": "mc_bravo_2026_01",
+    "supplierNameRaw": "Industrial Tools Ltd",
+    "invoiceNumber": "BH-2001",
+    "issueDate": "2026-01-08",
+    "totalGross": 875.0,
+    "extractionConfidence": 95,
+    "needsReview": false,
+    "sourceFileId": "fa_bravo_001",
+    "createdAt": "2026-01-08T11:00:00Z",
+    "updatedAt": "2026-01-08T11:00:00Z",
+    "createdBy": "system",
+    "updatedBy": "system",
+    "schemaVersion": 1
+  }
+]

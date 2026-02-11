@@ -1,0 +1,38 @@
+[
+  {
+    "id": "match_alpha_001",
+    "tenantId": "tenant_alpha",
+    "monthCloseId": "mc_alpha_2026_01",
+    "bankTxIds": ["tx_alpha_001"],
+    "invoiceIds": ["inv_alpha_001"],
+    "matchType": "EXACT",
+    "score": 98,
+    "status": "CONFIRMED",
+    "explanationKey": "amountAndName",
+    "explanationParams": { "field": "amount" },
+    "confirmedBy": "user_alpha_accountant",
+    "confirmedAt": "2026-01-06T12:05:00Z",
+    "createdAt": "2026-01-06T12:04:00Z",
+    "updatedAt": "2026-01-06T12:05:00Z",
+    "createdBy": "system",
+    "updatedBy": "system",
+    "schemaVersion": 1
+  },
+  {
+    "id": "match_bravo_001",
+    "tenantId": "tenant_bravo",
+    "monthCloseId": "mc_bravo_2026_01",
+    "bankTxIds": ["tx_bravo_001"],
+    "invoiceIds": ["inv_bravo_001"],
+    "matchType": "EXACT",
+    "score": 85,
+    "status": "PROPOSED",
+    "explanationKey": "amountAndName",
+    "explanationParams": { "field": "amount" },
+    "createdAt": "2026-01-09T12:05:00Z",
+    "updatedAt": "2026-01-09T12:05:00Z",
+    "createdBy": "system",
+    "updatedBy": "system",
+    "schemaVersion": 1
+  }
+]
