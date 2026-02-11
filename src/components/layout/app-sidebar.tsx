@@ -23,6 +23,7 @@ import {
   AlertTriangle,
   DownloadCloud,
   FileText,
+  LayoutDashboard,
 } from "lucide-react";
 import { useT } from "@/i18n/provider";
 import { useAuth } from "@/hooks/use-auth";
@@ -34,6 +35,7 @@ export function AppSidebar() {
   const { user, loading } = useAuth();
 
   const menuItems = [
+    { href: "/dashboard", icon: LayoutDashboard, label: t.sidebar.dashboard, active: pathname.includes("/dashboard") },
     { href: "/month-closes", icon: CalendarClock, label: t.sidebar.monthCloses, active: pathname.includes("/month-closes") },
     { href: "/upload", icon: UploadCloud, label: t.sidebar.upload, active: pathname.includes("/upload") },
     { href: "/invoices", icon: FileText, label: t.sidebar.invoices, active: pathname.includes("/invoices") },
@@ -46,7 +48,7 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader>
-        <Link href="/month-closes"><Logo /></Link>
+        <Link href="/dashboard"><Logo /></Link>
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>

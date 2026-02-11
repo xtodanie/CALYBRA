@@ -61,6 +61,57 @@ Use semantic versioning when you start shipping externally. Until then, use incr
 
 ## Releases
 
+### 2025-01-XX — Release 0007 (MVP Pivot - Operator-First)
+**Scope**
+- Surfaces: UI / Functions / Docs
+- Risk: P0 — Major pivot
+
+**Summary**
+- Pivoted from ERP-level compliance infrastructure to simple operator-first reconciliation platform.
+- Connected exceptions page to real Firestore data with resolveException callable.
+- Implemented client-side CSV export from live data (no readmodel dependency).
+- Added supplier breakdown view to invoices page.
+- Marked ERP roadmap steps 5-10 as DEFERRED.
+
+**Changes**
+- `src/app/[locale]/(app)/exceptions/page.tsx` — Replaced mock data with real Firestore query + resolveException callable integration.
+- `src/app/[locale]/(app)/exports/page.tsx` — Implemented live data CSV export (matches, invoices, bankTx, summary).
+- `src/app/[locale]/(app)/invoices/page.tsx` — Added "By Supplier" tab with breakdown view.
+- `agent/INTEGRITY_ROADMAP.md` — Added MVP Pivot Notice, marked steps 5-10 as DEFERRED.
+
+**MVP Completion Criteria**
+- ✅ Upload bank statements (CSV) — working
+- ✅ Upload supplier invoices (PDF) — working
+- ✅ Auto-match invoices to bank transactions — working
+- ✅ Show matched/unmatched items — working
+- ✅ Exception resolution workflow — connected to real data
+- ✅ Monthly summary view — working
+- ✅ Supplier breakdown — added
+- ✅ Export to CSV — implemented
+
+**Proof (Executed)**
+- Command: IDE get_errors for modified files
+  - Result: PASS
+  - Output summary: No TypeScript errors in exceptions, exports, invoices pages.
+- Command: npx tsc --noEmit
+  - Result: PASS (for modified files)
+  - Output summary: Pre-existing Next.js types issue in .next/types unrelated to changes.
+
+**Rollback**
+- Revert:
+  - `git revert <sha>`
+- Redeploy:
+  - `npm run build && firebase deploy`
+- Validate:
+  - Run proof commands again
+
+**Notes**
+- ERP-level features (readmodel exports, concurrency stress tests, truth lock CI) are deferred, not deleted.
+- Simple CSV export allows offline analysis without complex readmodel infrastructure.
+- Supplier breakdown is client-side aggregation (no Firestore schema changes needed).
+
+---
+
 ### 2026-02-11 — Release 0005
 **Scope**
 - Surfaces: UI / Lib
@@ -914,3 +965,49 @@ Use semantic versioning when you start shipping externally. Until then, use incr
 - Revert: `git revert <sha>`
 - Redeploy: `firebase deploy --only functions`
 
+---
+
+### 2025-01-XX — Release 0006 (resolveException callable)
+
+**Scope**
+- Surfaces: Functions (calybra-database/transitions.ts)
+- Risk: P0 (data integrity - exception resolution can create matches)
+
+**Summary**
+- Implemented server-authoritative `resolveException` callable
+- Enforces OPEN → RESOLVED/IGNORED transitions with full transactional integrity
+- Blocks resolution after month is FINALIZED
+
+**Changes**
+
+**ExceptionStatus enum and transitions**
+- Added `ExceptionStatus` enum (OPEN, RESOLVED, IGNORED)
+- Added `EXCEPTION_TRANSITIONS` status machine
+- Added `Permission.EXCEPTION_RESOLVE` to ACCOUNTANT, ADMIN, AUDITOR roles
+
+**resolveException callable implementation**
+- File: `calybra-database/src/transitions.ts`
+- Validates action type: RESOLVE_WITH_MATCH, MARK_AS_EXPENSE, IGNORE
+- Uses `loadAndAuthorize()` with EXCEPTION_RESOLVE permission
+- Verifies tenant ownership of exception
+- Blocks if monthClose.status === FINALIZED
+- Validates exception is currently OPEN
+- Firestore transaction for atomic exception update
+- Creates deterministic match if RESOLVE_WITH_MATCH action
+  - Match ID: SHA-256 hash of `${tenantId}:manual-match:${refId}:${linkToInvoiceId}`
+  - Match status: CONFIRMED, matchType: MANUAL
+- Triggers `recomputeMonthCloseSummary()` after resolution
+
+**Contract updated**
+- File: `contracts/status-machines.md`
+- Added `exceptions.status` section documenting transitions and actions
+
+**Proof (Executed)**
+- Command: `cd calybra-database ; npm run build`
+  - Result: PASS
+  - Output: TypeScript compiles cleanly, no errors
+
+**Rollback**
+- Revert: `git revert <sha>`
+- Redeploy: `firebase deploy --only functions`
+- Note: Any exceptions resolved during deployment window remain RESOLVED

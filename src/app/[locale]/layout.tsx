@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { PT_Sans, Space_Grotesk } from 'next/font/google';
+import { Inter, JetBrains_Mono } from 'next/font/google';
 import { Toaster } from "@/components/ui/toaster"
 import '../globals.css';
 import { cn } from '@/lib/utils';
@@ -16,16 +16,15 @@ export const metadata: Metadata = {
   description: 'Monthly bank & supplier-invoice reconciliation for modern businesses.',
 };
 
-const spaceGrotesk = Space_Grotesk({
+const inter = Inter({
   subsets: ['latin'],
-  variable: '--font-headline',
+  variable: '--font-sans',
   display: 'swap',
 });
 
-const ptSans = PT_Sans({
+const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
-  weight: ['400', '700'],
-  variable: '--font-body',
+  variable: '--font-mono',
   display: 'swap',
 });
 
@@ -44,9 +43,9 @@ export default async function RootLayout({
     <html lang={resolvedLocale} className="dark">
       <body
         className={cn(
-          "font-body antialiased",
-          spaceGrotesk.variable,
-          ptSans.variable
+          "font-sans antialiased",
+          inter.variable,
+          jetbrainsMono.variable
         )}
       >
         <AuthProvider>

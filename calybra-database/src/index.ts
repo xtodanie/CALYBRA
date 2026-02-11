@@ -7,10 +7,14 @@ import {assertAllowedDownload, buildFileAssetDocPath, DownloadAuthError} from ".
 initializeApp();
 
 // Re-export transition functions (server-authoritative status changes)
-export { transitionMonthClose, transitionMatch } from "./transitions";
+export { transitionMonthClose, transitionMatch, resolveException } from "./transitions";
 
 // Re-export ingestion pipeline (server-authoritative job processing)
 export { createJob, processJob, retryJob } from "./ingestion";
+
+// Note: onMonthCloseFinalized trigger is currently disabled due to firebase-functions v7 compatibility issues
+// The readmodel snapshot is created directly in transitionMonthClose instead
+// export { onMonthCloseFinalized } from "./triggers";
 
 export const onAuthCreate = functions.auth.user().onCreate(
   async (user: functions.auth.UserRecord): Promise<void> => {

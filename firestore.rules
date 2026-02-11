@@ -197,6 +197,26 @@ service cloud.firestore {
         || resource.data.status == "DELETED";
     }
 
+    // ========================================
+    // FREEZE ENFORCEMENT
+    // Block writes to entities when their monthClose is FINALIZED
+    // ========================================
+    
+    // Check if monthClose for a tenant is FINALIZED
+    // Used by: invoices, bankTx, matches (tenant-scoped)
+    function isMonthCloseFrozen(tenantId, monthCloseId) {
+      return exists(/databases/$(database)/documents/tenants/$(tenantId)/monthCloses/$(monthCloseId))
+        && get(/databases/$(database)/documents/tenants/$(tenantId)/monthCloses/$(monthCloseId)).data.status == "FINALIZED";
+    }
+
+    // For exceptions (top-level collection), need to get tenantId and monthCloseId from the document
+    function isExceptionMonthCloseFrozen() {
+      let tenantId = resource.data.tenantId;
+      let monthCloseId = resource.data.monthCloseId;
+      return exists(/databases/$(database)/documents/tenants/$(tenantId)/monthCloses/$(monthCloseId))
+        && get(/databases/$(database)/documents/tenants/$(tenantId)/monthCloses/$(monthCloseId)).data.status == "FINALIZED";
+    }
+
     // --- Global Rules ---
     match /{path=**} {
       allow read, write: if false;
@@ -269,6 +289,16 @@ service cloud.firestore {
         allow write: if isServer();
       }
 
+      // Readmodel snapshots - IMMUTABLE after creation
+      // Server can CREATE only. No updates or deletes allowed after creation.
+      // This guarantees exports produce identical output forever.
+      match /readmodels/{monthCloseId} {
+        allow read: if isTenantMember(tenantId);
+        // Only allow create via server trigger. Once created, immutable.
+        allow create: if isServer();
+        allow update, delete: if false;
+      }
+
       match /readmodels/{modelId}/{docId}/{subDocId} {
         allow read: if isTenantMember(tenantId);
         allow write: if isServer();
@@ -326,28 +356,42 @@ service cloud.firestore {
 
       match /invoices/{invoiceId} {
         allow read: if isTenantMember(tenantId);
-        allow write: if isServer();
+        // FREEZE: Block writes if monthClose is FINALIZED
+        // Server can write only if monthClose is NOT finalized
+        allow write: if isServer()
+          && hasKey(request.resource.data, 'monthCloseId')
+          && !isMonthCloseFrozen(tenantId, request.resource.data.monthCloseId);
       }
 
       match /bankTx/{txId} {
         allow read: if isTenantMember(tenantId);
-        allow write: if isServer();
+        // FREEZE: Block writes if monthClose is FINALIZED
+        // Server can write only if monthClose is NOT finalized
+        allow write: if isServer()
+          && hasKey(request.resource.data, 'monthCloseId')
+          && !isMonthCloseFrozen(tenantId, request.resource.data.monthCloseId);
       }
 
       match /matches/{matchId} {
         allow read: if isTenantMember(tenantId);
         
-        // CREATE: Server must create with PROPOSED
+        // CREATE: Server must create with PROPOSED, monthClose NOT frozen
         allow create: if isServer()
-          && request.resource.data.status == "PROPOSED";
+          && request.resource.data.status == "PROPOSED"
+          && hasKey(request.resource.data, 'monthCloseId')
+          && !isMonthCloseFrozen(tenantId, request.resource.data.monthCloseId);
         
-        // UPDATE: Server must follow state machine. CONFIRMED/REJECTED are terminal.
+        // UPDATE: Server must follow state machine. CONFIRMED/REJECTED are terminal. MonthClose NOT frozen.
         allow update: if isServer()
           && !matchIsTerminal()
-          && (!statusChanging() || isValidMatchTransition(resource.data.status, request.resource.data.status));
+          && (!statusChanging() || isValidMatchTransition(resource.data.status, request.resource.data.status))
+          && hasKey(resource.data, 'monthCloseId')
+          && !isMonthCloseFrozen(tenantId, resource.data.monthCloseId);
         
-        // DELETE: Server only
-        allow delete: if isServer();
+        // DELETE: Server only, monthClose NOT frozen
+        allow delete: if isServer()
+          && hasKey(resource.data, 'monthCloseId')
+          && !isMonthCloseFrozen(tenantId, resource.data.monthCloseId);
       }
     }
 
@@ -367,7 +411,24 @@ service cloud.firestore {
       allow read: if userExists()
         && resource.data.keys().hasAll(['tenantId'])
         && resource.data.tenantId == tenantOfUser();
-      allow write: if isServer();
+      
+      // CREATE: Server only, must have monthCloseId, monthClose NOT frozen
+      allow create: if isServer()
+        && hasKey(request.resource.data, 'tenantId')
+        && hasKey(request.resource.data, 'monthCloseId')
+        && !isMonthCloseFrozen(request.resource.data.tenantId, request.resource.data.monthCloseId);
+      
+      // UPDATE: Server only, monthClose from existing doc NOT frozen
+      allow update: if isServer()
+        && hasKey(resource.data, 'tenantId')
+        && hasKey(resource.data, 'monthCloseId')
+        && !isMonthCloseFrozen(resource.data.tenantId, resource.data.monthCloseId);
+      
+      // DELETE: Server only, monthClose NOT frozen
+      allow delete: if isServer()
+        && hasKey(resource.data, 'tenantId')
+        && hasKey(resource.data, 'monthCloseId')
+        && !isMonthCloseFrozen(resource.data.tenantId, resource.data.monthCloseId);
     }
   }
 }

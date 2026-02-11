@@ -2,6 +2,7 @@ export const en = {
   appName: 'Calybra',
   loading: 'Loading...',
   sidebar: {
+    dashboard: 'Dashboard',
     monthCloses: 'Month Closes',
     upload: 'Upload',
     invoices: 'Invoices',
@@ -376,5 +377,36 @@ export const en = {
   profile: {
     title: 'Profile',
     description: 'Update your personal information.',
+  },
+  dashboard: {
+    nav: {
+      summary: 'Summary',
+      reconciled: 'Reconciled Payments',
+      pending: 'Pending',
+      download: 'Download Summary',
+      myBusiness: 'My Business',
+    },
+    bankVsInvoices: {
+      title: 'Bank vs Invoices',
+      totalInvoices: 'Total Invoices',
+      totalBankPayments: 'Total Bank Payments',
+      difference: 'Difference',
+      pending: 'pending',
+      reconciled: 'Reconciled',
+      critical: 'Critical',
+    },
+    suppliers: {
+      title: 'Suppliers This Month',
+      topSuppliers: 'Top 5 Suppliers',
+    },
+    pendingItems: {
+      title: 'Pending Items',
+      unpaidInvoices: 'unpaid invoices',
+      paymentsWithoutInvoice: 'payment without invoice',
+      paymentsWithoutInvoicePlural: 'payments without invoice',
+    },
+    toast: {
+      reconciliationComplete: 'Reconciliation completed',
+    },
   },
 } as const;

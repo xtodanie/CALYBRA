@@ -71,3 +71,29 @@ Terminal states:
 Rules enforce:
 - All match writes are server-only.
 - Server transitions must follow allowed transitions.
+
+## exceptions.status
+
+Status values:
+- OPEN
+- RESOLVED
+- IGNORED
+
+Allowed transitions:
+- OPEN → RESOLVED
+- OPEN → IGNORED
+
+Terminal states:
+- RESOLVED
+- IGNORED
+
+Rules enforce:
+- All exception writes are server-only.
+- Client cannot modify exceptions directly (server-only via resolveException callable).
+- Server transitions must follow allowed transitions.
+- Resolution is blocked when monthClose.status is FINALIZED.
+
+Resolution actions:
+- RESOLVE_WITH_MATCH: Links bankTx to an invoice, creates a CONFIRMED match.
+- MARK_AS_EXPENSE: Marks the bankTx as a non-invoice expense.
+- IGNORE: Ignores the exception with a reason (soft resolve).

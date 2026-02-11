@@ -9,7 +9,7 @@ export default function Home() {
   const t = useT();
 
   useEffect(() => {
-    router.replace('/month-closes');
+    router.replace('/dashboard');
   }, [router]);
 
   return (

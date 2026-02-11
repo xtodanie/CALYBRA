@@ -4,68 +4,128 @@
 
 @layer base {
   :root {
-    --background: 310 5% 18%;
-    --foreground: 0 0% 99%;
-    --card: 220 3% 26%;
-    --card-foreground: 0 0% 99%;
-    --popover: 220 3% 22%;
-    --popover-foreground: 0 0% 99%;
-    --primary: 200 15% 43%;
-    --primary-foreground: 0 0% 99%;
-    --secondary: 220 3% 26%;
-    --secondary-foreground: 0 0% 99%;
-    --muted: 220 3% 30%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 200 15% 43%;
-    --accent-foreground: 0 0% 99%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 220 3% 35%;
-    --input: 220 3% 35%;
-    --ring: 200 15% 53%;
-    --radius: 0.5rem;
+    /* CALYBRA Premium Dark Fintech Color System */
+    /* Layer 0 — Base Background: #0F1419 (Deep charcoal blue) */
+    --background: 210 25% 8%;
+    /* High contrast foreground: #F4F7FA */
+    --foreground: 210 20% 97%;
+    
+    /* Layer 2 — Card Surface: #1C232B */
+    --card: 210 18% 14%;
+    --card-foreground: 210 20% 97%;
+    
+    /* Layer 1 — Secondary Background: #161C22 */
+    --popover: 210 18% 11%;
+    --popover-foreground: 210 20% 97%;
+    
+    /* Primary Accent — Muted Emerald: #1F8F6A */
+    --primary: 160 65% 34%;
+    --primary-foreground: 210 20% 97%;
+    
+    /* Layer 1 — Secondary: #161C22 */
+    --secondary: 210 18% 11%;
+    --secondary-foreground: 210 20% 97%;
+    
+    /* Muted: #8A949E secondary labels */
+    --muted: 210 10% 16%;
+    --muted-foreground: 210 8% 58%;
+    
+    /* Primary accent for hover states */
+    --accent: 160 65% 34%;
+    --accent-foreground: 210 20% 97%;
+    
+    /* Destructive — Refined Red: #C64545 */
+    --destructive: 0 55% 52%;
+    --destructive-foreground: 210 20% 97%;
+    
+    /* Border: #2A333C */
+    --border: 210 15% 20%;
+    --input: 210 15% 20%;
+    --ring: 160 65% 34%;
+    --radius: 0.625rem;
+
+    /* Custom status colors */
+    --warning: 45 75% 50%;
+    --warning-foreground: 210 20% 97%;
+    --success: 155 52% 42%;
+    --success-foreground: 210 20% 97%;
+    --trend-up: 145 50% 46%;
+    --trend-down: 0 50% 56%;
+
+    /* Layer 3 — Interactive Hover: #222B34 */
+    --hover: 210 18% 17%;
 
     /* Custom sidebar variables */
-    --sidebar-background: 204 86% 6%;
-    --sidebar-foreground: 0 0% 70%;
-    --sidebar-primary: 200 15% 43%;
-    --sidebar-primary-foreground: 0 0% 99%;
-    --sidebar-accent: 230 5% 20%;
-    --sidebar-accent-foreground: 0 0% 99%;
-    --sidebar-border: 230 5% 15%;
-    --sidebar-ring: 200 15% 53%;
+    --sidebar-background: 210 25% 6%;
+    --sidebar-foreground: 210 8% 58%;
+    --sidebar-primary: 160 65% 34%;
+    --sidebar-primary-foreground: 210 20% 97%;
+    --sidebar-accent: 210 18% 14%;
+    --sidebar-accent-foreground: 210 20% 97%;
+    --sidebar-border: 210 18% 12%;
+    --sidebar-ring: 160 65% 34%;
   }
 
   .dark {
-    --background: 310 5% 18%;
-    --foreground: 0 0% 99%;
-    --card: 220 3% 26%;
-    --card-foreground: 0 0% 99%;
-    --popover: 220 3% 22%;
-    --popover-foreground: 0 0% 99%;
-    --primary: 200 15% 43%;
-    --primary-foreground: 0 0% 99%;
-    --secondary: 220 3% 26%;
-    --secondary-foreground: 0 0% 99%;
-    --muted: 220 3% 30%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 200 15% 43%;
-    --accent-foreground: 0 0% 99%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 220 3% 35%;
-    --input: 220 3% 35%;
-    --ring: 200 15% 53%;
+    /* CALYBRA Premium Dark Fintech Color System */
+    /* Layer 0 — Base Background: #0F1419 (Deep charcoal blue) */
+    --background: 210 25% 8%;
+    /* High contrast foreground: #F4F7FA */
+    --foreground: 210 20% 97%;
+    
+    /* Layer 2 — Card Surface: #1C232B */
+    --card: 210 18% 14%;
+    --card-foreground: 210 20% 97%;
+    
+    /* Layer 1 — Secondary Background: #161C22 */
+    --popover: 210 18% 11%;
+    --popover-foreground: 210 20% 97%;
+    
+    /* Primary Accent — Muted Emerald: #1F8F6A */
+    --primary: 160 65% 34%;
+    --primary-foreground: 210 20% 97%;
+    
+    /* Layer 1 — Secondary: #161C22 */
+    --secondary: 210 18% 11%;
+    --secondary-foreground: 210 20% 97%;
+    
+    /* Muted: #8A949E secondary labels */
+    --muted: 210 10% 16%;
+    --muted-foreground: 210 8% 58%;
+    
+    /* Primary accent for hover states */
+    --accent: 160 65% 34%;
+    --accent-foreground: 210 20% 97%;
+    
+    /* Destructive — Refined Red: #C64545 */
+    --destructive: 0 55% 52%;
+    --destructive-foreground: 210 20% 97%;
+    
+    /* Border: #2A333C */
+    --border: 210 15% 20%;
+    --input: 210 15% 20%;
+    --ring: 160 65% 34%;
+
+    /* Custom status colors */
+    --warning: 45 75% 50%;
+    --warning-foreground: 210 20% 97%;
+    --success: 155 52% 42%;
+    --success-foreground: 210 20% 97%;
+    --trend-up: 145 50% 46%;
+    --trend-down: 0 50% 56%;
+
+    /* Layer 3 — Interactive Hover: #222B34 */
+    --hover: 210 18% 17%;
 
     /* Custom sidebar variables */
-    --sidebar-background: 204 86% 6%;
-    --sidebar-foreground: 0 0% 70%;
-    --sidebar-primary: 200 15% 43%;
-    --sidebar-primary-foreground: 0 0% 99%;
-    --sidebar-accent: 230 5% 20%;
-    --sidebar-accent-foreground: 0 0% 99%;
-    --sidebar-border: 230 5% 15%;
-    --sidebar-ring: 200 15% 53%;
+    --sidebar-background: 210 25% 6%;
+    --sidebar-foreground: 210 8% 58%;
+    --sidebar-primary: 160 65% 34%;
+    --sidebar-primary-foreground: 210 20% 97%;
+    --sidebar-accent: 210 18% 14%;
+    --sidebar-accent-foreground: 210 20% 97%;
+    --sidebar-border: 210 18% 12%;
+    --sidebar-ring: 160 65% 34%;
   }
 }
 

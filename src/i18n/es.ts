@@ -4,6 +4,7 @@ export const es: Dict = {
   appName: 'Calybra',
   loading: 'Cargando...',
   sidebar: {
+    dashboard: 'Panel',
     monthCloses: 'Cierres Mensuales',
     upload: 'Subir',
     invoices: 'Facturas',
@@ -378,5 +379,36 @@ export const es: Dict = {
   profile: {
     title: 'Perfil',
     description: 'Actualiza tu información personal.',
+  },
+  dashboard: {
+    nav: {
+      summary: 'Resumen',
+      reconciled: 'Pagos conciliados',
+      pending: 'Pendientes',
+      download: 'Descargar resumen',
+      myBusiness: 'Mi negocio',
+    },
+    bankVsInvoices: {
+      title: 'Banco vs Facturas',
+      totalInvoices: 'Total facturas',
+      totalBankPayments: 'Total pagos banco',
+      difference: 'Diferencia',
+      pending: 'pendiente',
+      reconciled: 'Conciliado',
+      critical: 'Crítico',
+    },
+    suppliers: {
+      title: 'Proveedores Este Mes',
+      topSuppliers: 'Top 5 Proveedores',
+    },
+    pendingItems: {
+      title: 'Pendientes',
+      unpaidInvoices: 'facturas sin pagar',
+      paymentsWithoutInvoice: 'pago sin factura',
+      paymentsWithoutInvoicePlural: 'pagos sin factura',
+    },
+    toast: {
+      reconciliationComplete: 'Conciliación completada',
+    },
   },
 };

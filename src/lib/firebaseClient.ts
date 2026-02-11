@@ -96,7 +96,7 @@ export function getFirebaseClient() {
     if (!w.__FIREBASE_EMULATORS_CONNECTED__) {
       // Use 127.0.0.1 to avoid IPv6/localhost issues in some environments.
       connectAuthEmulator(_auth, "http://127.0.0.1:9099", { disableWarnings: true });
-      connectFirestoreEmulator(_db, "127.0.0.1", 8080);
+      connectFirestoreEmulator(_db, "127.0.0.1", 8085);
       connectStorageEmulator(_storage, "127.0.0.1", 9199);
       connectFunctionsEmulator(_functions, "127.0.0.1", 5001);
 

@@ -289,6 +289,23 @@ export const retryJob = functions.https.onCall(
       );
     }
 
+    // 4.5 Check if monthClose is FINALIZED (block retry after freeze)
+    const monthCloseRef = db
+      .collection("tenants")
+      .doc(user.tenantId)
+      .collection("monthCloses")
+      .doc(jobData.monthCloseId);
+    const monthCloseSnap = await monthCloseRef.get();
+    if (monthCloseSnap.exists) {
+      const monthCloseData = monthCloseSnap.data();
+      if (monthCloseData?.status === "FINALIZED") {
+        throw new functions.https.HttpsError(
+          "failed-precondition",
+          "Cannot retry job: month is already FINALIZED."
+        );
+      }
+    }
+
     // 5. Validate job is in FAILED state
     if (jobData.status !== JobStatus.FAILED) {
       throw new functions.https.HttpsError(

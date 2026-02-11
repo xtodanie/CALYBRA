@@ -51,12 +51,19 @@ export default function MonthClosesPage() {
       orderBy('periodStart', 'desc')
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data: MonthClose[] = [];
-      snapshot.forEach(doc => data.push({ id: doc.id, ...doc.data() } as MonthClose));
-      setCloses(data);
-      setIsLoading(false);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const data: MonthClose[] = [];
+        snapshot.forEach(doc => data.push({ id: doc.id, ...doc.data() } as MonthClose));
+        setCloses(data);
+        setIsLoading(false);
+      },
+      (error) => {
+        console.error('MonthCloses subscription error:', error);
+        setIsLoading(false);
+      }
+    );
 
     return () => unsubscribe();
   }, [user]);

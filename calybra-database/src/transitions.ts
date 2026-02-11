@@ -193,6 +193,25 @@ export const transitionMonthClose = functions.https.onCall(
       );
     }
 
+    // ========================================
+    // FINALIZATION GATE: No OPEN exceptions allowed
+    // ========================================
+    if (targetStatus === MonthCloseStatus.FINALIZED) {
+      const openExceptionsSnap = await db
+        .collection("exceptions")
+        .where("tenantId", "==", user.tenantId)
+        .where("monthCloseId", "==", monthCloseId)
+        .where("status", "==", ExceptionStatus.OPEN)
+        .get();
+
+      if (!openExceptionsSnap.empty) {
+        throw new functions.https.HttpsError(
+          "failed-precondition",
+          `Cannot finalize: ${openExceptionsSnap.size} OPEN exception(s) remain. All exceptions must be resolved or ignored before finalization.`
+        );
+      }
+    }
+
     // Write via Admin SDK
     const updatePayload: Record<string, unknown> = {
       status: targetStatus,
@@ -206,6 +225,75 @@ export const transitionMonthClose = functions.https.onCall(
     }
 
     await monthCloseRef.update(updatePayload);
+
+    // ========================================
+    // FINALIZATION: Create immutable readmodel snapshot
+    // ========================================
+    if (targetStatus === MonthCloseStatus.FINALIZED) {
+      const snapshotRef = db
+        .collection("tenants")
+        .doc(user.tenantId)
+        .collection("readmodels")
+        .doc(monthCloseId);
+
+      // Check idempotency - don't overwrite if exists
+      const existingSnapshot = await snapshotRef.get();
+      if (!existingSnapshot.exists) {
+        // Gather all data for the snapshot
+        const [invoicesSnap, bankTxSnap, matchesSnap, exceptionsSnap] = await Promise.all([
+          db.collection("tenants").doc(user.tenantId).collection("invoices")
+            .where("monthCloseId", "==", monthCloseId).get(),
+          db.collection("tenants").doc(user.tenantId).collection("bankTx")
+            .where("monthCloseId", "==", monthCloseId).get(),
+          db.collection("tenants").doc(user.tenantId).collection("matches")
+            .where("monthCloseId", "==", monthCloseId).get(),
+          db.collection("exceptions")
+            .where("tenantId", "==", user.tenantId)
+            .where("monthCloseId", "==", monthCloseId).get(),
+        ]);
+
+        // Count confirmed matches
+        let confirmedMatchCount = 0;
+        matchesSnap.forEach((doc) => {
+          if (doc.data().status === MatchStatus.CONFIRMED) {
+            confirmedMatchCount++;
+          }
+        });
+
+        // Count exceptions by status and severity
+        let totalExceptionCount = 0;
+        let openExceptionCount = 0;
+        let highExceptionCount = 0;
+        exceptionsSnap.forEach((doc) => {
+          totalExceptionCount++;
+          const data = doc.data();
+          if (data.status === ExceptionStatus.OPEN) openExceptionCount++;
+          if (data.severity === "HIGH") highExceptionCount++;
+        });
+
+        // Create the immutable snapshot
+        await snapshotRef.set({
+          id: monthCloseId,
+          tenantId: user.tenantId,
+          monthCloseId,
+          status: "FINALIZED",
+          bankTotal: monthCloseData.bankTotal || 0,
+          invoiceTotal: monthCloseData.invoiceTotal || 0,
+          diff: monthCloseData.diff || 0,
+          matchCount: confirmedMatchCount,
+          exceptionCount: totalExceptionCount,
+          openExceptionCount,
+          highExceptionCount,
+          finalizedAt: FieldValue.serverTimestamp(),
+          finalizedBy: user.uid,
+          invoiceCount: invoicesSnap.size,
+          bankTxCount: bankTxSnap.size,
+          isImmutable: true,
+          schemaVersion: 1,
+          createdAt: FieldValue.serverTimestamp(),
+        });
+      }
+    }
 
     return { success: true, status: targetStatus };
   }
@@ -549,7 +637,8 @@ export const resolveException = functions.https.onCall(
       }
 
       // Prepare resolution data
-      const resolutionPayload: Record<string, unknown> = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const resolutionPayload: Record<string, any> = {
         status: targetStatus,
         resolvedAt: FieldValue.serverTimestamp(),
         resolvedBy: user.uid,
@@ -567,7 +656,6 @@ export const resolveException = functions.https.onCall(
       // ========================================
       if (action.type === "RESOLVE_WITH_MATCH" && "linkToInvoiceId" in action) {
         const refId = txExceptionData.refId as string;
-        const refType = txExceptionData.refType as string;
 
         // Only BANK_NO_INVOICE exceptions can be resolved with a match
         if (txExceptionData.kind !== "BANK_NO_INVOICE") {
