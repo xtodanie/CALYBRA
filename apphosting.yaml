@@ -22,6 +22,6 @@ env:
     value: "1:906717259577:web:fc857f518932eba1156ae8"
   - variable: NEXT_PUBLIC_USE_EMULATORS
     value: "false"
-  # Sensitive keys — store in Cloud Secret Manager, reference here:
-  # - variable: GEMINI_API_KEY
-  #   secret: GEMINI_API_KEY
+  # Server-side secret from Cloud Secret Manager
+  - variable: GEMINI_API_KEY
+    secret: GEMINI_API_KEY
