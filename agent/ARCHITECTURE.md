@@ -35,6 +35,15 @@ Responsibilities:
 - Enforce client-side allowlists and runtime validation (defense-in-depth)
 - Never write server-authoritative fields
 
+### Authenticated App Shell Contract
+
+- Spatial ownership for authenticated routes is centralized in `src/app/[locale]/(app)/layout.tsx`.
+- Layout uses a two-column grid (`sidebar + content`) with in-flow sidebar rendering.
+- Page-level components must not add sidebar compensation offsets (`margin-left`, `ml-*`, `calc(100%-...)`).
+- Content scrolling is inside `<main>`; shell root remains height-locked.
+- Sidebar widths are sourced from a single constant module: `src/components/layout/layout-constants.ts`.
+- See `agent/LAYOUT_CONTRACT.md` for enforceable UI contract details.
+
 ### Backend
 
 - Firebase Auth for identity

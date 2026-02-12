@@ -34,7 +34,7 @@ export function SuppliersCard({
           {t.dashboard.suppliers.title}
         </h3>
 
-        <div className="space-y-4">
+        <div className="space-y-4" role="list" aria-label={t.dashboard.suppliers.title}>
           {isLoading ? (
             // Skeleton loader
             Array.from({ length: 5 }).map((_, i) => (
@@ -46,10 +46,15 @@ export function SuppliersCard({
                 </div>
               </div>
             ))
+          ) : suppliers.length === 0 ? (
+            <p className="py-4 text-center text-caption text-muted-foreground">
+              {t.dashboard.states.emptyDescription}
+            </p>
           ) : (
             suppliers.slice(0, 5).map((supplier) => (
               <div
                 key={supplier.name}
+                role="listitem"
                 className={cn(
                   'group flex items-center justify-between rounded-lg px-3 py-3 transition-colors',
                   'hover:bg-hover'

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use, useCallback } from "react";
+import { useEffect, useState, use, useCallback, type ComponentProps } from "react";
 import {
   AlertTriangle,
   ArrowRight,
@@ -27,7 +27,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
-import { doc, onSnapshot, getDoc, DocumentData } from "firebase/firestore";
+import { doc, onSnapshot, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebaseClient";
 import type { MonthClose, MonthCloseStatus } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -73,6 +73,11 @@ const WorkflowStep = ({
 };
 
 type Translations = ReturnType<typeof useT>;
+type VatSummaryData = NonNullable<ComponentProps<typeof VatSummaryCard>["data"]>;
+type MismatchSummaryData = NonNullable<ComponentProps<typeof MismatchSummaryCard>["data"]>;
+type TimelineData = NonNullable<ComponentProps<typeof TimelineCard>["data"]>;
+type FrictionData = ComponentProps<typeof FrictionCard>["data"];
+type AuditorReplayData = ComponentProps<typeof AuditorReplayCard>["data"];
 
 const WorkflowPanel = ({ status, t }: { status: MonthCloseStatus; t: Translations }) => {
     const statusToStep: Record<MonthCloseStatus, number> = {
@@ -146,11 +151,11 @@ export default function MonthCloseDetailPage({ params }: { params: Promise<{ id:
 
   // Analytics state
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
-  const [vatSummary, setVatSummary] = useState<DocumentData | null>(null);
-  const [mismatchSummary, setMismatchSummary] = useState<DocumentData | null>(null);
-  const [timeline, setTimeline] = useState<DocumentData | null>(null);
-  const [friction, setFriction] = useState<{ daysToClose: number; manualMatchPercent: number; exceptionPercent: number; frictionScore: number } | null>(null);
-  const [auditorReplay, setAuditorReplay] = useState<{ asOfDateKey: string; bankTxCount: number; invoiceCount: number; matchCount: number; adjustmentCount: number; generatedAt: string } | null>(null);
+  const [vatSummary, setVatSummary] = useState<VatSummaryData | null>(null);
+  const [mismatchSummary, setMismatchSummary] = useState<MismatchSummaryData | null>(null);
+  const [timeline, setTimeline] = useState<TimelineData | null>(null);
+  const [friction, setFriction] = useState<FrictionData>(null);
+  const [auditorReplay, setAuditorReplay] = useState<AuditorReplayData>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -187,9 +192,9 @@ export default function MonthCloseDetailPage({ params }: { params: Promise<{ id:
         getDoc(doc(db, `${readmodelBasePath}/closeFriction/${monthKey}/snapshot`)),
       ]);
 
-      if (vatSnap.exists()) setVatSummary(vatSnap.data());
-      if (mismatchSnap.exists()) setMismatchSummary(mismatchSnap.data());
-      if (timelineSnap.exists()) setTimeline(timelineSnap.data());
+      if (vatSnap.exists()) setVatSummary(vatSnap.data() as VatSummaryData);
+      if (mismatchSnap.exists()) setMismatchSummary(mismatchSnap.data() as MismatchSummaryData);
+      if (timelineSnap.exists()) setTimeline(timelineSnap.data() as TimelineData);
       if (frictionSnap.exists()) {
         const data = frictionSnap.data();
         setFriction({

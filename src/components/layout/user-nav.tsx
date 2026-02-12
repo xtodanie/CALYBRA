@@ -53,19 +53,19 @@ export function UserNav() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <Link href="/profile" passHref>
+          <Link href={`/${locale}/profile`} passHref>
             <DropdownMenuItem>
               <UserIcon className="mr-2 h-4 w-4" />
               <span>{t.userNav.profile}</span>
             </DropdownMenuItem>
           </Link>
-          <Link href="/billing" passHref>
+          <Link href={`/${locale}/billing`} passHref>
             <DropdownMenuItem>
               <CreditCard className="mr-2 h-4 w-4" />
               <span>{t.userNav.billing}</span>
             </DropdownMenuItem>
           </Link>
-          <Link href="/settings" passHref>
+          <Link href={`/${locale}/settings`} passHref>
             <DropdownMenuItem>
               <Settings className="mr-2 h-4 w-4" />
               <span>{t.userNav.settings}</span>

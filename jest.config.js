@@ -5,7 +5,8 @@ module.exports = {
   testMatch: [
     "<rootDir>/tests/**/*.test.ts",
     "<rootDir>/server/tests/**/*.test.ts",
-    "<rootDir>/observability/tests/**/*.test.ts"
+    "<rootDir>/observability/tests/**/*.test.ts",
+    "<rootDir>/src/**/__tests__/*.test.ts"
   ],
   modulePathIgnorePatterns: [
     "<rootDir>/functions/",
@@ -14,6 +15,10 @@ module.exports = {
     "<rootDir>/dist/",
     "<rootDir>/build/",
   ],
+  // Module path aliases (mirror tsconfig paths)
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/src/$1',
+  },
    // Automatically clear mock calls and instances between every test
   clearMocks: true,
   // The directory where Jest should output its coverage files

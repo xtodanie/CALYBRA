@@ -2,7 +2,7 @@ export const basePalette = {
   royalPlum: '#832161',
   magentaBloom: '#da4167',
   midnightViolet: '#3d2645',
-  black: '#000000',
+  black: '#0a0a0a',
   ghostWhite: '#f0eff4',
 } as const;
 
@@ -17,7 +17,7 @@ export const neutral = {
   700: '#434344',
   800: '#2e2e2f',
   900: '#1a1a1b',
-  950: '#000000',
+  950: '#0a0a0a',
 } as const;
 
 export const primary = {

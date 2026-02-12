@@ -10,6 +10,14 @@ export const en = {
     exceptions: 'Exceptions',
     exports: 'Exports',
     settings: 'Settings',
+    groups: {
+      workspace: 'Workspace',
+      finance: 'Finance',
+    },
+  },
+  theme: {
+    toggleToDark: 'Switch to dark theme',
+    toggleToLight: 'Switch to light theme',
   },
   roles: {
     OWNER: 'Owner',
@@ -68,6 +76,25 @@ export const en = {
       IN_REVIEW: 'In Review',
       FINALIZED: 'Finalized',
     },
+    progressLabel: 'Close progress',
+    actions: {
+      view: 'View',
+      lock: 'Lock',
+      recompute: 'Recompute',
+      recomputed: 'Month metrics refreshed.',
+      lockSuccess: 'Month closed and locked.',
+      lockError: 'Could not lock this month close.',
+    },
+    lockModal: {
+      title: 'Lock this month close?',
+      description: 'This action finalizes the period and enables immutable export artifacts. Continue only if exceptions are resolved.',
+      confirm: 'Lock Month',
+      cancel: 'Cancel',
+    },
+    errors: {
+      title: 'Unable to load month closes',
+      description: 'Refresh the workspace or retry in a moment.',
+    },
     setActive: 'Set active',
     active: 'Active',
     create: {
@@ -75,6 +102,9 @@ export const en = {
       description: 'Select the start and end date for the period you want to close. This is usually the first and last day of a calendar month.',
       periodStart: 'Period Start',
       periodEnd: 'Period End',
+      pickDateRange: 'Pick a date range',
+      validationStart: 'A start date is required.',
+      validationEnd: 'An end date is required.',
       cta: 'Create Closing Period',
       success: 'Month close created successfully.',
       error: 'Failed to create month close.',
@@ -199,6 +229,18 @@ export const en = {
       title: '3. Processing Jobs',
       description: 'We are processing your files. You can monitor the progress below.',
       empty: 'No jobs are currently running for this month.',
+    },
+    progress: {
+      title: 'Uploading files',
+    },
+    validation: {
+      title: 'Some files were rejected',
+    },
+    confirmImport: {
+      title: 'Confirm import',
+      description: 'Import {count} file(s) for {kind}. This will create server processing jobs.',
+      confirm: 'Start import',
+      cancel: 'Review files',
     },
     uploadedFiles: {
       title: 'Uploaded Files',
@@ -463,6 +505,36 @@ export const en = {
       download: 'Download Summary',
       myBusiness: 'My Business',
     },
+    hero: {
+      title: 'Financial Command Center',
+      subtitle: 'Authoritative monthly reconciliation with traceable decisions and export-ready outputs.',
+      status: 'Close status',
+      healthy: 'Healthy',
+      warning: 'Requires attention',
+      differenceTrend: 'Difference vs prior month',
+      invoicesTrend: 'Invoices trend',
+      bankTrend: 'Bank trend',
+      cta: 'Open Month Closes',
+    },
+    states: {
+      loading: 'Preparing your month snapshot...',
+      emptyTitle: 'No reconciliation data yet',
+      emptyDescription: 'Start by uploading your bank statement and invoice files to generate a complete monthly summary.',
+      emptyCta: 'Go to Upload',
+      errorTitle: 'Dashboard unavailable',
+      errorDescription: 'We could not load your summary right now. Try refreshing your workspace.',
+      errorCta: 'Retry',
+      success: 'Data synchronized successfully',
+    },
+    activity: {
+      title: 'Recent Activity',
+      description: 'Latest workflow events for this close.',
+      items: {
+        importsCompleted: 'Invoice import completed',
+        reviewStarted: 'Review phase started',
+        exceptionsUpdated: 'Exceptions updated',
+      },
+    },
     bankVsInvoices: {
       title: 'Bank vs Invoices',
       totalInvoices: 'Total Invoices',
@@ -481,6 +553,7 @@ export const en = {
       unpaidInvoices: 'unpaid invoices',
       paymentsWithoutInvoice: 'payment without invoice',
       paymentsWithoutInvoicePlural: 'payments without invoice',
+      empty: 'No pending items',
     },
     toast: {
       reconciliationComplete: 'Reconciliation completed',

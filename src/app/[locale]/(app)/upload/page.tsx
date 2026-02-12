@@ -2,7 +2,7 @@
 'use client';
 import Link from 'next/link';
 import { useT, useLocale } from '@/i18n/provider';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CardPremium, PageContainer, Section } from '@/components/layout/premium-shell';
 import { FileUploader } from '@/components/file-uploader';
 import {
   Table,
@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, ChevronRight, Download, Loader2 } from 'lucide-react';
+import { AlertCircle, ChevronRight, Download, Loader2, UploadCloud } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { db, storage, functions } from '@/lib/firebaseClient';
@@ -27,27 +27,41 @@ import { formatDate } from '@/i18n/format';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import type { FileRejection } from 'react-dropzone';
 
 type Translations = ReturnType<typeof useT>;
+type ImportKind = 'BANK_CSV' | 'INVOICE_PDF';
+type PendingImport = { files: File[]; kind: ImportKind } | null;
 
 
 const MonthContextHeader = ({ monthClose }: { monthClose: MonthClose }) => {
     const t = useT();
+    const locale = useLocale();
     const statusMap: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
         DRAFT: 'outline',
         IN_REVIEW: 'default',
         FINALIZED: 'secondary'
     };
 
-    return (
-      <div className="mb-4 flex items-center justify-between rounded-lg border bg-card p-3 text-card-foreground shadow-sm">
-        <div className="flex items-center gap-4">
-          <span className="text-sm font-medium text-muted-foreground">{t.monthClose.context.activeMonth}</span>
-          <span className="font-semibold">{formatDate(monthClose.periodStart.toDate(), useLocale(), { month: 'long', year: 'numeric'})}</span>
-          <Badge variant={statusMap[monthClose.status]}>{t.monthCloses.status[monthClose.status]}</Badge>
+        return (
+            <div className="mb-4 flex flex-col gap-3 rounded-lg border bg-card p-3 text-card-foreground shadow-sm sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+                    <span className="text-sm font-medium text-muted-foreground">{t.monthClose.context.activeMonth}</span>
+                                        <span className="font-semibold">{formatDate(monthClose.periodStart.toDate(), locale, { month: 'long', year: 'numeric'})}</span>
+                    <Badge variant={statusMap[monthClose.status]}>{t.monthCloses.status[monthClose.status]}</Badge>
         </div>
-        <Button variant="ghost" asChild>
-          <Link href={`/month-closes/${monthClose.id}`}>
+                <Button variant="ghost" className="self-start sm:self-auto" asChild>
+                    <Link href={`/${locale}/month-closes/${monthClose.id}`}>
               {t.monthClose.context.viewOverview} <ChevronRight className="h-4 w-4" />
           </Link>
         </Button>
@@ -64,15 +78,16 @@ async function calculateSHA256(file: File): Promise<string> {
 }
 
 function NoActiveMonth({ t }: { t: Translations }) {
+        const locale = useLocale();
     return (
-      <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-12 text-center">
+            <CardPremium className="flex flex-col items-center justify-center p-12 text-center">
         <AlertCircle className="h-12 w-12 text-muted-foreground" />
         <h3 className="mt-4 text-lg font-semibold">{t.monthClose.context.noActiveMonth.title}</h3>
         <p className="mt-2 text-sm text-muted-foreground">{t.monthClose.context.noActiveMonth.description}</p>
         <Button asChild className="mt-4">
-          <Link href="/month-closes">{t.monthClose.context.noActiveMonth.cta}</Link>
+                    <Link href={`/${locale}/month-closes`}>{t.monthClose.context.noActiveMonth.cta}</Link>
         </Button>
-      </div>
+            </CardPremium>
     );
 }
 
@@ -142,7 +157,7 @@ function JobsList({ monthCloseId, tenantId }: { monthCloseId: string; tenantId: 
                         {job.status === 'FAILED' && job.error &&
                             <Alert variant="destructive" className="mt-2">
                                 <AlertTitle>{t.upload.notifications.errorTitle}</AlertTitle>
-                                <AlertDescription>{t.jobs.errors[job.error.messageKey as keyof typeof t.jobs.errors]}</AlertDescription>
+                                <AlertDescription>{t.jobs.errors[job.error.messageKey as keyof typeof t.jobs.errors] ?? t.jobs.errors.GENERIC}</AlertDescription>
                             </Alert>
                         }
                     </div>
@@ -159,10 +174,13 @@ export default function UploadPage() {
   const { toast } = useToast();
 
   const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadedFiles, setUploadedFiles] = useState<FileAsset[]>([]);
   const [activeMonth, setActiveMonth] = useState<MonthClose | null>(null);
   const [isLoadingMonth, setIsLoadingMonth] = useState(true);
   const [downloadingFileId, setDownloadingFileId] = useState<string | null>(null);
+    const [pendingImport, setPendingImport] = useState<PendingImport>(null);
+    const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   const monthCloseId = user?.activeMonthCloseId;
     const tenantId = user?.tenantId;
@@ -208,7 +226,7 @@ export default function UploadPage() {
         return () => unsubscribe();
     }, [tenantId, monthCloseId]);
 
-  const handleFileUpload = async (files: File[], kind: 'BANK_CSV' | 'INVOICE_PDF') => {
+    const handleFileUpload = async (files: File[], kind: ImportKind) => {
     if (!user || !monthCloseId) {
         toast({
             variant: "destructive",
@@ -219,11 +237,13 @@ export default function UploadPage() {
     }
     
     setIsUploading(true);
+    setUploadProgress(0);
 
     const batch = writeBatch(db);
     const createJob = httpsCallable(functions, 'createJob');
-    const pendingJobs: { fileAssetId: string; storagePath: string; kind: 'BANK_CSV' | 'INVOICE_PDF' }[] = [];
+    const pendingJobs: { fileAssetId: string; storagePath: string; kind: ImportKind }[] = [];
     let filesUploadedCount = 0;
+    let filesProcessedCount = 0;
 
     for (const file of files) {
         try {
@@ -269,6 +289,9 @@ export default function UploadPage() {
                 title: t.upload.notifications.errorTitle,
                 description: `${file.name}: ${(error as Error).message}`,
             });
+        } finally {
+            filesProcessedCount++;
+            setUploadProgress(Math.round((filesProcessedCount / files.length) * 100));
         }
     }
     
@@ -307,7 +330,33 @@ export default function UploadPage() {
     }
     
     setIsUploading(false);
+        setUploadProgress(0);
   };
+
+    const handleValidationErrors = (rejections: FileRejection[]) => {
+        const messages = rejections.flatMap((rejection) =>
+            rejection.errors.map((err) => `${rejection.file.name}: ${err.message}`)
+        );
+        setValidationErrors(messages);
+    };
+
+    const handleRequestImport = (files: File[], kind: ImportKind) => {
+        if (!files.length) {
+            return;
+        }
+
+        setValidationErrors([]);
+        setPendingImport({ files, kind });
+    };
+
+    const confirmImport = async () => {
+        if (!pendingImport) {
+            return;
+        }
+
+        await handleFileUpload(pendingImport.files, pendingImport.kind);
+        setPendingImport(null);
+    };
   
   const getSignedDownloadUrl = httpsCallable(functions, 'getSignedDownloadUrl');
 
@@ -332,65 +381,95 @@ export default function UploadPage() {
 
 
   return (
-    <div className="flex-1 space-y-8 p-4 pt-6 md:p-8">
-      <div>
-        <h1 className="font-headline text-3xl font-bold tracking-tight">{t.upload.title}</h1>
-        <p className="text-muted-foreground">{t.upload.description}</p>
-      </div>
+        <PageContainer>
+            <Section>
+                <div>
+                    <h1 className="font-headline text-3xl font-bold tracking-tight">{t.upload.title}</h1>
+                    <p className="text-muted-foreground">{t.upload.description}</p>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                    <Button variant="outline" asChild>
+                        <Link href={`/${locale}/month-closes`}>{t.monthCloses.title}</Link>
+                    </Button>
+                    <Button variant="outline" asChild>
+                        <Link href={`/${locale}/invoices`}>{t.sidebar.invoices}</Link>
+                    </Button>
+                    <Button variant="outline" asChild>
+                        <Link href={`/${locale}/exceptions`}>{t.sidebar.exceptions}</Link>
+                    </Button>
+                </div>
+            </Section>
       
       {isLoadingMonth ? <Skeleton className="h-20 w-full" /> : !activeMonth ? <NoActiveMonth t={t} /> : (
       <>
         <MonthContextHeader monthClose={activeMonth} />
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-            <Card>
-            <CardContent className="p-6">
+
+                {validationErrors.length > 0 ? (
+                    <Alert variant="destructive">
+                        <AlertTitle>{t.upload.validation.title}</AlertTitle>
+                        <AlertDescription>
+                            <ul className="list-disc pl-5">
+                                {validationErrors.map((err) => (
+                                    <li key={err}>{err}</li>
+                                ))}
+                            </ul>
+                        </AlertDescription>
+                    </Alert>
+                ) : null}
+
+                {isUploading ? (
+                    <CardPremium className="p-6" aria-live="polite">
+                        <div className="flex items-center justify-between">
+                            <p className="text-body font-medium">{t.upload.progress.title}</p>
+                            <p className="text-caption text-muted-foreground">{uploadProgress}%</p>
+                        </div>
+                        <Progress value={uploadProgress} className="mt-3" />
+                    </CardPremium>
+                ) : null}
+
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                        <CardPremium className="p-6">
                 <FileUploader
                 title={t.upload.bankCsv.title}
                 description={t.upload.bankCsv.description}
                 cta={t.upload.bankCsv.cta}
                 dropzoneText={t.upload.bankCsv.dropzone}
-                onFilesSelected={(files) => handleFileUpload(files, 'BANK_CSV')}
+                                onFilesSelected={(files) => handleRequestImport(files, 'BANK_CSV')}
+                                onValidationErrors={handleValidationErrors}
                 accept={{ 'text/csv': ['.csv'] }}
                 multiple={false}
                 disabled={isUploading}
+                                progressPct={isUploading ? uploadProgress : undefined}
                 />
-            </CardContent>
-            </Card>
-            <Card>
-            <CardContent className="p-6">
+                        </CardPremium>
+                        <CardPremium className="p-6">
                 <FileUploader
                 title={t.upload.invoicePdfs.title}
                 description={t.upload.invoicePdfs.description}
                 cta={t.upload.invoicePdfs.cta}
                 dropzoneText={t.upload.invoicePdfs.dropzone}
-                onFilesSelected={(files) => handleFileUpload(files, 'INVOICE_PDF')}
+                                onFilesSelected={(files) => handleRequestImport(files, 'INVOICE_PDF')}
+                                onValidationErrors={handleValidationErrors}
                 accept={{ 'application/pdf': ['.pdf'] }}
                 multiple={true}
                 disabled={isUploading}
+                                progressPct={isUploading ? uploadProgress : undefined}
                 />
-            </CardContent>
-            </Card>
+                        </CardPremium>
         </div>
 
-        <Card>
-            <CardHeader>
-                <CardTitle>{t.upload.processing.title}</CardTitle>
-                <p className="text-sm text-muted-foreground">{t.upload.processing.description}</p>
-            </CardHeader>
-            <CardContent className="p-6">
+                <CardPremium className="p-6">
+                        <Section title={t.upload.processing.title} subtitle={t.upload.processing.description}>
                                 {tenantId && (
                                     <JobsList monthCloseId={activeMonth.id} tenantId={tenantId} />
                                 )}
-            </CardContent>
-        </Card>
+                        </Section>
+                </CardPremium>
 
-        <Card>
-            <CardHeader>
-                <h3 className="text-lg font-medium">{t.upload.uploadedFiles.title}</h3>
-                <p className="text-sm text-muted-foreground mb-4">{t.upload.uploadedFiles.description}</p>
-            </CardHeader>
-            <CardContent className="p-6 pt-0">
-                <Table>
+                <CardPremium className="p-6">
+                        <Section title={t.upload.uploadedFiles.title} subtitle={t.upload.uploadedFiles.description}>
+                <div className="overflow-x-auto">
+                <Table className="min-w-[760px]">
                     <TableHeader>
                         <TableRow>
                             <TableHead>{t.upload.uploadedFiles.table.filename}</TableHead>
@@ -402,17 +481,27 @@ export default function UploadPage() {
                     </TableHeader>
                     <TableBody>
                         {uploadedFiles.length > 0 ? uploadedFiles.map((file) => (
-                            <TableRow key={file.id}>
+                                                        <TableRow key={file.id} className={file.parseStatus === 'FAILED' ? 'bg-destructive/5' : undefined}>
                                 <TableCell className="font-medium">{file.filename}</TableCell>
                                 <TableCell>
                                     <Badge variant="outline">{t.upload.uploadedFiles.kinds[file.kind as keyof typeof t.upload.uploadedFiles.kinds]}</Badge>
                                 </TableCell>
                                 <TableCell>{file.createdAt ? formatDate(file.createdAt.toDate(), locale) : '...'}</TableCell>
                                 <TableCell>
-                                    <Badge variant={file.parseStatus === 'PENDING' ? 'default' : 'outline'}>{t.upload.uploadedFiles.statuses[file.parseStatus as keyof typeof t.upload.uploadedFiles.statuses]}</Badge>
+                                                                        <Badge variant={file.parseStatus === 'FAILED' ? 'destructive' : file.parseStatus === 'PENDING' ? 'default' : 'outline'}>
+                                                                            {t.upload.uploadedFiles.statuses[(file.parseStatus ?? 'PENDING') as keyof typeof t.upload.uploadedFiles.statuses]}
+                                                                        </Badge>
+                                                                        {file.parseStatus === 'FAILED' && file.parseError ? (
+                                                                            <p className="mt-1 text-xs text-destructive">{file.parseError}</p>
+                                                                        ) : null}
                                 </TableCell>
                                 <TableCell className="text-right">
-                                <Button variant="outline" size="sm" onClick={() => handleDownload(file)} disabled={!!downloadingFileId}>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleDownload(file)}
+                                    disabled={!!downloadingFileId || file.parseStatus !== 'PARSED'}
+                                >
                                     {downloadingFileId === file.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                                     {t.exports.download}
                                 </Button>
@@ -421,16 +510,42 @@ export default function UploadPage() {
                         )) : (
                             <TableRow>
                                 <TableCell colSpan={5} className="h-24 text-center">
-                                    {t.upload.uploadedFiles.empty}
+                                                                        <div className="flex flex-col items-center gap-2 py-4">
+                                                                            <UploadCloud className="h-5 w-5 text-muted-foreground" />
+                                                                            <span>{t.upload.uploadedFiles.empty}</span>
+                                                                        </div>
                                 </TableCell>
                             </TableRow>
                         )}
                     </TableBody>
                 </Table>
-            </CardContent>
-        </Card>
+                </div>
+                        </Section>
+                </CardPremium>
       </>
       )}
-    </div>
+
+            <AlertDialog open={!!pendingImport} onOpenChange={(open) => !open && setPendingImport(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{t.upload.confirmImport.title}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {pendingImport
+                                ? t.upload.confirmImport.description
+                                        .replace('{count}', String(pendingImport.files.length))
+                                        .replace('{kind}', pendingImport.kind === 'BANK_CSV' ? t.upload.bankCsv.title : t.upload.invoicePdfs.title)
+                                : t.upload.confirmImport.description.replace('{count}', '0').replace('{kind}', '')}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>{t.upload.confirmImport.cancel}</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmImport} disabled={isUploading}>
+                            {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                            {t.upload.confirmImport.confirm}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </PageContainer>
   );
 }

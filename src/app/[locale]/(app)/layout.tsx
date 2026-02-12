@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { useT, useLocale } from '@/i18n/provider';
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { UserNav } from "@/components/layout/user-nav";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
+import { ThemeToggle } from '@/components/theme/theme-toggle';
+import { Topbar } from '@/components/layout/premium-shell';
+import { SIDEBAR_COLLAPSED, SIDEBAR_EXPANDED } from '@/components/layout/layout-constants';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 
@@ -61,17 +63,34 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset className="flex flex-col">
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-end gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:px-8">
-           <LanguageSwitcher />
-           <UserNav />
-        </header>
-        <main className="flex-1 overflow-auto">
-          {children}
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
+    <div
+      className="h-screen overflow-hidden bg-background text-foreground"
+      style={
+        {
+          '--app-sidebar-collapsed': `${SIDEBAR_COLLAPSED}px`,
+          '--app-sidebar-expanded': `${SIDEBAR_EXPANDED}px`,
+        } as CSSProperties
+      }
+    >
+      <div className="grid h-full grid-cols-[var(--app-sidebar-collapsed)_1fr] md:grid-cols-[var(--app-sidebar-expanded)_1fr]">
+        <a
+          href="#main-content"
+          className="sr-only z-50 rounded-md bg-card px-3 py-2 text-sm font-medium text-foreground shadow-elevation-2 focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:outline-none focus:ring-2 focus:ring-ring"
+        >
+          Skip to content
+        </a>
+        <AppSidebar />
+        <div className="flex min-w-0 flex-col">
+          <Topbar>
+            <ThemeToggle />
+            <LanguageSwitcher />
+            <UserNav />
+          </Topbar>
+          <main id="main-content" className="flex-1 overflow-y-auto px-8 py-6">
+            <div className="mx-auto w-full max-w-7xl">{children}</div>
+          </main>
+        </div>
+      </div>
+    </div>
   );
 }

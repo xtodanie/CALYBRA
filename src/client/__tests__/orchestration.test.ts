@@ -263,7 +263,7 @@ describe("Error Handling", () => {
       const error = createErrorFromException(new Error("Something broke"));
 
       expect(error.code).toBe("UNKNOWN_ERROR");
-      expect(error.category).toBe("system");
+      expect(error.category).toBe("UNKNOWN");
       expect(error.userMessage).toBeDefined();
     });
   });
@@ -294,18 +294,20 @@ describe("State Selectors", () => {
     });
 
     it("returns REVIEW phase when matches proposed", () => {
+      // proposedMatchesCount=10 (arg 4), confirmedMatchesCount=0 (arg 5)
       const state = selectFlowState(
         MonthCloseStatus.DRAFT,
-        10, 10, 0, 10, 0
+        10, 10, 10, 0, 0
       );
 
       expect(state.phase).toBe("REVIEW");
     });
 
     it("returns FINALIZE phase when all matched", () => {
+      // proposedMatchesCount=0 (arg 4), confirmedMatchesCount=10 (arg 5)
       const state = selectFlowState(
         MonthCloseStatus.IN_REVIEW,
-        10, 10, 10, 0, 0
+        10, 10, 0, 10, 0
       );
 
       expect(state.phase).toBe("FINALIZE");

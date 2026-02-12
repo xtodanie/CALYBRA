@@ -12,6 +12,14 @@ export const es: Dict = {
     exceptions: 'Excepciones',
     exports: 'Exportaciones',
     settings: 'Configuración',
+    groups: {
+      workspace: 'Espacio de trabajo',
+      finance: 'Finanzas',
+    },
+  },
+  theme: {
+    toggleToDark: 'Cambiar a tema oscuro',
+    toggleToLight: 'Cambiar a tema claro',
   },
   roles: {
     OWNER: 'Propietario',
@@ -70,6 +78,25 @@ export const es: Dict = {
       IN_REVIEW: 'En Revisión',
       FINALIZED: 'Finalizado',
     },
+    progressLabel: 'Progreso del cierre',
+    actions: {
+      view: 'Ver',
+      lock: 'Bloquear',
+      recompute: 'Recalcular',
+      recomputed: 'Métricas del mes actualizadas.',
+      lockSuccess: 'Cierre mensual bloqueado y finalizado.',
+      lockError: 'No se pudo bloquear este cierre mensual.',
+    },
+    lockModal: {
+      title: '¿Bloquear este cierre mensual?',
+      description: 'Esta acción finaliza el período y habilita exportaciones inmutables. Continúa solo si las excepciones están resueltas.',
+      confirm: 'Bloquear mes',
+      cancel: 'Cancelar',
+    },
+    errors: {
+      title: 'No se pudieron cargar los cierres mensuales',
+      description: 'Actualiza el espacio de trabajo o vuelve a intentarlo en unos minutos.',
+    },
     setActive: 'Marcar como activo',
     active: 'Activo',
     create: {
@@ -77,6 +104,9 @@ export const es: Dict = {
       description: 'Selecciona la fecha de inicio y fin para el período que quieres cerrar. Normalmente es el primer y último día de un mes natural.',
       periodStart: 'Inicio del Período',
       periodEnd: 'Fin del Período',
+      pickDateRange: 'Selecciona un rango de fechas',
+      validationStart: 'Se requiere una fecha de inicio.',
+      validationEnd: 'Se requiere una fecha de fin.',
       cta: 'Crear Período de Cierre',
       success: 'Período de cierre creado con éxito.',
       error: 'Error al crear el período de cierre.',
@@ -201,6 +231,18 @@ export const es: Dict = {
       title: '3. Tareas de Procesamiento',
       description: 'Estamos procesando tus archivos. Puedes monitorizar el progreso a continuación.',
       empty: 'No hay tareas en ejecución para este mes.',
+    },
+    progress: {
+      title: 'Subiendo archivos',
+    },
+    validation: {
+      title: 'Algunos archivos fueron rechazados',
+    },
+    confirmImport: {
+      title: 'Confirmar importación',
+      description: 'Importar {count} archivo(s) para {kind}. Esto creará tareas de procesamiento en servidor.',
+      confirm: 'Iniciar importación',
+      cancel: 'Revisar archivos',
     },
     uploadedFiles: {
       title: 'Archivos Subidos',
@@ -465,6 +507,36 @@ export const es: Dict = {
       download: 'Descargar resumen',
       myBusiness: 'Mi negocio',
     },
+    hero: {
+      title: 'Centro de Control Financiero',
+      subtitle: 'Conciliación mensual autoritativa con decisiones trazables y exportaciones listas para auditoría.',
+      status: 'Estado del cierre',
+      healthy: 'Saludable',
+      warning: 'Requiere atención',
+      differenceTrend: 'Diferencia vs mes anterior',
+      invoicesTrend: 'Tendencia facturas',
+      bankTrend: 'Tendencia banco',
+      cta: 'Abrir Cierres Mensuales',
+    },
+    states: {
+      loading: 'Preparando tu resumen mensual...',
+      emptyTitle: 'Aún no hay datos de conciliación',
+      emptyDescription: 'Empieza subiendo el extracto bancario y las facturas para generar un resumen mensual completo.',
+      emptyCta: 'Ir a Subir',
+      errorTitle: 'Panel no disponible',
+      errorDescription: 'No pudimos cargar el resumen ahora mismo. Intenta refrescar tu espacio de trabajo.',
+      errorCta: 'Reintentar',
+      success: 'Datos sincronizados correctamente',
+    },
+    activity: {
+      title: 'Actividad Reciente',
+      description: 'Últimos eventos del flujo para este cierre.',
+      items: {
+        importsCompleted: 'Importación de facturas completada',
+        reviewStarted: 'Fase de revisión iniciada',
+        exceptionsUpdated: 'Excepciones actualizadas',
+      },
+    },
     bankVsInvoices: {
       title: 'Banco vs Facturas',
       totalInvoices: 'Total facturas',
@@ -483,6 +555,7 @@ export const es: Dict = {
       unpaidInvoices: 'facturas sin pagar',
       paymentsWithoutInvoice: 'pago sin factura',
       paymentsWithoutInvoicePlural: 'pagos sin factura',
+      empty: 'No hay pendientes',
     },
     toast: {
       reconciliationComplete: 'Conciliación completada',

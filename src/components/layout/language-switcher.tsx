@@ -20,6 +20,10 @@ export function LanguageSwitcher() {
 
   const handleLocaleChange = (newLocale: 'en' | 'es') => {
     if (newLocale === currentLocale) return;
+
+    window.localStorage.setItem('calybra_locale', newLocale);
+    document.cookie = `calybra_locale=${newLocale}; path=/; max-age=${60 * 60 * 24 * 365}`;
+
     const newPath = supportedLocales.reduce(
       (path, locale) => path.replace(`/${locale}`, ''),
       currentPathname
@@ -32,7 +36,7 @@ export function LanguageSwitcher() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon">
           <Globe className="h-[1.2rem] w-[1.2rem]" />
-          <span className="sr-only">Toggle language</span>
+          <span className="sr-only">{t.userNav.language}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

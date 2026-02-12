@@ -60,6 +60,197 @@ Use semantic versioning when you start shipping externally. Until then, use incr
 ---
 
 ## Releases
+https://console.cloud.google.com/google/maps-apis/api-list?hl=es-419&project=studio-5801368156-a6af7
+### 2026-02-12 — Release 0031
+**Scope**
+- Surfaces: UI Type Safety / Upload UX Gate
+- Risk: P0
+
+**Summary**
+- Resolved pre-existing repository typecheck failures that were explicitly called out as exceptions in Release 0030.
+- Aligned analytics page state typing with component contracts and fixed upload parse-status enum usage.
+
+**Changes**
+- `src/app/[locale]/(app)/month-closes/[id]/page.tsx`
+  - Replaced `DocumentData` analytics state with prop-derived typed state contracts for `VatSummaryCard`, `MismatchSummaryCard`, and `TimelineCard`.
+  - Kept Firestore read behavior unchanged while narrowing runtime assignment typing.
+- `src/app/[locale]/(app)/upload/page.tsx`
+  - Changed download enablement check from `parseStatus !== 'COMPLETED'` to `parseStatus !== 'PARSED'` (canonical `ParseStatus` enum).
+- `agent/TASKS.md`
+  - Added SSI-0314 completion and proof records.
+
+**Proof (Executed)**
+- Command: `npx eslint "src/app/[[]locale]/(app)/month-closes/[[]id]/page.tsx" "src/app/[[]locale]/(app)/upload/page.tsx"`
+  - Result: PASS
+  - Output summary: `ESLINT_PASS` marker emitted.
+- Command: `npm run typecheck`
+  - Result: PASS
+  - Output summary: `tsc --noEmit` completed clean (`TYPECHECK_PASS`).
+
+**Rollback**
+- Revert: `git revert <sha>`
+- Redeploy: `firebase apphosting:rollouts:create calybra-eu-alt --git-branch master --force`
+- Validate: rerun the same eslint and typecheck commands above
+
+**Notes**
+- No changes to schema, rules, RBAC, status machines, or server-authoritative workflows.
+
+### 2026-02-12 — Release 0030
+**Scope**
+- Surfaces: UI Layout / Navigation Contract / Agent Docs
+- Risk: P1
+
+**Summary**
+- Replaced authenticated app shell layout with a grid-owned, in-flow sidebar contract.
+- Removed app-shell dependency on fixed/off-canvas sidebar provider wiring.
+- Locked sidebar width ownership to one constant module and documented the contract/ADR.
+
+**Changes**
+- `src/app/[locale]/(app)/layout.tsx`
+  - Replaced `SidebarProvider + SidebarInset` shell with two-column grid app shell.
+  - Made `<main>` own scrolling/padding and wrapped route content in `max-w-7xl mx-auto`.
+- `src/components/layout/app-sidebar.tsx`
+  - Rebuilt sidebar as in-flow `<aside>` with no fixed positioning.
+  - Kept nav content while adapting compact (`80px`) vs expanded (`240px`) rendering behavior.
+- `src/components/layout/layout-constants.ts`
+  - Added canonical sidebar width constants (`SIDEBAR_COLLAPSED`, `SIDEBAR_EXPANDED`).
+- `agent/LAYOUT_CONTRACT.md`
+  - Added non-negotiable app-shell spatial ownership rules.
+- `agent/ARCHITECTURE.md`, `agent/DECISIONS.md`, `agent/TASKS.md`
+  - Recorded shell contract and ADR-0018; tracked SSI-0313 execution/proof.
+
+**Proof (Executed)**
+- Command: `npx eslint "src/app/[[]locale]/(app)/layout.tsx" "src/components/layout/app-sidebar.tsx" "src/components/layout/layout-constants.ts"`
+  - Result: PASS
+  - Output summary: `ESLINT_PASS` marker emitted.
+- Command: `$targets = @('src/app/[locale]/(app)/layout.tsx','src/components/layout/app-sidebar.tsx'); $bad = Select-String -Path $targets -Pattern 'SidebarProvider|SidebarInset|SidebarTrigger|\bfixed\b|ml-20|ml-64' -SimpleMatch -ErrorAction SilentlyContinue; if ($bad) { ...; 'LAYOUT_CONTRACT_FAIL' } else { 'LAYOUT_CONTRACT_PASS' }`
+  - Result: PASS
+  - Output summary: `LAYOUT_CONTRACT_PASS` marker emitted.
+- Command: `npm run typecheck`
+  - Result: EXCEPTION (pre-existing unrelated failures)
+  - Output summary: Existing errors in `src/app/[locale]/(app)/month-closes/[id]/page.tsx` and `src/app/[locale]/(app)/upload/page.tsx`; changed files in this release report zero diagnostics.
+
+**Rollback**
+- Revert: `git revert <sha>`
+- Redeploy: `firebase apphosting:rollouts:create calybra-eu-alt --git-branch master --force`
+- Validate: rerun lint and contract proof commands above
+
+**Notes**
+- No schema, rules, RBAC, or server-authoritative workflow changes.
+
+### 2026-02-12 — Release 0029
+**Scope**
+- Surfaces: Upload UX / Month Closes UX / Shared Uploader Component
+- Risk: P1
+
+**Summary**
+- Standardized top-level quick actions on Upload and Month Closes for faster navigation.
+- Improved responsive layout behavior and action feedback in critical upload/close workflows.
+- Improved accessibility and interaction affordance in the shared file uploader.
+
+**Changes**
+- `src/app/[locale]/(app)/upload/page.tsx`
+  - Added quick-action links (`Month Closes`, `Invoices`, `Exceptions`) below page hero.
+  - Improved active month context header responsiveness on small screens.
+  - Cleared stale validation errors when starting a new import attempt.
+  - Added `aria-live` upload progress container.
+  - Wrapped uploaded files table in horizontal scroll and enforced minimum table width for readability.
+  - Disabled download action until parse status is `COMPLETED` and added loading state in confirm import action.
+- `src/app/[locale]/(app)/month-closes/page.tsx`
+  - Added quick-action links (`Upload`, `Dashboard`, `Exceptions`) below page hero.
+  - Added explicit period date range in each month-close card.
+  - Added consistent focus-visible behavior on card actions.
+  - Added loading state to lock confirmation action.
+- `src/components/file-uploader.tsx`
+  - Added `aria-disabled` and improved drag-active visual affordance.
+  - Added keyboard interaction hint (`Enter / Space`) for discoverability.
+
+**Proof (Executed)**
+- Command: `npx eslint "src/app/[locale]/(app)/upload/page.tsx" "src/app/[locale]/(app)/month-closes/page.tsx" "src/components/file-uploader.tsx"`
+  - Result: PASS
+  - Output summary: ESLint completed clean on all SSI-0312 files.
+
+**Rollback**
+- Revert: `git revert <sha>`
+- Redeploy: `firebase apphosting:rollouts:create calybra-eu-alt --git-branch master --force`
+- Validate: rerun the same scoped eslint command
+
+**Notes**
+- UI-only increment per ADR-0017. No changes to schema, rules, RBAC, status machines, or server-authoritative flows.
+
+---
+
+### 2026-02-12 — Release 0028
+**Scope**
+- Surfaces: UI Layout / Dashboard UX
+- Risk: P1
+
+**Summary**
+- Improved authenticated shell usability with skip navigation and cleaner topbar/shell behavior.
+- Improved dashboard clarity with quick actions, better responsive KPI typography, and chart legend context.
+- Improved keyboard/accessibility behavior across key dashboard cards.
+
+**Changes**
+- `src/app/[locale]/(app)/layout.tsx`
+  - Added `Skip to content` link and `main-content` landmark target.
+  - Strengthened sidebar trigger focus-visible behavior.
+- `src/components/layout/premium-shell.tsx`
+  - Added `overflow-x-hidden` to app shell.
+  - Improved topbar visual stability with fallback/blur-aware background classing.
+- `src/app/[locale]/(app)/dashboard/page.tsx`
+  - Added quick-action buttons for Upload, Exceptions, and Month Closes.
+  - Made KPI amounts responsive and added bar-chart legend hints.
+  - Added list semantics for recent activity block.
+- `src/components/dashboard/bank-vs-invoices-card.tsx`
+  - Refactored to responsive layout (stack on small screens, row on large screens).
+- `src/components/dashboard/pending-items-card.tsx`
+  - Added `aria-label` and focus-visible ring states for interactive rows.
+- `src/components/dashboard/suppliers-card.tsx`
+  - Added list semantics and explicit empty-state messaging.
+
+**Proof (Executed)**
+- Command: `npx eslint "src/app/[locale]/(app)/layout.tsx" "src/components/layout/premium-shell.tsx" "src/app/[locale]/(app)/dashboard/page.tsx" "src/components/dashboard/bank-vs-invoices-card.tsx" "src/components/dashboard/pending-items-card.tsx" "src/components/dashboard/suppliers-card.tsx"`
+  - Result: PASS
+  - Output summary: ESLint completed clean on all files modified in this increment.
+
+**Rollback**
+- Revert: `git revert <sha>`
+- Redeploy: `firebase apphosting:rollouts:create calybra-eu-alt --git-branch master --force`
+- Validate: rerun the same scoped eslint command
+
+**Notes**
+- This increment intentionally avoids data-model, rules, and workflow changes (UI-only SSI per ADR-0017).
+
+---
+
+### 2026-02-12 — Release 0027
+**Scope**
+- Surfaces: UI Layout / Navigation
+- Risk: P1
+
+**Summary**
+- Sidebar now fully disappears when collapsed; only the topbar sidebar trigger remains visible.
+- Restored sidebar appears again from the same trigger without changing navigation content.
+
+**Changes**
+- `src/components/layout/app-sidebar.tsx`
+  - Switched `Sidebar` from `collapsible="icon"` to `collapsible="offcanvas"`.
+  - This removes icon-rail collapse behavior and uses full hide/show behavior.
+
+**Proof (Executed)**
+- Command: `npx eslint src/components/layout/app-sidebar.tsx`
+  - Result: PASS
+  - Output summary: ESLint completed clean for the modified file.
+
+**Rollback**
+- Revert: `git revert <sha>`
+- Redeploy: `firebase apphosting:rollouts:create calybra-eu-alt --git-branch master --force`
+- Validate: `npx eslint src/components/layout/app-sidebar.tsx`
+
+**Notes**
+- Repository-wide `npm run typecheck` currently reports pre-existing errors in `src/app/[locale]/(app)/month-closes/[id]/page.tsx` unrelated to this UI layout change.
+
+---
 
 ### 2026-02-12 — Release 0026
 **Scope**

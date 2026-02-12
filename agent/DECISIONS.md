@@ -36,7 +36,10 @@ This exception applies only to immutable historical entries in `agent/RELEASE.md
 - ADR-0012: Phase 3 - UX-Driven Orchestration Layer
 - ADR-0013: Observability 2030 Enhancements (Async Context, OTEL Export, Streaming, Privacy, SLO)
 - ADR-0014: Jobs + Exports + Auditor Replay Pathing
-- ADR-0015: Server-Authoritative Ingestion Pipeline- ADR-0016: Comprehensive Agent Self-Improvement System---
+- ADR-0015: Server-Authoritative Ingestion Pipeline
+- ADR-0016: Comprehensive Agent Self-Improvement System
+- ADR-0017: UX Polish via Incremental, Data-Safe SSIs
+- ADR-0018: Authenticated App Shell Layout Contract (Grid-Owned Spatial Authority)
 
 ## ADR-0001: Tenant Isolation is Non-Negotiable
 **Status:** Accepted  
@@ -258,6 +261,21 @@ Rollback approach:
 - Structured errors enable recovery guidance in UI.
 - Separation of concerns: UI renders, flows orchestrate, guards validate, workflows execute.
 **Consequences:**
+
+---
+
+## ADR-0017: UX Polish via Incremental, Data-Safe SSIs
+**Status:** Accepted  
+**Decision:** Broad UX improvement requests are executed as incremental UI-only SSIs that do not alter business logic, schema, security rules, or tenant boundaries. This increment targets app-shell usability and dashboard readability/accessibility only.  
+**Rationale:** A full-app redesign in one pass creates high regression risk and weak proof quality. Incremental UX SSIs keep changes reviewable and shippable while preserving multi-tenant and server-authoritative guarantees.  
+**Consequences:**
+- UX improvements are delivered in focused waves, each with explicit acceptance criteria and proof commands.
+- No Firestore/Storage rules, status machines, or workflow authority changes are allowed under UX SSIs.
+- Additional UX surfaces are queued as follow-up SSIs instead of bundled into one risky diff.
+**Proof requirements (tests/commands):**
+- `npx eslint src/app/[locale]/(app)/dashboard/page.tsx src/components/dashboard/bank-vs-invoices-card.tsx src/components/dashboard/pending-items-card.tsx src/components/dashboard/suppliers-card.tsx src/app/[locale]/(app)/layout.tsx`
+**Rollback approach:**
+- Revert the UI commit and re-run the same lint proof command.
 - UI components must use flow components or hooks, not direct workflow calls.
 - All permission checks run twice: client (fail-fast) and server (authoritative).
 - Progress events are simulated client-side (not server-pushed).
@@ -426,3 +444,60 @@ Integration points:
 - Delete new agent/*.md files
 - Revert AGENT_ROUTING.md, MEMORY.md, DECISIONS.md changes
 - No runtime impact (documentation-only change)
+
+---
+
+## ADR-0017: Enterprise Frontend Rebuild Delivered as SSI Program
+**Status:** Accepted  
+**Decision:**
+- Deliver the premium frontend rebuild as a sequenced SSI program instead of a single monolithic change.
+- SSI scope for UI work is constrained to at most two implementation surfaces per increment (for example: shell+tokens, or one page+its shared components), plus required documentation updates.
+- Preserve backend behavior and authority boundaries; no Firestore rules, status machine, schema, or callable behavior changes are allowed under this rebuild program unless a separate ADR is approved.
+- Enforce mandatory gates per SSI: typecheck, lint, build, i18n scan (literal JSX text), hardcoded color scan (`#fff` / `#000`), and accessibility smoke checks.
+- Release notes are written only after PASS proofs and include rollback for each shipped SSI.
+**Rationale:**
+- The requested scope spans global system design and eight application pages, which is high blast-radius if shipped in one diff.
+- SSI sequencing preserves shipping velocity while reducing regression risk and rework.
+- Frontend quality requirements (dark/light parity, i18n completeness, accessibility, consistency) require repeatable validation at each increment.
+**Consequences:**
+- Multiple sequential SSIs will be used to complete the full rebuild.
+- Each SSI must include acceptance criteria, proof plan, and rollback plan in `agent/TASKS.md`.
+- Any behavior-impacting assumption (UX flow, locale persistence semantics, theme defaults) must be recorded before implementation.
+**Proof requirements:**
+- `npm run typecheck`
+- `npm run lint`
+- `npm run build`
+- `npx jest --ci --passWithNoTests`
+- `npx tsc --noEmit`
+- `grep` scans proving no forbidden hardcoded colors in `src/**` where applicable
+**Rollback approach:**
+- Revert the SSI commit(s) impacting frontend surfaces.
+- Re-run validation gates to ensure stable fallback behavior.
+- If deployed, roll forward with revert release entry documenting scope and proofs.
+
+---
+
+## ADR-0018: Authenticated App Shell Layout Contract (Grid-Owned Spatial Authority)
+**Status:** Accepted  
+**Decision:**
+- Centralize authenticated-route spatial ownership in `src/app/[locale]/(app)/layout.tsx` using a two-column grid (`sidebar + content`).
+- Remove sidebar fixed-position shell behavior from authenticated app navigation; sidebar must render as an in-flow grid child.
+- Make app content width and padding layout-owned (`main` with centered max-width container) rather than page-owned sidebar compensation.
+- Define sidebar widths in one constant surface (`src/components/layout/layout-constants.ts`) and consume as CSS variables in shell.
+- Prohibit page-level sidebar offset hacks (`ml-*`, `pl-*`, `calc(100%-...)`) for authenticated routes.
+**Rationale:**
+- Previous shell behavior mixed component-level positioning and page-level spacing workarounds, creating route-specific overlap risk.
+- Grid-owned spatial contracts eliminate overlap classes of bugs and keep UX predictable as features/pages scale.
+- Single-source sidebar width definitions reduce drift and future regressions.
+**Consequences:**
+- Authenticated app layout changes must be made at shell level, not in individual pages.
+- Existing and future app pages must not encode sidebar width assumptions.
+- Sidebar primitives that rely on fixed positioning are disallowed for app-shell ownership.
+**Proof requirements:**
+- `npx eslint "src/app/[[]locale]/(app)/layout.tsx" "src/components/layout/app-sidebar.tsx" "src/components/layout/layout-constants.ts"`
+- `npm run typecheck` (record explicit exception if failing due unrelated pre-existing errors)
+- Verify changed files have zero diagnostics via editor/tooling checks.
+**Rollback approach:**
+- Revert `src/app/[locale]/(app)/layout.tsx`, `src/components/layout/app-sidebar.tsx`, and `src/components/layout/layout-constants.ts`.
+- Remove layout contract doc if full rollback is required.
+- Re-run lint/typecheck proofs.

@@ -50,9 +50,10 @@ export function PendingItemsCard({ items, onItemClick }: PendingItemsCardProps) 
             <button
               key={item.type}
               onClick={() => onItemClick?.(item.type)}
+              aria-label={getItemLabel(item)}
               className={cn(
                 'group relative flex w-full items-center justify-between rounded-lg px-3 py-3 text-left transition-colors',
-                'hover:bg-hover'
+                'hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
               )}
             >
               {/* Critical indicator line */}
@@ -75,13 +76,13 @@ export function PendingItemsCard({ items, onItemClick }: PendingItemsCardProps) 
                 </span>
               </div>
               
-              <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+              <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
             </button>
           ))}
 
           {items.length === 0 && (
             <p className="py-4 text-center text-caption text-muted-foreground">
-              No pending items
+              {t.dashboard.pendingItems.empty}
             </p>
           )}
         </div>

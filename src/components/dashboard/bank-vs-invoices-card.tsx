@@ -57,14 +57,14 @@ export function BankVsInvoicesCard({
       {/* Subtle inner highlight */}
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-neutral-50/5 to-transparent" />
       
-      <div className="flex items-center justify-between p-8">
-        <div className="grid flex-1 grid-cols-3 gap-8">
+      <div className="flex flex-col gap-6 p-6 sm:p-8 lg:flex-row lg:items-center lg:justify-between">
+        <div className="grid flex-1 grid-cols-1 gap-6 sm:grid-cols-3 sm:gap-8">
           {/* Total Invoices */}
           <div className="space-y-2">
             <p className="text-caption text-muted-foreground">
               {t.dashboard.bankVsInvoices.totalInvoices}
             </p>
-            <p className="text-h1 font-bold tracking-tight text-foreground">
+            <p className="text-2xl font-bold tracking-tight text-foreground sm:text-h1">
               {formatMoney(totalInvoices, locale)}
             </p>
           </div>
@@ -74,7 +74,7 @@ export function BankVsInvoicesCard({
             <p className="text-caption text-muted-foreground">
               {t.dashboard.bankVsInvoices.totalBankPayments}
             </p>
-            <p className="text-h1 font-bold tracking-tight text-foreground">
+            <p className="text-2xl font-bold tracking-tight text-foreground sm:text-h1">
               {formatMoney(totalBank, locale)}
             </p>
           </div>
@@ -84,14 +84,14 @@ export function BankVsInvoicesCard({
             <p className="text-caption text-muted-foreground">
               {t.dashboard.bankVsInvoices.difference}
             </p>
-            <p className={cn('text-h1 font-bold tracking-tight', getDifferenceColor())}>
+            <p className={cn('text-2xl font-bold tracking-tight sm:text-h1', getDifferenceColor())}>
               {formatMoney(difference, locale)}
             </p>
           </div>
         </div>
 
         {/* Status Badge */}
-        <div className="ml-8">
+        <div className="lg:ml-8">
           {getStatusBadge()}
         </div>
       </div>

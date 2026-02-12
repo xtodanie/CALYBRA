@@ -6,8 +6,14 @@ import Negotiator from 'negotiator';
 import { supportedLocales } from '@/i18n/types';
 
 const defaultLocale = 'es';
+const LOCALE_COOKIE_KEY = 'calybra_locale';
 
 function getLocale(request: NextRequest): string {
+  const cookieLocale = request.cookies.get(LOCALE_COOKIE_KEY)?.value;
+  if (cookieLocale && supportedLocales.includes(cookieLocale as (typeof supportedLocales)[number])) {
+    return cookieLocale;
+  }
+
   const negotiatorHeaders: Record<string, string> = {};
   request.headers.forEach((value, key) => (negotiatorHeaders[key] = value));
 

@@ -55,8 +55,8 @@ export function CreateMonthCloseDialog({
 
   const formSchema = z.object({
     period: z.object({
-      from: z.date({ required_error: 'A start date is required.' }),
-      to: z.date({ required_error: 'An end date is required.' }),
+      from: z.date({ required_error: t.monthCloses.create.validationStart }),
+      to: z.date({ required_error: t.monthCloses.create.validationEnd }),
     }),
   });
 
@@ -146,7 +146,7 @@ export function CreateMonthCloseDialog({
                               formatDateForButton(field.value.from)
                             )
                           ) : (
-                            <span>Pick a date range</span>
+                            <span>{t.monthCloses.create.pickDateRange}</span>
                           )}
                         </Button>
                       </FormControl>

@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { Locale, supportedLocales } from '@/i18n/types';
 import { LocaleProvider } from '@/i18n/provider';
 import { AuthProvider } from '@/hooks/use-auth';
+import { ThemeProvider } from '@/components/theme/theme-provider';
 
 export async function generateStaticParams() {
   return supportedLocales.map((locale) => ({ locale }));
@@ -46,7 +47,7 @@ export default async function RootLayout({
     ? (locale as Locale)
     : supportedLocales[0];
   return (
-    <html lang={resolvedLocale} className="dark">
+    <html lang={resolvedLocale} suppressHydrationWarning>
       <body
         className={cn(
           "font-sans antialiased",
@@ -55,11 +56,13 @@ export default async function RootLayout({
           jetbrainsMono.variable
         )}
       >
-        <AuthProvider>
-          <LocaleProvider locale={resolvedLocale}>
-            {children}
-          </LocaleProvider>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <LocaleProvider locale={resolvedLocale}>
+              {children}
+            </LocaleProvider>
+          </AuthProvider>
+        </ThemeProvider>
         <Toaster />
       </body>
     </html>
