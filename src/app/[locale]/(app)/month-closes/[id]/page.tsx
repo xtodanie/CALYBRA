@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useCallback } from "react";
 import {
   AlertTriangle,
   ArrowRight,
@@ -12,6 +12,7 @@ import {
   Receipt,
   Scale,
   UploadCloud,
+  BarChart3,
 } from "lucide-react";
 import { useT, useLocale } from "@/i18n/provider";
 import { formatMoney, formatDate } from "@/i18n/format";
@@ -26,11 +27,18 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot, getDoc, DocumentData } from "firebase/firestore";
 import { db } from "@/lib/firebaseClient";
 import type { MonthClose, MonthCloseStatus } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
+import {
+  VatSummaryCard,
+  MismatchSummaryCard,
+  TimelineCard,
+  FrictionCard,
+  AuditorReplayCard,
+} from "@/components/analytics";
 
 
 const WorkflowStep = ({
@@ -136,6 +144,14 @@ export default function MonthCloseDetailPage({ params }: { params: Promise<{ id:
   const [monthClose, setMonthClose] = useState<MonthClose | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Analytics state
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [vatSummary, setVatSummary] = useState<DocumentData | null>(null);
+  const [mismatchSummary, setMismatchSummary] = useState<DocumentData | null>(null);
+  const [timeline, setTimeline] = useState<DocumentData | null>(null);
+  const [friction, setFriction] = useState<{ daysToClose: number; manualMatchPercent: number; exceptionPercent: number; frictionScore: number } | null>(null);
+  const [auditorReplay, setAuditorReplay] = useState<{ asOfDateKey: string; bankTxCount: number; invoiceCount: number; matchCount: number; adjustmentCount: number; generatedAt: string } | null>(null);
+
   useEffect(() => {
     if (!user) return;
     const docRef = doc(db, "tenants", user.tenantId, "monthCloses", id);
@@ -150,6 +166,73 @@ export default function MonthCloseDetailPage({ params }: { params: Promise<{ id:
     });
     return () => unsubscribe();
   }, [user, id]);
+
+  // Load analytics when month is finalized
+  const loadAnalytics = useCallback(async () => {
+    if (!user?.tenantId || !monthClose?.periodStart) return;
+    
+    setAnalyticsLoading(true);
+    // Derive monthKey from periodStart (YYYY-MM format)
+    const periodDate = monthClose.periodStart.toDate();
+    const monthKey = `${periodDate.getFullYear()}-${String(periodDate.getMonth() + 1).padStart(2, '0')}`;
+
+    try {
+      // Try to load from readmodels (for finalized months)
+      const readmodelBasePath = `tenants/${user.tenantId}/readmodels`;
+      
+      const [vatSnap, mismatchSnap, timelineSnap, frictionSnap] = await Promise.all([
+        getDoc(doc(db, `${readmodelBasePath}/vatSummary/${monthKey}/snapshot`)),
+        getDoc(doc(db, `${readmodelBasePath}/mismatchSummary/${monthKey}/snapshot`)),
+        getDoc(doc(db, `${readmodelBasePath}/monthCloseTimeline/${monthKey}/snapshot`)),
+        getDoc(doc(db, `${readmodelBasePath}/closeFriction/${monthKey}/snapshot`)),
+      ]);
+
+      if (vatSnap.exists()) setVatSummary(vatSnap.data());
+      if (mismatchSnap.exists()) setMismatchSummary(mismatchSnap.data());
+      if (timelineSnap.exists()) setTimeline(timelineSnap.data());
+      if (frictionSnap.exists()) {
+        const data = frictionSnap.data();
+        setFriction({
+          daysToClose: data.daysToClose || 0,
+          manualMatchPercent: data.manualMatchPercent || 0,
+          exceptionPercent: data.exceptionPercent || 0,
+          frictionScore: data.frictionScore || 0,
+        });
+      }
+
+      // Load auditor replay summary
+      const auditorSnap = await getDoc(doc(db, `${readmodelBasePath}/auditorReplay/${monthKey}/snapshot`));
+      if (auditorSnap.exists()) {
+        const data = auditorSnap.data();
+        setAuditorReplay({
+          asOfDateKey: data.asOfDateKey,
+          bankTxCount: data.bankTx?.length || 0,
+          invoiceCount: data.invoices?.length || 0,
+          matchCount: data.matches?.length || 0,
+          adjustmentCount: data.adjustments?.length || 0,
+          generatedAt: data.generatedAt,
+        });
+      }
+    } catch (err) {
+      console.error("Error loading analytics:", err);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  }, [user?.tenantId, monthClose?.periodStart]);
+
+  // Load analytics when month is finalized
+  useEffect(() => {
+    if (monthClose?.status === "FINALIZED") {
+      loadAnalytics();
+    }
+  }, [monthClose?.status, loadAnalytics]);
+
+  const handleAuditorDownload = useCallback(() => {
+    if (!monthClose?.periodStart) return;
+    const periodDate = monthClose.periodStart.toDate();
+    const monthKey = `${periodDate.getFullYear()}-${String(periodDate.getMonth() + 1).padStart(2, '0')}`;
+    console.log("Download auditor replay for", monthKey);
+  }, [monthClose?.periodStart]);
 
 
   const statusMap: Record<MonthCloseStatus, { text: string; variant: "secondary" | "default" | "destructive" | "outline" | null | undefined }> = {
@@ -258,6 +341,32 @@ export default function MonthCloseDetailPage({ params }: { params: Promise<{ id:
           </CardContent>
         </Card>
       </div>
+
+      {/* Analytics Section - Only show for finalized months */}
+      {monthClose?.status === "FINALIZED" && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5" />
+            <h2 className="text-xl font-semibold">Analytics & Reports</h2>
+          </div>
+          
+          <div className="grid gap-4 md:grid-cols-2">
+            <VatSummaryCard data={vatSummary} loading={analyticsLoading} />
+            <MismatchSummaryCard data={mismatchSummary} loading={analyticsLoading} />
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <FrictionCard data={friction} loading={analyticsLoading} />
+            <AuditorReplayCard 
+              data={auditorReplay} 
+              loading={analyticsLoading} 
+              onDownload={handleAuditorDownload}
+            />
+          </div>
+
+          <TimelineCard data={timeline} loading={analyticsLoading} />
+        </div>
+      )}
     </div>
   );
 }
