@@ -61,6 +61,52 @@ Use semantic versioning when you start shipping externally. Until then, use incr
 
 ## Releases
 
+### 2026-02-12 — Release 0022
+**Scope**
+- Surfaces: Auth Routes / Build / App Hosting / Git / .gitignore
+- Risk: P0
+
+**Summary**
+- Fixed production build crash (`useT` outside `LocaleProvider`) by redirecting non-localized auth routes.
+- Removed leaked secrets from git history (firebase-debug.log) and pushed clean commit.
+- Successfully deployed to Firebase App Hosting EU (europe-west4).
+
+**Changes**
+- `src/app/(auth)/login/page.tsx`: render → `redirect("/es/login")`
+- `src/app/(auth)/signup/page.tsx`: render → `redirect("/es/signup")`
+- `.gitignore`: added `*-debug.log`, `tmpclaude-*`, `tsconfig.tsbuildinfo`
+- Removed `firestore-debug.log` and `tsconfig.tsbuildinfo` from tracking
+- App Hosting backend `calybra-eu-alt` (europe-west4) live at:
+  `https://calybra-eu-alt--studio-5801368156-a6af7.europe-west4.hosted.app`
+
+**Proof (Executed)**
+- Command: `npx next build`
+  - Result: PASS
+  - Output: 33/33 pages generated (0 errors)
+- Command: `npx jest --ci --passWithNoTests`
+  - Result: PASS
+  - Output: 29 suites passed, 446 tests passed, 0 failures
+- Command: `git push origin master`
+  - Result: PASS
+  - Output: `4a874ae..546b1c6 master -> master` (no push protection violations)
+- Command: `firebase apphosting:rollouts:create calybra-eu-alt --git-branch master --force`
+  - Result: PASS
+  - Output: Commit 546b1c6 deployed, EU URL responds HTTP 200
+- Command: `curl /es/login, /es/signup, /login`
+  - Result: PASS
+  - Output: 200, 200, 307→/es/login
+
+**Rollback**
+- Revert: `git revert 546b1c6`
+- Redeploy: `firebase apphosting:rollouts:create calybra-eu-alt --git-branch master --force`
+- Validate: `curl -I https://calybra-eu-alt--studio-5801368156-a6af7.europe-west4.hosted.app/es/login`
+
+**Notes**
+- Backend `calybra-prod` (us-central1) still exists without repo connection — can be deleted.
+- Node 22 used locally; apphosting builds with Node 20 per engines field.
+
+---
+
 ### 2026-02-12 — Release 0021
 **Scope**
 - Surfaces: Ops / Golden Paths Docs / Release Evidence
