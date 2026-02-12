@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Inter, JetBrains_Mono } from 'next/font/google';
+import { Inter, JetBrains_Mono, Space_Grotesk } from 'next/font/google';
 import { Toaster } from "@/components/ui/toaster"
 import '../globals.css';
 import { cn } from '@/lib/utils';
@@ -19,6 +19,12 @@ export const metadata: Metadata = {
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-sans',
+  display: 'swap',
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  variable: '--font-headline',
   display: 'swap',
 });
 
@@ -45,6 +51,7 @@ export default async function RootLayout({
         className={cn(
           "font-sans antialiased",
           inter.variable,
+          spaceGrotesk.variable,
           jetbrainsMono.variable
         )}
       >

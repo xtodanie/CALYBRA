@@ -61,6 +61,57 @@ Use semantic versioning when you start shipping externally. Until then, use incr
 
 ## Releases
 
+### 2026-02-12 — Release 0026
+**Scope**
+- Surfaces: UI Components / Visual System / API Routes / Exports Page / i18n
+- Risk: P1
+
+**Summary**
+- Visual system overhaul: Space Grotesk headline font, new animations (shimmer, breathing, tilt).
+- New reusable components: Typewriter, LoaderCounter, ProgressBar, MapBackground, AddressMapController.
+- Map API route with server-side geocoding, rate limiting, and caching.
+- Exports page wired to server-generated artifacts for finalized months.
+
+**Changes**
+- Visual System:
+  - `src/app/[locale]/layout.tsx`: Added Space Grotesk font import
+  - `tailwind.config.ts`: New headline/display font family, shimmer/breathing/tilt-in keyframes
+- New Components:
+  - `src/components/ui/typewriter.tsx`: Animated text cycling with configurable speed
+  - `src/components/ui/loader-counter.tsx`: Animated counter with easing and K/M/B formatting
+  - `src/components/ui/progress-bar.tsx`: Progress with shimmer and milestone support
+  - `src/components/ui/map-background.tsx`: Full-screen map with brand overlay (SVG noise)
+  - `src/components/ui/address-map-controller.tsx`: Address input → geocode → map
+- API:
+  - `src/app/api/map/route.ts`: Geocoding with rate limiting, caching, Zod validation
+  - `src/lib/mapsScale.ts`: Google Maps scale → zoom calculation
+- Exports Page:
+  - `src/app/[locale]/(app)/exports/page.tsx`: Fetches server artifacts for finalized months via listExportArtifacts callable
+- i18n:
+  - `src/i18n/en.ts`: Added `exports.server.*` and `exports.table.type` keys
+  - `src/i18n/es.ts`: Spanish translations for new keys
+
+**Proof (Executed)**
+- Command: `npm run lint`
+  - Result: PASS
+  - Output: No ESLint warnings or errors
+- Command: `npx jest --ci --passWithNoTests`
+  - Result: PASS
+  - Output: 454 tests passed, 0 failures
+
+**Rollback**
+- Revert: `git revert <sha>`
+- Redeploy: `firebase apphosting:rollouts:create calybra-eu-alt --git-branch master --force`
+- Validate: `npm run typecheck && npm run lint`
+
+**Notes**
+- Map API requires GOOGLE_MAPS_API_KEY env var (server-side only).
+- Optional GOOGLE_MAPS_MAP_ID for custom styled maps.
+- Server exports use listExportArtifacts and getExportArtifact callables from calybra-database.
+- Components are behavior-equivalent to common UI patterns but original implementations.
+
+---
+
 ### 2026-02-13 — Release 0025
 **Scope**
 - Surfaces: UI Components / i18n / Month-Close Detail Page

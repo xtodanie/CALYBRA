@@ -10,11 +10,13 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        /* Modern SaaS typography — Inter / SF Pro style */
+        /* Visual system typography — Space Grotesk + Inter */
         sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
         body: ['Inter', 'system-ui', 'sans-serif'],
-        headline: ['Inter', 'system-ui', 'sans-serif'],
+        headline: ['Space Grotesk', 'Inter', 'system-ui', 'sans-serif'],
+        display: ['Space Grotesk', 'Inter', 'system-ui', 'sans-serif'],
         code: ['JetBrains Mono', 'Menlo', 'monospace'],
+        mono: ['JetBrains Mono', 'Menlo', 'Monaco', 'monospace'],
       },
       fontSize: {
         /* Typography scale — Designer grade */
@@ -187,10 +189,39 @@ export default {
             height: '0',
           },
         },
+        'shimmer': {
+          '0%': {
+            transform: 'translateX(-100%)',
+          },
+          '100%': {
+            transform: 'translateX(100%)',
+          },
+        },
+        'breathing': {
+          '0%, 100%': {
+            opacity: '0.6',
+          },
+          '50%': {
+            opacity: '1',
+          },
+        },
+        'tilt-in': {
+          '0%': {
+            transform: 'perspective(1000px) rotateX(10deg) rotateY(-10deg)',
+            opacity: '0',
+          },
+          '100%': {
+            transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg)',
+            opacity: '1',
+          },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'shimmer': 'shimmer 2s infinite',
+        'breathing': 'breathing 3s ease-in-out infinite',
+        'tilt-in': 'tilt-in 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
       },
     },
   },

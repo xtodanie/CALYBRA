@@ -3,8 +3,9 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useT, useLocale } from '@/i18n/provider';
 import { useAuth } from '@/hooks/use-auth';
-import { db } from '@/lib/firebaseClient';
+import { db, functions } from '@/lib/firebaseClient';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -21,7 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Loader2, Download, FileText, AlertTriangle, ChevronRight } from 'lucide-react';
+import { Loader2, Download, FileText, AlertTriangle, ChevronRight, Server, FileSpreadsheet } from 'lucide-react';
 import { formatDate } from '@/i18n/format';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -35,6 +36,18 @@ type ExportFile = {
   generated: Date;
   content: string;
   rowCount: number;
+};
+
+type ServerArtifact = {
+  id: string;
+  tenantId: string;
+  monthKey: string;
+  contentType: string;
+  filename: string;
+  content?: string;
+  contentBase64?: string;
+  generatedAt: string;
+  schemaVersion: number;
 };
 
 // Month Context Header (uses real user data)
@@ -130,6 +143,21 @@ function downloadCsv(filename: string, content: string): void {
   URL.revokeObjectURL(link.href);
 }
 
+function downloadBase64(filename: string, base64: string, contentType: string): void {
+  const byteCharacters = atob(base64);
+  const byteNumbers = new Array(byteCharacters.length);
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+  const byteArray = new Uint8Array(byteNumbers);
+  const blob = new Blob([byteArray], { type: contentType });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
 export default function ExportsPage() {
   const t = useT();
   const locale = useLocale();
@@ -139,6 +167,8 @@ export default function ExportsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [exports, setExports] = useState<ExportFile[]>([]);
+  const [serverArtifacts, setServerArtifacts] = useState<ServerArtifact[]>([]);
+  const [isFetchingServer, setIsFetchingServer] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch month close data
@@ -166,6 +196,71 @@ export default function ExportsPage() {
   }, [user?.tenantId, user?.activeMonthCloseId]);
 
   const isFinalized = monthClose?.status === MonthCloseStatus.FINALIZED;
+
+  // Fetch server-generated exports when month is finalized
+  const fetchServerArtifacts = useCallback(async () => {
+    if (!user?.tenantId || !user?.activeMonthCloseId || !isFinalized) {
+      setServerArtifacts([]);
+      return;
+    }
+
+    setIsFetchingServer(true);
+    setError(null);
+
+    try {
+      const listArtifacts = httpsCallable<{ monthKey: string }, { artifacts: ServerArtifact[] }>(
+        functions,
+        'listExportArtifacts'
+      );
+      const response = await listArtifacts({ monthKey: user.activeMonthCloseId });
+      setServerArtifacts(response.data.artifacts);
+    } catch (err) {
+      console.error('Error fetching server artifacts:', err);
+      // Server artifacts might not exist yet, don't show error
+      setServerArtifacts([]);
+    } finally {
+      setIsFetchingServer(false);
+    }
+  }, [user?.tenantId, user?.activeMonthCloseId, isFinalized]);
+
+  // Auto-fetch server artifacts when finalized
+  useEffect(() => {
+    if (isFinalized && !isLoading) {
+      fetchServerArtifacts();
+    }
+  }, [isFinalized, isLoading, fetchServerArtifacts]);
+
+  // Download server artifact handler
+  const handleDownloadServerArtifact = useCallback(async (artifact: ServerArtifact) => {
+    if (artifact.contentBase64) {
+      downloadBase64(artifact.filename, artifact.contentBase64, artifact.contentType);
+    } else if (artifact.content) {
+      downloadCsv(artifact.filename, artifact.content);
+    } else {
+      // Fetch the content via callable
+      try {
+        const getArtifact = httpsCallable<
+          { monthKey: string; artifactId: string },
+          { exists: boolean; data: ServerArtifact | null }
+        >(functions, 'getExportArtifact');
+        const response = await getArtifact({
+          monthKey: artifact.monthKey,
+          artifactId: artifact.id,
+        });
+        if (response.data.exists && response.data.data) {
+          const data = response.data.data;
+          if (data.contentBase64) {
+            downloadBase64(data.filename, data.contentBase64, data.contentType);
+          } else if (data.content) {
+            downloadCsv(data.filename, data.content);
+          }
+        }
+      } catch (err) {
+        console.error('Error downloading artifact:', err);
+        setError('Failed to download artifact');
+      }
+    }
+  }, []);
 
   // Generate exports from live data
   const handleGenerate = useCallback(async () => {
@@ -323,9 +418,80 @@ export default function ExportsPage() {
             </Alert>
           )}
 
+          {isFinalized && (
+            <Card className="border-purple-500/30 bg-purple-500/5">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Server className="h-5 w-5 text-purple-500" />
+                  <CardTitle>{t.exports.server?.title ?? 'Server-Generated Exports'}</CardTitle>
+                  <Badge variant="secondary" className="ml-2">FINALIZED</Badge>
+                </div>
+                <CardDescription>
+                  {t.exports.server?.description ?? 'Official exports generated by the server when the month was finalized. These are immutable and auditable.'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isFetchingServer ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : serverArtifacts.length === 0 ? (
+                  <div className="py-8 text-center text-muted-foreground">
+                    <FileText className="mx-auto h-10 w-10" />
+                    <p className="mt-3">{t.exports.server?.empty ?? 'No server exports available yet.'}</p>
+                    <Button variant="outline" size="sm" className="mt-4" onClick={fetchServerArtifacts}>
+                      <Loader2 className="mr-2 h-4 w-4" />
+                      {t.exports.server?.refresh ?? 'Refresh'}
+                    </Button>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{t.exports.table.file}</TableHead>
+                        <TableHead>{t.exports.table.type ?? 'Type'}</TableHead>
+                        <TableHead>{t.exports.table.generated}</TableHead>
+                        <TableHead className="text-right">{t.exports.table.actions}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {serverArtifacts.map((artifact) => (
+                        <TableRow key={artifact.id}>
+                          <TableCell className="font-medium">{artifact.filename}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {artifact.contentType.includes('pdf') ? 'PDF' : 'CSV'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {artifact.generatedAt ? formatDate(new Date(artifact.generatedAt), locale) : '-'}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDownloadServerArtifact(artifact)}
+                            >
+                              <Download className="mr-2 h-4 w-4" />
+                              {t.exports.download}
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader>
-              <CardTitle>{t.exports.generate.title}</CardTitle>
+              <div className="flex items-center gap-2">
+                <FileSpreadsheet className="h-5 w-5" />
+                <CardTitle>{t.exports.generate.title}</CardTitle>
+                {!isFinalized && <Badge variant="outline">DRAFT</Badge>}
+              </div>
               <CardDescription>
                 {t.exports.generate.description}
               </CardDescription>

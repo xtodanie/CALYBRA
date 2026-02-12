@@ -349,6 +349,12 @@ export const es: Dict = {
       title: 'Generar Archivos de Exportación',
       description: 'Exporta tus datos de conciliación como archivos CSV para uso externo.',
     },
+    server: {
+      title: 'Exportaciones Generadas por Servidor',
+      description: 'Exportaciones oficiales generadas por el servidor al finalizar el mes. Son inmutables y auditables.',
+      empty: 'Aún no hay exportaciones del servidor disponibles.',
+      refresh: 'Actualizar',
+    },
     cta: 'Generar Exportación',
     generating: 'Generando exportación...',
     empty: 'Aún no se han generado exportaciones para este mes.',
@@ -368,6 +374,7 @@ export const es: Dict = {
       rows: 'Filas',
       generated: 'Generado',
       actions: 'Acciones',
+      type: 'Tipo',
     },
     download: 'Descargar',
     lockedOnly: {
