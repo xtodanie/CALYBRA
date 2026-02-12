@@ -103,6 +103,11 @@ async function loadUser(uid: string): Promise<UserProfile> {
   };
 }
 
+/**
+ * Generate SHA256 fingerprint of content.
+ * @param {string} content The content to hash.
+ * @return {string} The hex-encoded SHA256 hash.
+ */
 function generateFingerprint(content: string): string {
   return crypto.createHash("sha256").update(content).digest("hex");
 }
@@ -110,6 +115,8 @@ function generateFingerprint(content: string): string {
 /**
  * Generate deterministic document ID from content.
  * Uses first 20 chars of SHA256 for Firestore-friendly ID.
+ * @param {string} content The content to hash.
+ * @return {string} The deterministic document ID.
  */
 function generateDeterministicId(content: string): string {
   return crypto.createHash("sha256").update(content).digest("hex").substring(0, 20);
@@ -693,9 +700,9 @@ function parseRow(line: string, delimiter: string): string[] {
   for (let i = 0; i < line.length; i++) {
     const char = line[i];
 
-    if (char === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        current += '"';
+    if (char === "\"") {
+      if (inQuotes && line[i + 1] === "\"") {
+        current += "\"";
         i++;
       } else {
         inQuotes = !inQuotes;
@@ -934,7 +941,7 @@ function extractDateFromText(lines: string[], keywords: string[]): string | null
   for (const line of lines) {
     const lowerLine = line.toLowerCase();
     if (keywords.some((k) => lowerLine.includes(k))) {
-      const dateMatch = line.match(/(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}|\d{4}[\/\-\.]\d{1,2}[\/\-\.]\d{1,2})/);
+      const dateMatch = line.match(/(\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}|\d{4}[-/.]\d{1,2}[-/.]\d{1,2})/);
       if (dateMatch) {
         return parseDate(dateMatch[1]);
       }

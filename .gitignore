@@ -3,3 +3,13 @@ node_modules/
 .next/
 .firebase/
 artifacts/
+
+# Firebase emulator logs
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+pubsub-debug.log
+database-debug.log
+
+# Temp files
+tmpclaude-*

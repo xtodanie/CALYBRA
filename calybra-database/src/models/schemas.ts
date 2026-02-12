@@ -72,7 +72,7 @@ export const MonthCloseUpdateSchema = z.object({
 
 export const FileAssetClientCreateSchema = z.object({
   monthCloseId: z.string().min(1),
-  kind: z.nativeEnum(FileAssetKind).refine(k => k !== FileAssetKind.EXPORT, { message: "Client cannot create EXPORT assets" }),
+  kind: z.nativeEnum(FileAssetKind).refine((k) => k !== FileAssetKind.EXPORT, { message: "Client cannot create EXPORT assets" }),
   filename: z.string().min(1),
   storagePath: z.string().min(1),
   status: z.literal(FileAssetStatus.PENDING_UPLOAD),
@@ -80,28 +80,28 @@ export const FileAssetClientCreateSchema = z.object({
 }).strict();
 
 export const FileAssetServerUpdateSchema = z.object({
-    parseStatus: z.nativeEnum(ParseStatus).optional(),
-    parseError: z.string().nullable().optional(),
+  parseStatus: z.nativeEnum(ParseStatus).optional(),
+  parseError: z.string().nullable().optional(),
 }).strict();
 
 
 export const JobServerCreateSchema = z.object({
-    monthCloseId: z.string().min(1),
-    type: z.nativeEnum(JobType),
-    refFileId: z.string().min(1),
+  monthCloseId: z.string().min(1),
+  type: z.nativeEnum(JobType),
+  refFileId: z.string().min(1),
 }).strict();
 
 export const JobServerUpdateSchema = z.object({
-    status: z.nativeEnum(JobStatus).optional(),
-    progress: z.object({
-        stepKey: z.string(),
-        pct: z.number().min(0).max(100),
-    }).optional(),
-    error: z.object({
-        code: z.string(),
-        messageKey: z.string(),
-        params: z.record(z.any()).optional(),
-    }).nullable().optional(),
+  status: z.nativeEnum(JobStatus).optional(),
+  progress: z.object({
+    stepKey: z.string(),
+    pct: z.number().min(0).max(100),
+  }).optional(),
+  error: z.object({
+    code: z.string(),
+    messageKey: z.string(),
+    params: z.record(z.any()).optional(),
+  }).nullable().optional(),
 }).strict();
 
 

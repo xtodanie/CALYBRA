@@ -133,7 +133,7 @@ export interface User extends BaseDocument {
   role: UserRole;
   plan: UserPlan;
   status: UserStatus;
-  locale: 'en' | 'es';
+  locale: "en" | "es";
   activeMonthCloseId?: string;
   metadata: {
     source: "signup" | "auto-recovery";
@@ -145,7 +145,7 @@ export interface Tenant extends BaseDocument {
   name: string;
   ownerId: string;
   timezone: string;
-  currency: 'EUR';
+  currency: "EUR";
   settings?: {
     csvMappings?: any;
   };

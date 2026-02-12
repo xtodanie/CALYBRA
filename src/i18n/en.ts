@@ -343,11 +343,27 @@ export const en = {
   exports: {
     title: 'Exports',
     description: 'Once a month is finalized, you can generate and download your reconciliation reports for your accountant.',
+    generate: {
+      title: 'Generate Export Files',
+      description: 'Export your reconciliation data as CSV files for external use.',
+    },
     cta: 'Generate Export',
     generating: 'Generating export...',
     empty: 'No exports generated for this month yet.',
+    blocking: {
+      selectMonth: 'Please select a month close to generate exports.',
+    },
+    errors: {
+      title: 'Error',
+      generateFailed: 'Failed to generate exports. Please try again.',
+    },
+    draftWarning: {
+      title: 'Draft Export',
+      description: 'This month is not finalized. Export data may change.',
+    },
     table: {
       file: 'File',
+      rows: 'Rows',
       generated: 'Generated',
       actions: 'Actions',
     },
@@ -364,7 +380,9 @@ export const en = {
     tenant: {
       title: 'Business Settings',
       name: 'Business Name',
+      namePlaceholder: 'The Local Pour',
       timezone: 'Timezone',
+      timezonePlaceholder: 'Select timezone',
       currency: 'Default Currency',
       save: 'Save Changes',
     },

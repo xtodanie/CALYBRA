@@ -31,6 +31,7 @@ const PROJECT_ID = "calybra-invariants-serveronly";
 const ownerAuth = { uid: "user-owner", token: { admin: false } };
 const serverAuth = { uid: "server", token: { admin: true } };
 const tenantId = "tenant-test";
+const monthCloseId = "2026-01";
 
 type AuthInput = { uid: string; token?: { admin: boolean } };
 
@@ -52,15 +53,17 @@ beforeEach(async () => {
     const adminDb = ctx.firestore();
     await setDoc(doc(adminDb, "users", ownerAuth.uid), { tenantId, role: "OWNER" });
     await setDoc(doc(adminDb, "tenants", tenantId), { name: "Test Tenant" });
-    await setDoc(doc(adminDb, "tenants", tenantId, "invoices", "inv-1"), { tenantId });
-    await setDoc(doc(adminDb, "tenants", tenantId, "bankTx", "tx-1"), { tenantId, amount: 100 });
-    await setDoc(doc(adminDb, "tenants", tenantId, "matches", "match-1"), { tenantId, status: "PROPOSED" });
+    // MonthClose must exist and NOT be FINALIZED for server writes to succeed
+    await setDoc(doc(adminDb, "tenants", tenantId, "monthCloses", monthCloseId), { tenantId, status: "DRAFT" });
+    await setDoc(doc(adminDb, "tenants", tenantId, "invoices", "inv-1"), { tenantId, monthCloseId });
+    await setDoc(doc(adminDb, "tenants", tenantId, "bankTx", "tx-1"), { tenantId, amount: 100, monthCloseId });
+    await setDoc(doc(adminDb, "tenants", tenantId, "matches", "match-1"), { tenantId, status: "PROPOSED", monthCloseId });
     await setDoc(doc(adminDb, "tenants", tenantId, "events", "evt-1"), { tenantId, type: "BANK_TX_ARRIVED" });
     await setDoc(doc(adminDb, "tenants", tenantId, "periods", "2026-01"), { tenantId, status: "OPEN" });
     await setDoc(doc(adminDb, "tenants", tenantId, "readmodels", "monthCloseTimeline", "2026-01", "snapshot"), { tenantId });
     await setDoc(doc(adminDb, "tenants", tenantId, "exports", "2026-01", "artifacts", "ledgerCsv"), { tenantId });
     await setDoc(doc(adminDb, "jobs", "job-1"), { tenantId, status: "PENDING" });
-    await setDoc(doc(adminDb, "exceptions", "exc-1"), { tenantId, message: "Error" });
+    await setDoc(doc(adminDb, "exceptions", "exc-1"), { tenantId, monthCloseId, message: "Error" });
   });
 });
 
@@ -111,7 +114,7 @@ describeIfEmulator("INVARIANT: Server-Only Writes", () => {
     });
 
     it("server CAN write to invoices", async () => {
-      await assertSucceeds(setDoc(doc(db(serverAuth), "tenants", tenantId, "invoices", "server-inv"), { tenantId }));
+      await assertSucceeds(setDoc(doc(db(serverAuth), "tenants", tenantId, "invoices", "server-inv"), { tenantId, monthCloseId }));
     });
   });
 
@@ -125,7 +128,7 @@ describeIfEmulator("INVARIANT: Server-Only Writes", () => {
     });
 
     it("server CAN write to bankTx", async () => {
-      await assertSucceeds(setDoc(doc(db(serverAuth), "tenants", tenantId, "bankTx", "server-tx"), { tenantId, amount: 300 }));
+      await assertSucceeds(setDoc(doc(db(serverAuth), "tenants", tenantId, "bankTx", "server-tx"), { tenantId, amount: 300, monthCloseId }));
     });
   });
 
@@ -139,8 +142,8 @@ describeIfEmulator("INVARIANT: Server-Only Writes", () => {
     });
 
     it("server CAN write to matches", async () => {
-      // Server must create matches with initial status PROPOSED (per state machine)
-      await assertSucceeds(setDoc(doc(db(serverAuth), "tenants", tenantId, "matches", "server-match"), { tenantId, status: "PROPOSED" }));
+      // Server must create matches with initial status PROPOSED (per state machine) and monthCloseId
+      await assertSucceeds(setDoc(doc(db(serverAuth), "tenants", tenantId, "matches", "server-match"), { tenantId, status: "PROPOSED", monthCloseId }));
     });
   });
 
@@ -208,7 +211,7 @@ describeIfEmulator("INVARIANT: Server-Only Writes", () => {
     });
 
     it("server CAN write to exceptions", async () => {
-      await assertSucceeds(setDoc(doc(db(serverAuth), "exceptions", "server-exc"), { tenantId, message: "Server Error" }));
+      await assertSucceeds(setDoc(doc(db(serverAuth), "exceptions", "server-exc"), { tenantId, monthCloseId, message: "Server Error" }));
     });
   });
 });

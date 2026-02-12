@@ -368,7 +368,7 @@ export const transitionMatch = functions.https.onCall(
       .doc(user.tenantId)
       .collection("monthCloses")
       .doc(monthCloseId);
-    
+
     const monthCloseSnap = await monthCloseRef.get();
     if (monthCloseSnap.exists) {
       const monthCloseData = monthCloseSnap.data()!;

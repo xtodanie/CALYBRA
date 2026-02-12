@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import {
   AlertTriangle,
   ArrowRight,
@@ -128,7 +128,8 @@ const KpiCard = ({ title, value, description, icon: Icon, isLoading }: { title: 
     )
 }
 
-export default function MonthCloseDetailPage({ params }: { params: { id: string }}) {
+export default function MonthCloseDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const { user } = useAuth();
   const t = useT();
   const locale = useLocale();
@@ -137,7 +138,7 @@ export default function MonthCloseDetailPage({ params }: { params: { id: string 
 
   useEffect(() => {
     if (!user) return;
-    const docRef = doc(db, "tenants", user.tenantId, "monthCloses", params.id);
+    const docRef = doc(db, "tenants", user.tenantId, "monthCloses", id);
     const unsubscribe = onSnapshot(docRef, (doc) => {
         if (doc.exists() && doc.data().tenantId === user.tenantId) {
             setMonthClose({ id: doc.id, ...doc.data() } as MonthClose);
@@ -148,7 +149,7 @@ export default function MonthCloseDetailPage({ params }: { params: { id: string 
         setIsLoading(false);
     });
     return () => unsubscribe();
-  }, [user, params.id]);
+  }, [user, id]);
 
 
   const statusMap: Record<MonthCloseStatus, { text: string; variant: "secondary" | "default" | "destructive" | "outline" | null | undefined }> = {

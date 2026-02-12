@@ -12,7 +12,6 @@
 
 import { initializeApp, deleteApp } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import { getAuth } from "firebase-admin/auth";
 import assert from "node:assert";
 
 // ========================================================================
@@ -22,16 +21,12 @@ import assert from "node:assert";
 const PROJECT_ID = "demo-calybra";
 const EMULATOR_HOST = "localhost:8085";
 const AUTH_EMULATOR = "localhost:9099";
-const FUNCTIONS_EMULATOR = "localhost:5001";
 
 process.env.FIRESTORE_EMULATOR_HOST = EMULATOR_HOST;
 process.env.FIREBASE_AUTH_EMULATOR_HOST = AUTH_EMULATOR;
 
 const app = initializeApp({ projectId: PROJECT_ID }, "step4-audit");
 const db = getFirestore(app);
-const auth = getAuth(app);
-
-const FUNCTIONS_BASE = `http://127.0.0.1:5001/${PROJECT_ID}/us-central1`;
 
 const results = [];
 let testPass = 0;

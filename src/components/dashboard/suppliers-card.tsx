@@ -25,12 +25,12 @@ export function SuppliersCard({
   const locale = useLocale();
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-border bg-card shadow-card">
+    <div className="relative overflow-hidden rounded-lg border border-border bg-card shadow-card">
       {/* Subtle inner highlight */}
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-neutral-50/5 to-transparent" />
       
       <div className="p-8">
-        <h3 className="mb-6 text-card-title font-semibold text-foreground">
+        <h3 className="mb-6 text-h3 font-semibold text-foreground">
           {t.dashboard.suppliers.title}
         </h3>
 
@@ -65,7 +65,7 @@ export function SuppliersCard({
                   </span>
                   
                   <div className={cn(
-                    'flex items-center gap-1 text-meta font-medium',
+                    'flex items-center gap-1 text-caption font-medium',
                     supplier.trend >= 0 ? 'text-trend-up' : 'text-trend-down'
                   )}>
                     {supplier.trend >= 0 ? (

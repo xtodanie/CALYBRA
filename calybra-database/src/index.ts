@@ -1,8 +1,8 @@
-import {initializeApp} from "firebase-admin/app";
-import {FieldValue, getFirestore} from "firebase-admin/firestore";
-import {getStorage} from "firebase-admin/storage";
+import { initializeApp } from "firebase-admin/app";
+import { FieldValue, getFirestore } from "firebase-admin/firestore";
+import { getStorage } from "firebase-admin/storage";
 import * as functions from "firebase-functions/v1";
-import {assertAllowedDownload, buildFileAssetDocPath, DownloadAuthError} from "./lib/download";
+import { assertAllowedDownload, buildFileAssetDocPath, DownloadAuthError } from "./lib/download";
 
 initializeApp();
 
@@ -134,11 +134,11 @@ export const getSignedDownloadUrl = functions.https.onCall(
       );
     }
 
-    const {fileAssetId} = data || {};
+    const { fileAssetId } = data || {};
     if (!fileAssetId) {
       throw new functions.https.HttpsError(
         "invalid-argument",
-        'The function must be called with a "fileAssetId" argument.'
+        "The function must be called with a \"fileAssetId\" argument."
       );
     }
 
@@ -179,6 +179,6 @@ export const getSignedDownloadUrl = functions.https.onCall(
         expires: expiryDate,
       });
 
-    return {url, expiresAt: expiryDate.toISOString()};
+    return { url, expiresAt: expiryDate.toISOString() };
   }
 );

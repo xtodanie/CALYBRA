@@ -14,9 +14,49 @@ All agents MUST follow:
 
 - `agent/PREFLIGHT.md` (must be completed before any patch)
 - `agent/EVIDENCE_FORMAT.md` (mandatory output structure)
+- `agent/MEMORY.md` (memory system: read learnings before work, write learnings after)
+- `agent/SELF_IMPROVEMENT.md` (self-improvement loop: observe, measure, analyze, adapt)
 - `node scripts/truth.mjs` **and** `node scripts/consistency.mjs` must PASS **before** planning changes
 
 If any of the above fails: **STOP**.
+
+---
+
+## Self-Improvement Operations (Required)
+
+Every agent MUST engage with the self-improvement system:
+
+### Before Starting Work (OBSERVE + PREPARE)
+1. **Context**: Check `agent/LEARNINGS/_SESSION.md` for current context
+2. **Patterns**: Search `agent/PATTERNS.md` for applicable solutions
+3. **Failures**: Check `agent/FAILURE_MODES.md` for related failure classes
+4. **Regressions**: Check `agent/REGRESSIONS/R-*.md` for specific instances
+5. **Skills**: Check `agent/SKILLS.md` for relevant capability levels
+6. **Tools**: Consult `agent/TOOL_PRIORS.md` for optimal tool selection
+7. **Dependencies**: Check `agent/DEPENDENCY_MAP.md` for blast radius
+8. **Estimate**: Record prediction in `agent/ESTIMATION.md`
+9. **Confidence**: Log confidence level in `agent/CONFIDENCE_LOG.md`
+
+### During Work (MEASURE + TRACK)
+1. Note discoveries in `_SESSION.md` under "Recent Discoveries"
+2. Track hypotheses being tested
+3. Log tool usage and outcomes
+4. Capture confidence predictions for interim decisions
+
+### After Work (ANALYZE + ADAPT)
+1. **Self-Eval**: Complete `agent/SELF_EVAL.md` entry (mandatory for non-trivial tasks)
+2. **Metrics**: Update `agent/METRICS.md` with task data
+3. **Estimation**: Record actual vs predicted in `agent/ESTIMATION.md`
+4. **Confidence**: Update `agent/CONFIDENCE_LOG.md` with outcomes
+5. **Learnings**: Promote reusable discoveries to `L-NNNN` entries
+6. **Patterns**: Extract generalizable patterns to `agent/PATTERNS.md`
+7. **Failures**: If failure occurred, add to `agent/FAILURE_MODES.md`
+8. **Regressions**: If specific regression, add `R-NNNN` entry
+9. **Skills**: Update skill evidence if demonstrated
+10. **Feedback**: Log any user corrections to `agent/FEEDBACK_LOG.md`
+11. **Session**: Update `_SESSION.md` for next session
+
+Hard rule: Debug cycle >5 minutes MUST produce a learning, pattern, or failure mode entry.
 
 ---
 

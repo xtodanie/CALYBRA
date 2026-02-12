@@ -64,15 +64,18 @@ let _functions: FirebaseFunctions | null = null;
 
 
 function shouldUseEmulators(): boolean {
-  const flag = (process.env.NEXT_PUBLIC_USE_EMULATORS || "").toLowerCase() === "true";
-  if (!flag || process.env.NODE_ENV === "production") {
+  const raw = (process.env.NEXT_PUBLIC_USE_EMULATORS || "").trim().toLowerCase();
+  const explicitlyDisabled = raw === "false" || raw === "0" || raw === "no";
+
+  if (process.env.NODE_ENV === "production" || explicitlyDisabled) {
     return false;
   }
   if (typeof window === "undefined") {
     return false;
   }
   const host = window.location.hostname;
-  return host === "localhost" || host === "127.0.0.1";
+  const isLocalHost = host === "localhost" || host === "127.0.0.1";
+  return isLocalHost;
 }
 
 /**

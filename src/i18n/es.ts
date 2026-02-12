@@ -345,11 +345,27 @@ export const es: Dict = {
   exports: {
     title: 'Exportaciones',
     description: 'Una vez que un mes está finalizado, puedes generar y descargar tus informes de conciliación para tu gestoría.',
+    generate: {
+      title: 'Generar Archivos de Exportación',
+      description: 'Exporta tus datos de conciliación como archivos CSV para uso externo.',
+    },
     cta: 'Generar Exportación',
     generating: 'Generando exportación...',
     empty: 'Aún no se han generado exportaciones para este mes.',
+    blocking: {
+      selectMonth: 'Selecciona un cierre mensual para generar exportaciones.',
+    },
+    errors: {
+      title: 'Error',
+      generateFailed: 'No se pudieron generar las exportaciones. Inténtalo de nuevo.',
+    },
+    draftWarning: {
+      title: 'Exportación en Borrador',
+      description: 'Este mes no está finalizado. Los datos exportados pueden cambiar.',
+    },
     table: {
       file: 'Archivo',
+      rows: 'Filas',
       generated: 'Generado',
       actions: 'Acciones',
     },
@@ -366,7 +382,9 @@ export const es: Dict = {
     tenant: {
       title: 'Configuración del Negocio',
       name: 'Nombre del Negocio',
+      namePlaceholder: 'The Local Pour',
       timezone: 'Zona Horaria',
+      timezonePlaceholder: 'Selecciona zona horaria',
       currency: 'Moneda por Defecto',
       save: 'Guardar Cambios',
     },

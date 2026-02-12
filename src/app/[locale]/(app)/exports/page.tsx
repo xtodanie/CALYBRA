@@ -22,7 +22,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Loader2, Download, FileText, AlertTriangle, ChevronRight } from 'lucide-react';
-import { formatDate, formatMoney } from '@/i18n/format';
+import { formatDate } from '@/i18n/format';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -99,7 +99,7 @@ const BlockingState = ({ t }: { t: ReturnType<typeof useT> }) => (
     </div>
     <Card className="border-amber-500">
       <CardContent className="p-4 text-amber-700">
-        Please select a month close to generate exports.
+        {t.exports.blocking.selectMonth}
       </CardContent>
     </Card>
   </div>
@@ -286,11 +286,11 @@ export default function ExportsPage() {
       setExports(generatedExports);
     } catch (err) {
       console.error('Error generating exports:', err);
-      setError('Failed to generate exports. Please try again.');
+      setError(t.exports.errors.generateFailed);
     } finally {
       setIsGenerating(false);
     }
-  }, [user?.tenantId, user?.activeMonthCloseId, monthClose?.status]);
+  }, [user?.tenantId, user?.activeMonthCloseId, monthClose?.status, t.exports.errors.generateFailed]);
 
   // Download handler
   const handleDownload = useCallback((exportFile: ExportFile) => {
@@ -318,16 +318,16 @@ export default function ExportsPage() {
           {error && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
+              <AlertTitle>{t.exports.errors.title}</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
 
           <Card>
             <CardHeader>
-              <CardTitle>Generate Export Files</CardTitle>
+              <CardTitle>{t.exports.generate.title}</CardTitle>
               <CardDescription>
-                Export your reconciliation data as CSV files for external use.
+                {t.exports.generate.description}
               </CardDescription>
               <div className="flex items-start gap-4 pt-4">
                 <Button onClick={handleGenerate} disabled={isGenerating}>
@@ -341,9 +341,9 @@ export default function ExportsPage() {
                 {!isFinalized && (
                   <Alert variant="default" className="w-auto border-amber-500">
                     <AlertTriangle className="h-4 w-4 text-amber-600" />
-                    <AlertTitle className="text-amber-700">Draft Export</AlertTitle>
+                    <AlertTitle className="text-amber-700">{t.exports.draftWarning.title}</AlertTitle>
                     <AlertDescription className="text-amber-600">
-                      This month is not finalized. Export data may change.
+                      {t.exports.draftWarning.description}
                     </AlertDescription>
                   </Alert>
                 )}
@@ -360,7 +360,7 @@ export default function ExportsPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>{t.exports.table.file}</TableHead>
-                      <TableHead>Rows</TableHead>
+                      <TableHead>{t.exports.table.rows}</TableHead>
                       <TableHead>{t.exports.table.generated}</TableHead>
                       <TableHead className="text-right">{t.exports.table.actions}</TableHead>
                     </TableRow>

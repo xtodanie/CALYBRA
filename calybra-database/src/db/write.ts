@@ -21,13 +21,13 @@ interface WriteContext {
 /**
  * Creates a new document in a collection with validated data.
  * - Enforces schema validation via Zod.
- * - Automatically adds server-managed fields (`tenantId`, `schemaVersion`, `createdAt`, `updatedAt`).
+ * - Automatically adds server-managed fields.
  *
- * @param collectionPath The path to the Firestore collection.
- * @param data The client-provided payload to validate.
- * @param schema The Zod schema for creation.
- * @param context An object containing the actor's UID and tenant ID.
- * @returns The ID of the newly created document.
+ * @param {string} collectionPath The path to the Firestore collection.
+ * @param {unknown} data The client-provided payload to validate.
+ * @param {T} schema The Zod schema for creation.
+ * @param {WriteContext} context An object with actor's UID and tenant ID.
+ * @return {Promise<string>} The ID of the newly created document.
  * @throws {ValidationError} if the data does not conform to the schema.
  */
 export async function createDoc<T extends z.ZodType>(
@@ -61,14 +61,14 @@ export async function createDoc<T extends z.ZodType>(
  * Updates an existing document with validated data.
  * - Enforces schema validation for the update payload.
  * - Automatically updates the `updatedAt` and `updatedBy` fields.
- * - Prevents modification of immutable fields (`tenantId`, `createdAt`).
+ * - Prevents modification of immutable fields.
  *
- * @param docPath The full path to the Firestore document.
- * @param data The client-provided payload for the update.
- * @param schema The Zod schema for updates (should be partial).
- * @param context An object containing the actor's UID and tenant ID.
+ * @param {string} docPath The full path to the Firestore document.
+ * @param {unknown} data The client-provided payload for the update.
+ * @param {T} schema The Zod schema for updates (should be partial).
+ * @param {WriteContext} context An object with actor's UID and tenant ID.
+ * @return {Promise<void>} Resolves when update completes.
  * @throws {ValidationError} if the update data does not conform to the schema.
- * @throws {AuthorizationError} if the actor's tenantId does not match the document's tenantId.
  */
 export async function updateDoc<T extends z.ZodType>(
   docPath: string,

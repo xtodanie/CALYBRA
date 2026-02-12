@@ -36,8 +36,7 @@ This exception applies only to immutable historical entries in `agent/RELEASE.md
 - ADR-0012: Phase 3 - UX-Driven Orchestration Layer
 - ADR-0013: Observability 2030 Enhancements (Async Context, OTEL Export, Streaming, Privacy, SLO)
 - ADR-0014: Jobs + Exports + Auditor Replay Pathing
-- ADR-0015: Server-Authoritative Ingestion Pipeline
----
+- ADR-0015: Server-Authoritative Ingestion Pipeline- ADR-0016: Comprehensive Agent Self-Improvement System---
 
 ## ADR-0001: Tenant Isolation is Non-Negotiable
 **Status:** Accepted  
@@ -381,3 +380,49 @@ Rollback approach:
 - `git revert <sha>` to remove ingestion.ts changes.
 - `firebase deploy --only functions` to redeploy without ingestion.
 - Upload page would need revert as well (jobs would fail silently until fixed).
+
+---
+
+## ADR-0016: Comprehensive Agent Self-Improvement System
+**Status:** Accepted  
+**Decision:**
+Implement a comprehensive self-improvement system for agents comprising 11 interconnected components:
+
+1. **SELF_IMPROVEMENT.md** - Master architecture (OMAR cycle: Observe, Measure, Analyze, Adapt)
+2. **SELF_EVAL.md** - Post-task reflection with 5-dimension scoring
+3. **METRICS.md** - Quantitative performance tracking (tasks, tools, accuracy)
+4. **FEEDBACK_LOG.md** - Structured user correction capture and analysis
+5. **PATTERNS.md** - Reusable solution catalog indexed by problem type
+6. **ESTIMATION.md** - Complexity prediction calibration (predicted vs actual)
+7. **TOOL_PRIORS.md** - Tool selection optimization through learned success rates
+8. **DEPENDENCY_MAP.md** - System impact relationships for blast radius prediction
+9. **CONFIDENCE_LOG.md** - Certainty calibration (Brier score tracking)
+10. **SKILLS.md** - Capability certification with evidence-based leveling (0-5)
+11. **FAILURE_MODES.md** - Failure class taxonomy (regressions are instances; modes are patterns)
+
+Integration points:
+- AGENT_ROUTING.md updated with 9-step pre-work and 11-step post-work protocols
+- MEMORY.md updated with cross-references to self-improvement components
+- Each component has explicit integration with related components
+
+**Rationale:**
+- Prevents duplicate debugging cycles
+- Enables data-driven tool selection
+- Calibrates confidence and estimation accuracy
+- Compounds knowledge across sessions
+- Certifies capabilities with evidence
+
+**Consequences:**
+- Agents have more documentation to consult (offset by improved efficiency)
+- More artifacts to maintain (offset by structured formats)
+- Quantitative tracking enables trend analysis
+
+**Proof requirements:**
+- `node scripts/truth.mjs` PASS
+- `node scripts/consistency.mjs` PASS
+- All new files syntactically valid markdown
+
+**Rollback approach:**
+- Delete new agent/*.md files
+- Revert AGENT_ROUTING.md, MEMORY.md, DECISIONS.md changes
+- No runtime impact (documentation-only change)

@@ -196,6 +196,23 @@ This is the execution backlog. Work-in-progress belongs here. Nothing is “ship
 
 ---
 
+## P2: Design System Migration (Tokens + UI Normalization)
+
+### SSI-0110: Phase 4-7 Token Adoption (Core UI)
+- [x] Implement radius tokens (4/8/12/16) in globals + Tailwind
+- [x] Update typography scale (display/h1/h2/h3/body-lg/body/caption/overline)
+- [x] Normalize core UI components (button/input/textarea/card/dialog/alert-dialog/table/badge)
+- [x] Normalize overlays/menus (dropdown/select/popover/tooltip/toast)
+- [x] Normalize dashboard cards (bank-vs-invoices, pending-items, suppliers)
+**Proof**
+- [x] `node scripts/truth.mjs` -> PASS
+- [x] `node scripts/consistency.mjs` -> PASS
+- [x] `npm run lint` -> PASS (warn: unused formatMoney in exports page)
+- [x] `npm run typecheck` -> PASS (R-0001 resolved: Next.js 15 params Promise fix)
+- [x] `firebase emulators:exec --only firestore "npm test"` -> 569 passed, 0 failed (R-0002 resolved)
+
+---
+
 ## P0/P1: Invariant Test Suite (Automated Regression Prevention)
 
 ### SSI-0040: Add Invariant Tests Harness

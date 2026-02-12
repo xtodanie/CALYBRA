@@ -149,3 +149,93 @@ For any release that ships user-facing changes:
 - record which eval sets were run
 - record PASS/FAIL and summaries
 - do not write RELEASE if proof is not PASS
+
+---
+
+## Recent Execution Records
+
+### 2026-02-12 — SSI: Emulator Stabilization + GP Register + App Hosting Attempt
+- E0 Repo Truth & Drift: PASS
+  - `npm run truth-lock` PASS (`TRUTH_LOCK: PASSED.` and `CONSISTENCY: PASSED.`)
+- E1/E2/E3 Security + Status + Forbidden Fields: PASS
+  - `firebase emulators:exec --only firestore "npm test"` PASS (36 suites, 570 tests passed)
+  - `npx firebase emulators:exec "node scripts/step4_readmodel_audit.mjs" --project demo-calybra` PASS (7 PASS, 0 FAIL)
+- Local Operational Check: PASS
+  - Emulator ports listening (9099/8085/9199/5001)
+  - App endpoint reachable (`http://127.0.0.1:9002` HTTP 200)
+  - Auth emulator reachable (`http://127.0.0.1:9099` HTTP 200)
+- App Hosting Rollout: PARTIAL
+  - `firebase apphosting:backends:list` PASS (backend `calybra-prod` exists)
+  - `firebase apphosting:rollouts:create calybra-prod --git-branch main --force` FAIL (missing connected repository)
+  - Fallback `firebase deploy` PASS (storage/firestore/functions surfaces deployed; unchanged functions skipped)
+- Golden Paths Register: PARTIAL
+  - `agent/GOLDEN_PATHS/INDEX.md` updated with GP-01..GP-05 run status
+  - Manual UI walkthrough remains required to close E5 gate
+
+Release gating outcome: NOT READY for full production sign-off until App Hosting repository linkage is completed and all GP manual checks are marked PASS.
+
+### 2026-02-12 — SSI: Login Error Mapping for Firebase Invalid Credentials
+- E4 Build & Toolchain Stability: PASS
+  - `npm run typecheck` PASS (`tsc --noEmit` clean)
+- Regression Safety Tests: PASS
+  - `runTests` (mode: run) PASS (446 passed, 0 failed)
+
+Release gating outcome: READY for this SSI.
+
+### 2026-02-12 — SSI: Local Firestore/Auth Offline Error Guard
+- E0 Repo Truth & Drift: PASS
+  - `npm run truth-lock` PASS (`TRUTH_LOCK: PASSED.` and `CONSISTENCY: PASSED.`)
+- E4 Build & Toolchain Stability: PASS
+  - `npm run typecheck` PASS (`tsc --noEmit` clean)
+- Regression Safety Tests: PASS
+  - `runTests` (mode: run) PASS (446 passed, 0 failed)
+
+Release gating outcome: READY for this SSI.
+
+### 2026-02-12 — SSI: i18n Parity Audit + Exports/Settings UX Polish
+- E0 Repo Truth & Drift: PASS
+  - `node scripts/truth.mjs` PASS (`TRUTH_LOCK: PASSED.`)
+  - `node scripts/consistency.mjs` PASS (`CONSISTENCY: PASSED.`)
+- E4 Build & Toolchain Stability: PASS
+  - `npm run lint` PASS (no warnings/errors)
+  - `npm run typecheck` PASS (`tsc --noEmit` clean)
+- i18n Parity Gate: PASS
+  - `runTests` on `tests/i18n-parity.test.ts` PASS (1/1 test)
+- E1/E2/E3 Baseline Rules/Invariant Suite: PASS
+  - `firebase emulators:exec --only firestore "npm test"` PASS (36 suites, 570 tests passed)
+
+Release gating outcome: READY for this SSI.
+- SSI scope: parity fixes + targeted copy/UX polish only.
+- Explicitly out of scope (follow-on SSIs): manual golden paths, broader UX harmonization, remaining non-localized runtime messaging.
+- Workspace note: large unrelated pre-existing changes remain present and were not modified by this SSI.
+- Recommended next SSI: app-wide hardcoded toast/error copy extraction + i18n key rollout + parity test expansion.
+
+### 2026-02-12 — SSI: Month-Close Flow Exception Wiring + Step4 Audit Hygiene
+- E0 Repo Truth & Drift: PASS
+  - `node scripts/truth.mjs` PASS (`TRUTH_LOCK: PASSED.`)
+  - `node scripts/consistency.mjs` PASS (`CONSISTENCY: PASSED.`)
+- E1/E2/E3 Security + Status + Forbidden Fields: PASS
+  - `firebase emulators:exec --only firestore "npm test"` PASS (35 suites, 569 tests passed)
+- E4 Build & Toolchain Stability: PASS
+  - `npm run lint` PASS (no warnings/errors)
+  - `npm run typecheck` PASS (`tsc --noEmit` clean)
+- Targeted Audit Proof: PASS
+  - `npx firebase emulators:exec "node scripts/step4_readmodel_audit.mjs" --project demo-calybra`
+  - Result: 7 PASS, 0 FAIL
+
+Release gating outcome: READY for this SSI. Larger product-completion SSIs remain open.
+
+### 2026-02-12 — Deploy Continuation Record
+- E4 Build & Toolchain Stability: PASS
+  - `npm run truth-lock` PASS
+  - `npm run typecheck` PASS
+  - `firebase emulators:exec --only firestore "npm test"` PASS (latest run: 569 pass, 0 fail)
+- Deployment Proof (Operational): PARTIAL
+  - `firebase deploy --only functions` PASS
+  - App Hosting deploy via deprecated command FAIL (`apphosting:backends:deploy` not supported)
+  - `apphosting:backends:create` PASS
+  - `apphosting:rollouts:create` FAIL due to missing GitHub repository connection
+- E5 Golden Paths: FAIL (incomplete)
+  - GP-01 manual onboarding proof pending (live sign-in + tenant creation not yet executed)
+
+Release gating outcome: NOT READY for full production sign-off until App Hosting rollout PASS and GP-01 manual proof PASS.

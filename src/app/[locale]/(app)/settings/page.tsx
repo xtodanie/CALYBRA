@@ -49,13 +49,13 @@ export default function SettingsPage() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="business-name">{t.settings.tenant.name}</Label>
-            <Input id="business-name" defaultValue="The Local Pour" />
+            <Input id="business-name" defaultValue={t.settings.tenant.namePlaceholder} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="timezone">{t.settings.tenant.timezone}</Label>
             <Select defaultValue="europe-madrid">
               <SelectTrigger id="timezone" className="w-[280px]">
-                <SelectValue placeholder="Select timezone" />
+                <SelectValue placeholder={t.settings.tenant.timezonePlaceholder} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="europe-madrid">Europe/Madrid</SelectItem>
@@ -91,7 +91,7 @@ export default function SettingsPage() {
             </div>
             <div className="space-y-2">
                  <Label>{t.settings.user.role}</Label>
-                 <Input defaultValue="OWNER" disabled />
+                <Input defaultValue={t.roles.OWNER} disabled />
             </div>
         </CardContent>
       </Card>

@@ -36,12 +36,12 @@ export function PendingItemsCard({ items, onItemClick }: PendingItemsCardProps) 
   };
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-border bg-card shadow-card">
+    <div className="relative overflow-hidden rounded-lg border border-border bg-card shadow-card">
       {/* Subtle inner highlight */}
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-neutral-50/5 to-transparent" />
       
       <div className="p-8">
-        <h3 className="mb-6 text-card-title font-semibold text-foreground">
+        <h3 className="mb-6 text-h3 font-semibold text-foreground">
           {t.dashboard.pendingItems.title}
         </h3>
 
@@ -57,7 +57,7 @@ export function PendingItemsCard({ items, onItemClick }: PendingItemsCardProps) 
             >
               {/* Critical indicator line */}
               {item.critical && (
-                <span className="absolute left-0 top-1/2 h-6 w-0.5 -translate-y-1/2 rounded-full bg-destructive" />
+                <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-full bg-destructive" />
               )}
 
               <div className="flex items-center gap-3">
@@ -80,7 +80,7 @@ export function PendingItemsCard({ items, onItemClick }: PendingItemsCardProps) 
           ))}
 
           {items.length === 0 && (
-            <p className="py-4 text-center text-label text-muted-foreground">
+            <p className="py-4 text-center text-caption text-muted-foreground">
               No pending items
             </p>
           )}

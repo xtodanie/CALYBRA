@@ -78,6 +78,7 @@ export interface MonthCloseFlowProps {
     unmatchedBankCount: number;
     unmatchedInvoiceCount: number;
     openExceptionsCount: number;
+    highExceptionsCount?: number;
     bankTotal: number;
     invoiceTotal: number;
     matchedTotal: number;
@@ -149,7 +150,7 @@ export function MonthCloseFlow({
     return selectMonthCloseState(
       monthClose,
       aggregates?.openExceptionsCount ?? 0,
-      0 // TODO: high priority count
+      aggregates?.highExceptionsCount ?? 0
     );
   }, [monthClose, aggregates]);
 
@@ -368,7 +369,7 @@ export function MonthCloseFlow({
         role,
         monthCloseStatus: monthClose.status,
         openExceptionsCount: aggregates?.openExceptionsCount ?? 0,
-        highExceptionsCount: 0,
+        highExceptionsCount: aggregates?.highExceptionsCount ?? 0,
       }
     );
 
@@ -485,7 +486,11 @@ export function useMonthCloseFlow(
   functions: Functions,
   tenantId: string,
   monthCloseId: string | undefined,
-  monthCloseStatus: MonthCloseStatus | undefined
+  monthCloseStatus: MonthCloseStatus | undefined,
+  exceptionCounts?: {
+    openExceptionsCount?: number;
+    highExceptionsCount?: number;
+  }
 ) {
   const { user } = useAuth();
   const [state, setState] = useState<MonthCloseFlowState>(INITIAL_STATE);
@@ -536,7 +541,12 @@ export function useMonthCloseFlow(
     const result = await executeFinalizeMonth(
       functions,
       { monthCloseId, tenantId },
-      { role, monthCloseStatus, openExceptionsCount: 0, highExceptionsCount: 0 }
+      {
+        role,
+        monthCloseStatus,
+        openExceptionsCount: exceptionCounts?.openExceptionsCount ?? 0,
+        highExceptionsCount: exceptionCounts?.highExceptionsCount ?? 0,
+      }
     );
 
     if (result.success) {
@@ -557,7 +567,7 @@ export function useMonthCloseFlow(
       }));
       throw result.error;
     }
-  }, [functions, monthCloseId, tenantId, monthCloseStatus, role]);
+  }, [functions, monthCloseId, tenantId, monthCloseStatus, role, exceptionCounts]);
 
   return {
     state,

@@ -61,6 +61,352 @@ Use semantic versioning when you start shipping externally. Until then, use incr
 
 ## Releases
 
+### 2026-02-12 — Release 0021
+**Scope**
+- Surfaces: Ops / Golden Paths Docs / Release Evidence
+- Risk: P1
+
+**Summary**
+- Brought up full local emulator stack and validated local app/auth connectivity.
+- Attempted App Hosting rollout closure; blocked by missing GitHub repository linkage on backend.
+- Executed fallback deploy from local source for deployable surfaces and registered GP-01..GP-05 status in the Golden Paths index.
+
+**Changes**
+- `agent/GOLDEN_PATHS/INDEX.md`:
+  - Added latest GP execution table with PASS/PARTIAL/BLOCKED evidence and closure criteria.
+- `agent/EVALS.md`:
+  - Added execution record for emulator stabilization, test proofs, rollout attempt, and fallback deploy.
+- Operational execution:
+  - `firebase apphosting:backends:list` confirmed backend `calybra-prod` exists.
+  - `firebase apphosting:rollouts:create calybra-prod --git-branch main --force` failed due to missing repository connection.
+  - `firebase deploy` completed successfully for storage/firestore/functions surfaces.
+
+**Proof (Executed)**
+- Command: emulator port verification (9099, 8085, 9199, 5001)
+  - Result: PASS
+  - Output summary: all required emulator ports listening.
+- Command: local endpoint checks
+  - Result: PASS
+  - Output summary: app `http://127.0.0.1:9002` HTTP 200; auth emulator `http://127.0.0.1:9099` HTTP 200.
+- Command: `firebase apphosting:backends:list`
+  - Result: PASS
+  - Output summary: backend `calybra-prod` listed.
+- Command: `firebase apphosting:rollouts:create calybra-prod --git-branch main --force`
+  - Result: FAIL (expected blocker)
+  - Output summary: backend missing connected repository.
+- Command: `firebase deploy`
+  - Result: PASS
+  - Output summary: deploy complete; storage/firestore released; unchanged functions skipped.
+
+**Rollback**
+- Revert:
+  - `git revert <sha>`
+- Redeploy:
+  - `firebase deploy --only firestore:rules,storage,functions`
+- Validate:
+  - `npm run truth-lock`
+  - `firebase emulators:exec --only firestore "npm test"`
+
+**Notes**
+- Full production closure remains blocked until App Hosting backend has repository linkage and all manual Golden Paths are marked PASS.
+
+### 2026-02-12 — Release 0020
+**Scope**
+- Surfaces: UI / i18n mapping / Docs
+- Risk: P3
+
+**Summary**
+- Fixed login error handling so common Firebase invalid-credentials codes show the expected localized message instead of the generic unexpected error.
+
+**Changes**
+- `src/components/auth/auth-form.tsx`:
+  - Expanded auth error-code mapping for login failures to include `auth/invalid-login-credentials` and `auth/invalid-email`.
+  - Preserved existing behavior for `auth/email-already-in-use` and default fallback.
+- `agent/EVALS.md`:
+  - Added execution proof record for this SSI.
+
+**Proof (Executed)**
+- Command: `npm run typecheck`
+  - Result: PASS
+  - Output summary: `tsc --noEmit` completed with no errors.
+- Command: `runTests` (mode: run)
+  - Result: PASS
+  - Output summary: 446 passed, 0 failed.
+
+**Rollback**
+- Revert:
+  - `git revert <sha>`
+- Redeploy:
+  - `firebase deploy --only hosting`
+- Validate:
+  - `npm run typecheck`
+  - `runTests` (mode: run)
+
+**Notes**
+- This SSI is scoped to client-side error message mapping only and does not alter auth provider behavior, Firestore rules, or server transitions.
+
+### 2026-02-12 — Release 0019
+**Scope**
+- Surfaces: UI / Client Firebase Config / Docs
+- Risk: P1
+
+**Summary**
+- Fixed local Firestore offline/auth-token console errors when running on localhost without explicitly setting `NEXT_PUBLIC_USE_EMULATORS=true`.
+- Localhost now auto-connects to emulators in non-production unless explicitly disabled.
+
+**Changes**
+- `src/lib/firebaseClient.ts`:
+  - Updated `shouldUseEmulators()` to default to emulator usage on `localhost`/`127.0.0.1` in non-production.
+  - Added explicit opt-out support via `NEXT_PUBLIC_USE_EMULATORS=false|0|no`.
+  - Preserved existing production safeguard (`NODE_ENV === "production"` disables emulator wiring).
+- `agent/EVALS.md`:
+  - Added execution record for this SSI.
+
+**Proof (Executed)**
+- Command: `npm run truth-lock`
+  - Result: PASS
+  - Output summary: `TRUTH_LOCK: PASSED.` and `CONSISTENCY: PASSED.`
+- Command: `npm run typecheck`
+  - Result: PASS
+  - Output summary: `tsc --noEmit` completed with no errors.
+- Command: `runTests` (mode: run)
+  - Result: PASS
+  - Output summary: 446 passed, 0 failed.
+
+**Rollback**
+- Revert:
+  - `git revert <sha>`
+- Redeploy:
+  - `firebase deploy --only hosting`
+- Validate:
+  - `npm run truth-lock`
+  - `npm run typecheck`
+  - `runTests` (mode: run)
+
+**Notes**
+- This change is limited to local client initialization behavior and does not modify Firestore rules, server transitions, or persisted schemas.
+
+### 2026-02-12 — Release 0018
+**Scope**
+- Surfaces: UI / i18n / Tests / Docs
+- Risk: P1
+
+**Summary**
+- Completed SSI for i18n parity hardening and targeted UX copy polish across app pages.
+- Removed hardcoded English copy from exports/settings UI paths and moved them to locale dictionaries.
+- Added automated `en`/`es` leaf-key parity test to prevent future dictionary drift.
+
+**Changes**
+- `src/i18n/en.ts` and `src/i18n/es.ts`:
+  - Added new keys for exports UX (`generate`, `blocking`, `errors`, `draftWarning`, `table.rows`).
+  - Added settings tenant placeholders (`namePlaceholder`, `timezonePlaceholder`).
+- `src/app/[locale]/(app)/exports/page.tsx`:
+  - Replaced hardcoded strings in blocking/error/generate/draft-warning/table-header states with i18n keys.
+  - Localized generate failure message using dictionary key.
+- `src/app/[locale]/(app)/settings/page.tsx`:
+  - Replaced hardcoded placeholder and role label with i18n-backed values (`t.settings.tenant.*`, `t.roles.OWNER`).
+- `tests/i18n-parity.test.ts`:
+  - Added dictionary leaf-key parity test (`en` vs `es`).
+
+**Proof (Executed)**
+- Command: `node scripts/truth.mjs`
+  - Result: PASS
+  - Output summary: `TRUTH_LOCK: PASSED.`
+- Command: `node scripts/consistency.mjs`
+  - Result: PASS
+  - Output summary: `CONSISTENCY: PASSED.`
+- Command: `npm run lint`
+  - Result: PASS
+  - Output summary: No ESLint warnings or errors.
+- Command: `npm run typecheck`
+  - Result: PASS
+  - Output summary: `tsc --noEmit` completed with no errors.
+- Command: `runTests` (`tests/i18n-parity.test.ts`)
+  - Result: PASS
+  - Output summary: 1 test passed.
+- Command: `firebase emulators:exec --only firestore "npm test"`
+  - Result: PASS
+  - Output summary: 36 passed suites, 570 passed tests, 0 failed.
+
+**Rollback**
+- Revert:
+  - `git revert <sha>`
+- Redeploy:
+  - `firebase deploy --only hosting,firestore:rules,functions`
+- Validate:
+  - `npm run typecheck`
+  - `npm run lint`
+  - `firebase emulators:exec --only firestore "npm test"`
+
+**Notes**
+- SSI scope: parity fixes + targeted copy/UX polish only.
+- No “finish everything” claim. Remaining work is explicitly out of scope and tracked for follow-on SSIs.
+- Explicitly out of scope (additional SSIs required):
+  - Manual golden-path validation
+  - Broader UX harmonization across flows
+  - Remaining non-localized runtime messaging (toasts/errors/etc.)
+- Workspace note: large, unrelated workspace changes pre-existed and remain present; this SSI did not modify those changes.
+- Recommended next SSI: app-wide hardcoded toast/error copy extraction, i18n key rollout, and parity test expansion.
+
+---
+
+### 2026-02-12 — Release 0017
+**Scope**
+- Surfaces: UI / Scripts / Tests / Docs
+- Risk: P1
+
+**Summary**
+- Completed SSI to remove month-close exception-count gaps and eliminate lint drift.
+- Wired high-exception counts into finalize guard paths instead of hardcoded `0` values.
+- Validated readmodel snapshot audit script end-to-end in emulator after cleanup.
+
+**Changes**
+- `src/client/ui/flows/MonthCloseFlow.tsx`:
+  - Added `highExceptionsCount?: number` to `aggregates` contract.
+  - Replaced TODO/hardcoded high-exception values with `aggregates?.highExceptionsCount ?? 0`.
+  - Extended `useMonthCloseFlow(...)` to accept optional `exceptionCounts` and pass them into finalize guard context.
+- `scripts/step4_readmodel_audit.mjs`:
+  - Removed unused `getAuth` import (auth emulator remains configured through env vars).
+- `src/app/[locale]/(app)/exports/page.tsx`:
+  - Removed unused `formatMoney` import to clear lint warning.
+- `agent/EVALS.md`:
+  - Added execution record for this SSI.
+
+**Proof (Executed)**
+- Command: `node scripts/truth.mjs`
+  - Result: PASS
+  - Output summary: `TRUTH_LOCK: PASSED.`
+- Command: `node scripts/consistency.mjs`
+  - Result: PASS
+  - Output summary: `CONSISTENCY: PASSED.`
+- Command: `npm run lint`
+  - Result: PASS
+  - Output summary: No ESLint warnings or errors.
+- Command: `npm run typecheck`
+  - Result: PASS
+  - Output summary: `tsc --noEmit` completed with no errors.
+- Command: `firebase emulators:exec --only firestore "npm test"`
+  - Result: PASS
+  - Output summary: 35 passed suites, 569 passed tests, 0 failed.
+- Command: `npx firebase emulators:exec "node scripts/step4_readmodel_audit.mjs" --project demo-calybra`
+  - Result: PASS
+  - Output summary: `STEP 4 AUDIT COMPLETE: 7 PASS, 0 FAIL`.
+
+**Rollback**
+- Revert:
+  - `git revert <sha>`
+- Redeploy:
+  - `firebase deploy --only firestore:rules,functions`
+- Validate:
+  - `node scripts/truth.mjs`
+  - `node scripts/consistency.mjs`
+  - `firebase emulators:exec --only firestore "npm test"`
+
+**Notes**
+- This release closes the targeted SSI only. “Finish the entire app” remains a multi-SSI track and should proceed by module (Auth, Month Close UX, Exports, i18n parity, golden-path manual proofs).
+
+---
+
+### 2026-02-12 — Release 0016
+**Scope**
+- Surfaces: Functions / App Hosting / Deployment Docs
+- Risk: P1
+
+**Summary**
+- Production functions deploy completed successfully on `studio-5801368156-a6af7`.
+- App Hosting deploy flow was corrected for current Firebase CLI (`apphosting:backends:deploy` is invalid).
+- App Hosting backend `calybra-prod` was created, but rollout is blocked until GitHub repository connection is configured.
+
+**Changes**
+- `docs/PRODUCTION_DEPLOY.md`:
+  - Replaced deprecated App Hosting command with current CLI flow:
+    - `apphosting:backends:create` (one-time)
+    - `apphosting:rollouts:create` (GitHub-connected deploy)
+    - `firebase deploy` fallback for local-source deploy
+
+**Proof (Executed)**
+- Command: `firebase deploy --only functions`
+  - Result: PASS
+  - Output summary: Deploy complete; functions unchanged and verified in project `studio-5801368156-a6af7`.
+- Command: `firebase apphosting:backends:deploy`
+  - Result: FAIL
+  - Output summary: Command not recognized by current Firebase CLI.
+- Command: `firebase apphosting:backends:list --json`
+  - Result: PASS
+  - Output summary: No App Hosting backends existed before setup.
+- Command: `firebase apphosting:backends:create --non-interactive --backend calybra-prod --primary-region us-central1 --app 1:906717259577:web:fc857f518932eba1156ae8 --root-dir .`
+  - Result: PASS
+  - Output summary: Backend created at `projects/studio-5801368156-a6af7/locations/us-central1/backends/calybra-prod`.
+- Command: `firebase apphosting:rollouts:create calybra-prod --git-commit 4a874ae --force`
+  - Result: FAIL
+  - Output summary: Backend missing connected GitHub repository; rollout blocked.
+
+**Rollback**
+- Revert:
+  - `git revert <sha>`
+- Redeploy:
+  - `firebase deploy --only functions`
+- Validate:
+  - `firebase functions:list`
+  - `firebase apphosting:backends:get calybra-prod`
+
+**Notes**
+- GP-01 manual onboarding proof remains pending because it requires interactive browser sign-in and Firestore verification by a human operator.
+- Do not mark production release done until App Hosting rollout succeeds and GP-01 evidence is recorded.
+
+---
+
+### 2026-02-12 — Release 0015
+**Scope**
+- Surfaces: UI / Tests
+- Risk: P2
+
+**Summary**
+- Fixed Next.js 15 PageProps type constraint error (R-0001 RESOLVED)
+- Fixed server-only-writes tests missing monthCloseId field (R-0002 RESOLVED)
+- Full proof pipeline now passes: 569 tests, 0 failures
+
+**Changes**
+- `src/app/[locale]/(app)/month-closes/[id]/page.tsx`:
+  - Added `use` import from React
+  - Changed params type from `{ id: string }` to `Promise<{ id: string }>`
+  - Used React `use()` hook to unwrap params Promise
+- `tests/invariants/server-only-writes.test.ts`:
+  - Added monthCloseId constant
+  - Created monthClose document in test setup
+  - Added monthCloseId to test data for invoices, bankTx, matches, exceptions
+
+**Proof (Executed)**
+- Command: `node scripts/truth.mjs`
+  - Result: PASS
+  - Output summary: TRUTH_LOCK: PASSED
+- Command: `node scripts/consistency.mjs`
+  - Result: PASS
+  - Output summary: CONSISTENCY: PASSED
+- Command: `npm run lint`
+  - Result: PASS
+  - Output summary: Warning for unused formatMoney in exports page
+- Command: `npm run typecheck`
+  - Result: PASS
+  - Output summary: tsc --noEmit completed with no errors
+- Command: `firebase emulators:exec --only firestore "npm test"`
+  - Result: PASS
+  - Output summary: 569 passed, 0 failed
+
+**Rollback**
+- Revert:
+  - `git revert <sha>`
+- Redeploy:
+  - `npm run build`
+- Validate:
+  - npm run typecheck
+  - firebase emulators:exec --only firestore "npm test"
+
+**Notes**
+- Phase 4-7 token adoption is now unblocked with full proof pipeline passing
+
+---
+
 ### 2025-01-XX — Release 0007 (MVP Pivot - Operator-First)
 **Scope**
 - Surfaces: UI / Functions / Docs
@@ -198,6 +544,45 @@ Use semantic versioning when you start shipping externally. Until then, use incr
 
 **Proof (Executed)**
 - Command: `node -v`
+---
+
+### 2026-02-12 — Release 0008
+**Scope**
+- Surfaces: UI / Design Tokens / Docs
+- Risk: P2
+
+**Summary**
+- Added token architecture modules (colors, semantics, shadows, spacing, radius, typography).
+- Replaced global CSS variables with token-driven palette, semantic mappings, and elevation vars.
+- Extended Tailwind colors and shadow aliases for token usage and chart palette.
+
+**Changes**
+- Added design token modules in [src/design/tokens](src/design/tokens).
+- Added token exports in [src/design/index.ts](src/design/index.ts).
+- Updated global CSS variables in [src/app/globals.css](src/app/globals.css).
+- Updated Tailwind theme colors and shadows in [tailwind.config.ts](tailwind.config.ts).
+
+**Proof (Executed)**
+- Command: `npm run lint`
+  - Result: PASS
+  - Output summary: ESLint warning for unused `formatMoney` in [src/app/[locale]/(app)/exports/page.tsx](src/app/[locale]/(app)/exports/page.tsx#L25).
+- Command: `npm run typecheck`
+  - Result: FAIL
+  - Output summary: Pre-existing Next.js types issue in `.next/types/app/[locale]/(app)/month-closes/[id]/page.ts` about `PageProps` constraint.
+- Command: `npm test`
+  - Result: PASS
+  - Output summary: 445 tests passed.
+
+**Rollback**
+- Revert:
+  - `git revert <sha>`
+- Redeploy:
+  - `npm run build && firebase deploy`
+- Validate:
+  - run the same proof commands again
+
+**Notes**
+- Typecheck failure is pre-existing and not introduced by this change set.
   - Result: PASS
   - Output summary: Node available.
 - Command: `npm -v`

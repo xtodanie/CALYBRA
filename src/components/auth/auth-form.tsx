@@ -85,7 +85,13 @@ export function AuthForm({ type }: AuthFormProps) {
       let message = t.auth.errors.default;
       if (err.code === 'auth/email-already-in-use') {
         message = t.auth.errors.emailInUse;
-      } else if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+      } else if (
+        err.code === 'auth/invalid-credential' ||
+        err.code === 'auth/invalid-login-credentials' ||
+        err.code === 'auth/wrong-password' ||
+        err.code === 'auth/user-not-found' ||
+        err.code === 'auth/invalid-email'
+      ) {
         message = t.auth.errors.invalidCredentials;
       }
       toast({
