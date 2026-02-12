@@ -61,6 +61,51 @@ Use semantic versioning when you start shipping externally. Until then, use incr
 
 ## Releases
 
+### 2026-02-12 — Release 0023
+**Scope**
+- Surfaces: App Hosting Config / Security / DevOps
+- Risk: P1
+
+**Summary**
+- Made App Hosting env vars explicit in `apphosting.yaml` (no longer depends on committed `.env.local`).
+- Removed `.env.local` from git tracking (contained `GEMINI_API_KEY`).
+- Deleted orphaned `calybra-prod` (us-central1) backend.
+
+**Changes**
+- `apphosting.yaml`: added `env` section with all `NEXT_PUBLIC_*` vars + `NEXT_PUBLIC_USE_EMULATORS=false`
+- `.gitignore`: added `.env.local`, `.env*.local`
+- `.env.local.example`: created for dev onboarding
+- `.env.local`: removed from tracking (`git rm --cached`)
+- `calybra-prod` backend: deleted via `firebase apphosting:backends:delete`
+
+**Proof (Executed)**
+- Command: `npx next build`
+  - Result: PASS
+  - Output: 33/33 pages, 0 errors
+- Command: `git push origin master`
+  - Result: PASS
+  - Output: `b0228d5..1368f46 master -> master`
+- Command: `firebase apphosting:rollouts:create calybra-eu-alt --git-branch master --force`
+  - Result: PASS
+  - Output: "Successfully created a new rollout!" (commit 1368f46)
+- Command: `curl /es/login`, `/es/signup`, `/`
+  - Result: PASS
+  - Output: 200 (form+firebase present), 200, 307 redirect
+- Command: `firebase apphosting:backends:list`
+  - Result: PASS
+  - Output: Only `calybra-eu-alt` (europe-west4) remains
+
+**Rollback**
+- Revert: `git revert 1368f46`
+- Redeploy: `firebase apphosting:rollouts:create calybra-eu-alt --git-branch master --force`
+- Note: Would need to re-create `.env.local` locally from `.env.local.example`
+
+**Notes**
+- `GEMINI_API_KEY` should be stored in Cloud Secret Manager and referenced in apphosting.yaml as `secret:` for server-side use.
+- Auto-rollout on `master` push can be enabled in Firebase Console > App Hosting > calybra-eu-alt > Settings > Live branch.
+
+---
+
 ### 2026-02-12 — Release 0022
 **Scope**
 - Surfaces: Auth Routes / Build / App Hosting / Git / .gitignore
