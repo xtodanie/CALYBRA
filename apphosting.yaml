@@ -5,3 +5,23 @@ runConfig:
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
   maxInstances: 1
+
+env:
+  # Public Firebase config (baked into client bundle)
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: AIzaSyD73-P8wsNzwURoCywfhjkvYpNJgBYKWIw
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: studio-5801368156-a6af7.firebaseapp.com
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: studio-5801368156-a6af7
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: studio-5801368156-a6af7.firebasestorage.app
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "906717259577"
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: "1:906717259577:web:fc857f518932eba1156ae8"
+  - variable: NEXT_PUBLIC_USE_EMULATORS
+    value: "false"
+  # Sensitive keys — store in Cloud Secret Manager, reference here:
+  # - variable: GEMINI_API_KEY
+  #   secret: GEMINI_API_KEY

@@ -13,3 +13,7 @@ database-debug.log
 
 # Temp files
 tmpclaude-*
+
+# Local env (contains secrets like GEMINI_API_KEY)
+.env.local
+.env*.local
