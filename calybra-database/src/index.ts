@@ -12,6 +12,17 @@ export { transitionMonthClose, transitionMatch, resolveException } from "./trans
 // Re-export ingestion pipeline (server-authoritative job processing)
 export { createJob, processJob, retryJob } from "./ingestion";
 
+// Re-export read-only API callables (SSI-0307)
+export {
+  getVatSummary,
+  getMismatchSummary,
+  getMonthCloseTimeline,
+  getCloseFriction,
+  getAuditorReplay,
+  getExportArtifact,
+  listExportArtifacts,
+} from "./readApis";
+
 // Note: onMonthCloseFinalized trigger is currently disabled due to firebase-functions v7 compatibility issues
 // The readmodel snapshot is created directly in transitionMonthClose instead
 // export { onMonthCloseFinalized } from "./triggers";

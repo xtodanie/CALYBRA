@@ -61,6 +61,55 @@ Use semantic versioning when you start shipping externally. Until then, use incr
 
 ## Releases
 
+### 2026-02-13 — Release 0024
+**Scope**
+- Surfaces: Cloud Functions / Tests / Docs / TASKS
+- Risk: P1
+
+**Summary**
+- Added 7 read-only API callables for Phase 6 readmodel access (SSI-0307).
+- Audited TASKS.md and marked 19 SSIs as COMPLETED (SSI-0001-0003, 0010-0011, 0020-0022, 0030, 0040-0043, 0050, 0261, 0300-0308).
+- Created PRR.md and REGRESSIONS/INDEX.md.
+
+**Changes**
+- `calybra-database/src/readApis.ts`: NEW — 7 Cloud Function callables:
+  - getVatSummary, getMismatchSummary, getMonthCloseTimeline
+  - getCloseFriction, getAuditorReplay, getExportArtifact, listExportArtifacts
+  - All require auth, load user with tenant isolation, validate monthKey, zero writes.
+- `calybra-database/src/index.ts`: exported all 7 readApis
+- `server/tests/api/readApis.test.ts`: NEW — 8 contract tests for read-only APIs
+- `agent/TASKS.md`: marked SSI-0001-0003 (truth lock), SSI-0010-0011 (preflight/evidence), SSI-0020-0022 (regressions/debug/PRR), SSI-0030 (golden paths), SSI-0040-0043 (invariant tests), SSI-0050 (release discipline), SSI-0261 (observability 2030), SSI-0300-0308 (Phase 6) as COMPLETED
+- `agent/PRR.md`: NEW — Production Readiness Review checklist
+- `agent/REGRESSIONS/INDEX.md`: NEW — Regression knowledge base index with R-0001, R-0002
+
+**Proof (Executed)**
+- Command: `npm run typecheck`
+  - Result: PASS
+  - Output: tsc --noEmit clean
+- Command: `npm --prefix calybra-database run build`
+  - Result: PASS
+  - Output: Compiled successfully
+- Command: `npx jest --ci --passWithNoTests`
+  - Result: PASS
+  - Output: 30 suites passed, 454 tests passed, 0 failures (7 suites skipped: emulator only)
+- Command: `npm run lint`
+  - Result: PASS
+  - Output: No ESLint warnings or errors
+- Command: `npm run truth-lock`
+  - Result: PASS
+  - Output: TRUTH_LOCK: PASSED, CONSISTENCY: PASSED
+
+**Rollback**
+- Revert: `git revert HEAD`
+- Redeploy: `firebase deploy --only functions`
+- Validate: `npm run typecheck && npx jest server/tests/api`
+
+**Notes**
+- Read-only APIs follow the same auth/tenant isolation pattern as existing callables.
+- TASKS.md now accurately reflects that ALL Phase 6 SSIs (0300-0308) are complete.
+
+---
+
 ### 2026-02-12 — Release 0023
 **Scope**
 - Surfaces: App Hosting Config / Security / DevOps
