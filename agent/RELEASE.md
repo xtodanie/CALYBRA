@@ -61,6 +61,55 @@ Use semantic versioning when you start shipping externally. Until then, use incr
 
 ## Releases
 
+### 2026-02-13 — Release 0025
+**Scope**
+- Surfaces: UI Components / i18n / Month-Close Detail Page
+- Risk: P1
+
+**Summary**
+- Added 5 analytics UI components for Phase 6 readmodel visualization.
+- Added i18n keys for analytics in en.ts and es.ts (vatSummary, mismatch, timeline, friction, auditor).
+- Wired analytics to month-close detail page (shows when FINALIZED).
+
+**Changes**
+- `src/components/analytics/`:
+  - `vat-summary-card.tsx`: VAT collected/paid/net with rate breakdown table
+  - `mismatch-summary-card.tsx`: Reconciliation gaps visualization
+  - `timeline-card.tsx`: Counterfactual timeline entries
+  - `friction-card.tsx`: Close friction score + metrics
+  - `auditor-replay-card.tsx`: Audit trail summary with download
+  - `index.ts`: Module exports
+- `src/i18n/en.ts`: Added `analytics.*` keys (vatSummary, mismatch, timeline, friction, auditor)
+- `src/i18n/es.ts`: Added Spanish translations for `analytics.*` keys
+- `src/app/[locale]/(app)/month-closes/[id]/page.tsx`:
+  - Import analytics components
+  - Add state for loading readmodels
+  - Load analytics when month is FINALIZED
+  - Render "Analytics & Reports" section with all 5 cards
+
+**Proof (Executed)**
+- Command: `npm run typecheck`
+  - Result: PASS
+  - Output: tsc --noEmit clean
+- Command: `npm run lint`
+  - Result: PASS
+  - Output: No ESLint warnings or errors
+- Command: `npx jest --ci --passWithNoTests`
+  - Result: PASS
+  - Output: 30 suites passed, 454 tests passed, 0 failures
+
+**Rollback**
+- Revert: `git revert 4e2c262`
+- Redeploy: `firebase apphosting:rollouts:create calybra-eu-alt --git-branch master --force`
+- Validate: `npm run typecheck && npm run lint`
+
+**Notes**
+- Analytics cards load data from readmodel snapshots in Firestore.
+- Readmodels are created by period finalization workflow (already implemented).
+- Exports page CSV download was already functional (no changes needed).
+
+---
+
 ### 2026-02-13 — Release 0024
 **Scope**
 - Surfaces: Cloud Functions / Tests / Docs / TASKS
