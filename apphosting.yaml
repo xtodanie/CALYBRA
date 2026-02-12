@@ -25,3 +25,5 @@ env:
   # Server-side secret from Cloud Secret Manager
   - variable: GEMINI_API_KEY
     secret: GEMINI_API_KEY
+  - variable: GOOGLE_MAPS_API_KEY
+    secret: GOOGLE_MAPS_API_KEY
