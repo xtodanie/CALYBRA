@@ -9,3 +9,6 @@ export * from "./invoiceCreate.workflow";
 export * from "./monthClose.workflow";
 export * from "./onPeriodFinalized.workflow";
 export * from "./rebuildReadmodels.workflow";
+export * from "./brainReplay.workflow";
+export * from "./phase2FinalGate.workflow";
+export * from "./zerebroxControlPlane.workflow";

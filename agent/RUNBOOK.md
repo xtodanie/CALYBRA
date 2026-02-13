@@ -92,6 +92,62 @@ Use Firebase runtime config, Secret Manager, or environment variables depending 
 
 ---
 
+## Credential Incident Response (URGENT)
+
+Use this checklist immediately after any key-leak warning from Google Cloud.
+
+### Step 1: Stop further exposure
+
+From repo root:
+
+```bash
+npm run security:credentials
+```
+
+If it fails, remove hardcoded credentials and replace with placeholders/Secret Manager bindings before any deploy.
+
+### Step 2: Rotate potentially exposed keys
+
+Run in Cloud Shell or authenticated `gcloud` session:
+
+```bash
+gcloud services api-keys list --project <PROJECT_ID>
+gcloud services api-keys update <KEY_ID> --api-target=service=maps-backend.googleapis.com --allowed-referrers="https://<your-domain>/*" --project <PROJECT_ID>
+gcloud services api-keys update <KEY_ID> --api-target=service=generativelanguage.googleapis.com --allowed-ips="<egress-ip-or-range>" --project <PROJECT_ID>
+```
+
+For secrets backed by Secret Manager:
+
+```bash
+gcloud secrets versions add GEMINI_API_KEY --data-file=- --project <PROJECT_ID>
+gcloud secrets versions add GOOGLE_MAPS_API_KEY --data-file=- --project <PROJECT_ID>
+```
+
+### Step 3: Disable dormant or risky service account keys
+
+```bash
+gcloud iam service-accounts keys list --iam-account <SA_EMAIL> --project <PROJECT_ID>
+gcloud iam service-accounts keys delete <KEY_ID> --iam-account <SA_EMAIL> --project <PROJECT_ID>
+```
+
+Apply org policies (org admin required):
+
+```bash
+gcloud resource-manager org-policies enable-enforce constraints/iam.disableServiceAccountKeyCreation --organization <ORG_ID>
+gcloud resource-manager org-policies enable-enforce constraints/iam.serviceAccountKeyExpiryHours --organization <ORG_ID>
+```
+
+### Step 4: Verify contact and anomaly coverage
+
+```bash
+gcloud essential-contacts list --organization <ORG_ID>
+gcloud beta billing budgets list --billing-account <BILLING_ACCOUNT_ID>
+```
+
+Ensure on-call recipients are current and alerts are routed to an actively monitored channel.
+
+---
+
 ## One-Time Setup (New Machine)
 
 ### 0) Prereqs

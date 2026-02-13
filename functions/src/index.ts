@@ -1,6 +1,10 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import { onPeriodFinalizedWorkflow } from "../../server/dist/workflows/onPeriodFinalized.workflow";
+import { onPeriodFinalizedWorkflow } from "../../server/workflows/onPeriodFinalized.workflow";
+import {
+  approveZerebroxPolicyProposalWorkflow,
+  runZerebroxControlPlaneHeartbeatWorkflow,
+} from "../../server/workflows/zerebroxControlPlane.workflow";
 import type { CurrencyCode } from "../../server/domain/money";
 
 admin.initializeApp();
@@ -8,6 +12,12 @@ admin.initializeApp();
 const db = admin.firestore();
 
 const ALLOWED_ROLES = ["OWNER", "MANAGER", "ACCOUNTANT", "VIEWER"] as const;
+
+function monthKeyFromDate(value: Date): string {
+  const year = value.getUTCFullYear();
+  const month = String(value.getUTCMonth() + 1).padStart(2, "0");
+  return `${year}-${month}`;
+}
 
 async function requireUser(context: functions.https.CallableContext) {
   if (!context.auth) {
@@ -388,3 +398,128 @@ export const getExportArtifact = functions.https.onCall(
     return doc.data();
   }
 );
+
+export const getFlightRecorder = functions.https.onCall(
+  async (data: { monthKey?: string }, context) => {
+    const user = await requireUser(context);
+    if (!data.monthKey) {
+      throw new functions.https.HttpsError("invalid-argument", "monthKey is required");
+    }
+
+    const doc = await db
+      .collection("tenants")
+      .doc(user.tenantId)
+      .collection("readmodels")
+      .doc("flightRecorder")
+      .collection(data.monthKey)
+      .doc("snapshot")
+      .get();
+
+    if (!doc.exists) {
+      throw new functions.https.HttpsError("not-found", "Flight recorder not found");
+    }
+
+    return doc.data();
+  }
+);
+
+export const approvePolicyProposal = functions.https.onCall(
+  async (
+    data: {
+      proposalId?: string;
+      monthKey?: string;
+      candidatePolicyVersion?: string;
+      baselinePolicyVersion?: string;
+      regressionPrecisionDelta?: number;
+      regressionRecallDelta?: number;
+    },
+    context
+  ) => {
+    const user = await requireUser(context);
+    if (!data.proposalId || !data.monthKey || !data.candidatePolicyVersion || !data.baselinePolicyVersion) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "proposalId, monthKey, candidatePolicyVersion and baselinePolicyVersion are required"
+      );
+    }
+
+    if (!(user.role === "OWNER" || user.role === "MANAGER")) {
+      throw new functions.https.HttpsError("permission-denied", "Only OWNER or MANAGER can approve policy proposals");
+    }
+
+    const result = await approveZerebroxPolicyProposalWorkflow(db, {
+      tenantId: user.tenantId,
+      proposalId: data.proposalId,
+      actorId: user.uid,
+      now: admin.firestore.Timestamp.now(),
+      candidatePolicyVersion: data.candidatePolicyVersion,
+      baselinePolicyVersion: data.baselinePolicyVersion,
+      regressionPrecisionDelta: data.regressionPrecisionDelta ?? 0,
+      regressionRecallDelta: data.regressionRecallDelta ?? 0,
+    });
+
+    return result;
+  }
+);
+
+export const controlPlaneHeartbeatHourly = functions.pubsub
+  .schedule("every 60 minutes")
+  .onRun(async () => {
+    const tenantSnapshots = await db.collection("tenants").get();
+    const now = admin.firestore.Timestamp.now();
+    const monthKey = monthKeyFromDate(now.toDate());
+
+    for (const tenant of tenantSnapshots.docs) {
+      await runZerebroxControlPlaneHeartbeatWorkflow(db, {
+        tenantId: tenant.id,
+        monthKey,
+        now,
+        actorId: "system",
+        tier: "nightly",
+      });
+    }
+
+    return null;
+  });
+
+export const controlPlaneAdaptationNightly = functions.pubsub
+  .schedule("every day 02:00")
+  .timeZone("UTC")
+  .onRun(async () => {
+    const tenantSnapshots = await db.collection("tenants").get();
+    const now = admin.firestore.Timestamp.now();
+    const monthKey = monthKeyFromDate(now.toDate());
+
+    for (const tenant of tenantSnapshots.docs) {
+      await runZerebroxControlPlaneHeartbeatWorkflow(db, {
+        tenantId: tenant.id,
+        monthKey,
+        now,
+        actorId: "system",
+        tier: "nightly",
+      });
+    }
+
+    return null;
+  });
+
+export const controlPlaneAdaptationWeekly = functions.pubsub
+  .schedule("every sunday 03:00")
+  .timeZone("UTC")
+  .onRun(async () => {
+    const tenantSnapshots = await db.collection("tenants").get();
+    const now = admin.firestore.Timestamp.now();
+    const monthKey = monthKeyFromDate(now.toDate());
+
+    for (const tenant of tenantSnapshots.docs) {
+      await runZerebroxControlPlaneHeartbeatWorkflow(db, {
+        tenantId: tenant.id,
+        monthKey,
+        now,
+        actorId: "system",
+        tier: "weekly",
+      });
+    }
+
+    return null;
+  });

@@ -142,6 +142,21 @@ describeIfEmulator("onPeriodFinalizedWorkflow", () => {
 
     const jobSnapshot = await db.collection("jobs").get();
     expect(jobSnapshot.empty).toBe(false);
+
+    const brainArtifacts = await db
+      .collection("tenants")
+      .doc(tenantId)
+      .collection("readmodels")
+      .doc("brainArtifacts")
+      .collection("items")
+      .get();
+
+    expect(brainArtifacts.empty).toBe(false);
+    const artifactTypes = new Set(
+      brainArtifacts.docs.map((doc) => (doc.data() as Record<string, unknown>)["type"] as string)
+    );
+    expect(artifactTypes.has("decision")).toBe(true);
+    expect(artifactTypes.has("event_log")).toBe(true);
   });
 
   it("is idempotent with job record", async () => {
@@ -165,5 +180,20 @@ describeIfEmulator("onPeriodFinalizedWorkflow", () => {
     });
 
     expect(second.success).toBe(true);
+
+    const artifactsSnapshot = await db
+      .collection("tenants")
+      .doc(tenantId)
+      .collection("readmodels")
+      .doc("brainArtifacts")
+      .collection("items")
+      .get();
+
+    expect(artifactsSnapshot.empty).toBe(false);
+    const decisionHashes = artifactsSnapshot.docs
+      .filter((doc) => (doc.data() as Record<string, unknown>)["type"] === "decision")
+      .map((doc) => (doc.data() as Record<string, unknown>)["hash"] as string);
+
+    expect(new Set(decisionHashes).size).toBe(decisionHashes.length);
   });
 });

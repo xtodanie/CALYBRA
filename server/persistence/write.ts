@@ -455,7 +455,7 @@ export async function createEvent(
     .doc(input.tenantId)
     .collection("events")
     .doc(input.id)
-    .set(doc);
+    .create(doc);
 }
 
 // ============================================================================
@@ -534,6 +534,46 @@ export async function writeReadmodelDoc(
     .collection("items")
     .doc(docId)
     .set(data);
+}
+
+export async function mergeReadmodelDoc(
+  db: Firestore,
+  tenantId: string,
+  modelName: string,
+  docId: string,
+  data: FirebaseFirestore.DocumentData
+): Promise<void> {
+  await db
+    .collection("tenants")
+    .doc(tenantId)
+    .collection("readmodels")
+    .doc(modelName)
+    .collection("items")
+    .doc(docId)
+    .set(data, { merge: true });
+}
+
+export async function appendBrainArtifact(
+  db: Firestore,
+  tenantId: string,
+  artifactId: string,
+  data: FirebaseFirestore.DocumentData
+): Promise<{ readonly created: boolean }> {
+  const ref = db
+    .collection("tenants")
+    .doc(tenantId)
+    .collection("readmodels")
+    .doc("brainArtifacts")
+    .collection("items")
+    .doc(artifactId);
+
+  const existing = await ref.get();
+  if (existing.exists) {
+    return { created: false };
+  }
+
+  await ref.create(data);
+  return { created: true };
 }
 
 export async function writeAuditorReplaySnapshot(

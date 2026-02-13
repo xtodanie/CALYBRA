@@ -165,3 +165,35 @@ Mitigation:
 - Which operations are server-only vs client-limited (see `agent/TRUTH_SNAPSHOT.md`; do not guess)
 
 These must be resolved by reading repo truth and then updating ADRs/contracts accordingly.
+
+---
+
+## 11) ZEREBROX-CORE Phase 1 (Read-Only AI Brain)
+
+### Objective
+Deliver a one-week, production-safe Phase 1 that adds an OpenClaw-inspired orchestrator substrate to CALYBRA:
+- modular business skills,
+- structured memory,
+- trigger-gated AI insights,
+while preserving strict read-only execution.
+
+### Phase 1 Non-Negotiable Constraints
+- No autonomous writes to financial/operational truth.
+- AI outputs must be structured and schema-validated (no free-form authority).
+- All activations must be timer+trigger policy compliant.
+- Full tenant isolation and replayable audit envelope required.
+
+### Phase 1 Deliverables (1 week)
+1) Skill registry contracts and deterministic guardrails.
+2) Unified business model projection for read-only analysis.
+3) Rule engine heartbeat (every 30 min in operating window).
+4) Trigger router for threshold, inconsistency, anomaly, EOD, and manual triggers.
+5) AI activation core with strict schema output + confidence policy + deterministic fallback.
+6) Memory Core v1 (event ledger + temporal graph projection + behavioral summaries).
+7) Audit/replay surfaces proving deterministic envelope behavior.
+
+### Success Criteria (Phase 1)
+- Triggered insights generated with structured evidence links.
+- No write-side behavior changes to existing CALYBRA workflows.
+- Replay with same context hash reproduces same rule/decision envelope.
+- Operator can inspect why each insight fired (rule IDs, evidence refs, policy path).

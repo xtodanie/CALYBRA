@@ -177,6 +177,99 @@ Allowed role actions:
 Invariants:
 - Readmodels are rebuildable from events
 
+### control-plane readmodels
+
+#### Flight Recorder
+**Path:** tenants/{tenantId}/readmodels/flightRecorder/{monthKey}/snapshot
+
+Required fields:
+- tenantId: string
+- monthKey: string
+- activePolicyVersion: string
+- heartbeat: object { heartbeatId: string, tenantId: string, escalateToAdaptationScheduler: boolean, reasons: string[] }
+- adaptation: object { gate: "observe" | "propose" | "hold", recommendedAction: string }
+- timeline: array of objects {
+	- decisionId: string
+	- contextHash: string
+	- policyVersion: string
+	- deterministicAction: string
+	- aiAction: string
+	- whyFired: string
+	- changedFromPrevious: string[]
+}
+- generatedAt: string (ISO)
+- schemaVersion: number (server, default 1)
+
+Allowed role actions:
+- Read: OWNER, MANAGER, ACCOUNTANT, VIEWER (tenant members only)
+- Write: server-only
+
+Invariants:
+- Timeline entries are append-only from workflow execution.
+- Context hash and policy version must be replay-traceable.
+
+#### Policy Proposals
+**Path:** tenants/{tenantId}/readmodels/policyProposals/items/{proposalId}
+
+Required fields:
+- proposalId: string
+- tenantId: string
+- monthKey: string
+- pendingPolicyVersion: string
+- detectedPattern: string
+- impactSimulation: object { estimatedRoiDelta: number, estimatedRiskDelta: number }
+- scoringJustification: object
+- approvalStatus: "PENDING_APPROVAL" | "APPROVED" | "REJECTED_BY_CANARY"
+- createdAt: string (ISO)
+- createdBy: string
+- schemaVersion: number (server, default 1)
+
+Allowed role actions:
+- Read: OWNER, MANAGER, ACCOUNTANT, VIEWER (tenant members only)
+- Write: server-only
+
+Invariants:
+- Proposals are versioned artifacts; activation is explicit and never automatic.
+
+#### Active Policy Version
+**Path:** tenants/{tenantId}/readmodels/policyVersions/items/active
+
+Required fields:
+- tenantId: string
+- activeVersion: string
+- archivedVersion: string
+- activationDelta: string
+- activatedBy: string
+- activatedAt: string (ISO)
+- schemaVersion: number (server, default 1)
+
+Allowed role actions:
+- Read: OWNER, MANAGER, ACCOUNTANT, VIEWER (tenant members only)
+- Write: server-only
+
+Invariants:
+- Activation records immutable version lineage and rollback anchor.
+
+#### Control Plane Run Ledger
+**Path:** tenants/{tenantId}/readmodels/controlPlaneRuns/items/{monthKey:tier}
+
+Required fields:
+- tenantId: string
+- monthKey: string
+- tier: "nightly" | "weekly"
+- heartbeatId: string
+- escalated: boolean
+- adaptationGate: "observe" | "propose" | "hold"
+- updatedAt: string (ISO)
+- schemaVersion: number (server, default 1)
+
+Allowed role actions:
+- Read: OWNER, MANAGER, ACCOUNTANT, VIEWER (tenant members only)
+- Write: server-only
+
+Invariants:
+- Run ledger is deterministic, tenant-scoped, and auditable.
+
 ## exports
 **Path:** tenants/{tenantId}/exports/{monthKey}/artifacts/{artifactId}
 

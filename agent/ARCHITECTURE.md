@@ -292,3 +292,51 @@ requires:
 1) ADR entry in `agent/DECISIONS.md`
 2) Updates to rules/tests/contracts/schemas/seed
 3) Proof commands executed and recorded (PASS)
+
+---
+
+## ZEREBROX-CORE Phase 1 Architecture (Read-Only)
+
+Phase 1 adds a layered orchestration substrate without altering server-authoritative write boundaries.
+
+### Layer 1: Connectors (Deterministic, Read-Only)
+- Tenant-scoped adapters for CALYBRA + external sources (Odoo/POS/Haddock/AdHoc APIs).
+- Idempotent pull/ingest into normalized snapshots.
+- Connector outputs are immutable input bundles for analysis windows.
+
+### Layer 2: Unified Business Model
+- Canonical entities (venue, supplier, sku, order, invoice, stock event, cash event, anomaly signal).
+- Time-normalized projections for cross-source consistency checks.
+- No write-back to source systems in Phase 1.
+
+### Layer 3: Rule Engine Grid
+- Pure deterministic checks executed on heartbeat schedule.
+- Trigger classes: threshold breach, cross-system inconsistency, anomaly severity, end-of-day, manual request.
+- Rule outputs include version, evidence references, and context hash.
+
+### Layer 4: AI Activation Core (Structured)
+- AI invoked only when trigger policy admits.
+- Input schema is fixed and policy-bound.
+- Output must validate against strict typed schema; otherwise fallback to deterministic rule-only response.
+
+### Memory Core v1 (Structured)
+- Event Ledger: authoritative operational history for replay.
+- Temporal Graph Projection: entities/relationships over time.
+- Behavioral Summaries: versioned derived patterns (rhythms, supplier behavior, stock cycles).
+- Memory writes are append/version operations with tenant boundaries.
+
+### Determinism and Safety Controls
+- Operating-window timer gate (07:00 to venue close).
+- Trigger and budget gating before AI activation.
+- Replay endpoint: same context hash must reproduce same decision envelope.
+- Audit record includes policy path, rule IDs, model version, and evidence links.
+
+### OpenClaw Evidence Mapping (Phase 1 Input)
+- OpenClaw implementation patterns are used as evidence-only reference for:
+  - skill/plugin registry gating,
+  - layered memory scoping,
+  - scheduler reliability,
+  - structured output validation,
+  - replay-oriented audit metadata.
+- CALYBRA-specific mapping and constraints are recorded in `agent/OPENCLAW_PHASE1_MAPPING.md`.
+- This mapping does not relax CALYBRA tenant isolation or server-authoritative write boundaries.

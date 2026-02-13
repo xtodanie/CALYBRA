@@ -62,6 +62,32 @@ P0 threats:
 
 ---
 
+## Credential Lifecycle Controls (P0)
+
+This section defines mandatory controls for API keys and service account keys.
+
+### Non-Negotiable Controls
+
+- No long-lived secrets in source control, examples, or release artifacts.
+- All server-side secrets must come from Secret Manager at runtime.
+- API keys must always be restricted by both API scope and environment boundary (HTTP referrer/IP/app restrictions).
+- Service account access must follow least privilege and periodic IAM recommender review.
+- User-managed service account keys must be disabled or forced-expiry via org policy.
+
+### Enforcement Expectations
+
+- Tracked-file credential scan must pass: `npm run security:credentials`.
+- App Hosting env vars must not hardcode sensitive values; use `secret:` bindings where possible.
+- `.env.local` and `.env*.local` remain gitignored; `.env.local.example` must use placeholders only.
+
+### Required Operations (Out-of-Band)
+
+- Rotate any key found in tracked content history or local incident reports.
+- Remove dormant keys older than 30 days of inactivity.
+- Verify Essential Contacts and billing anomaly alerts are configured and actionable.
+
+---
+
 ## Identity Model (Authoritative)
 
 ### Canonical user profile

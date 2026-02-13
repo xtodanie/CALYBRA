@@ -12,10 +12,14 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "jest",
+    "security:credentials": "node scripts/credential_audit.mjs",
     "truth-lock": "node scripts/truth.mjs && node scripts/consistency.mjs",
+    "phase2:preflight": "node scripts/phase2_preflight.mjs",
     "local:clean": "node scripts/local_clean.mjs",
     "local:up": "node scripts/local_up.mjs",
-    "local:e2e": "node scripts/local_e2e.mjs"
+    "local:e2e": "node scripts/local_e2e.mjs",
+    "control-plane:harness": "node scripts/e2e_control_plane_harness.mjs",
+    "control-plane:harness:full": "node scripts/e2e_control_plane_harness.mjs --full"
   },
   "dependencies": {
     "@formatjs/intl-localematcher": "^0.5.4",

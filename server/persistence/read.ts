@@ -448,6 +448,32 @@ export async function readExportArtifact(
 }
 
 /**
+ * Reads persisted brain artifacts for a month
+ */
+export async function readBrainArtifactsByMonth(
+  db: Firestore,
+  tenantId: string,
+  monthKey: string
+): Promise<Record<string, unknown>[]> {
+  const snapshot = await db
+    .collection("tenants")
+    .doc(tenantId)
+    .collection("readmodels")
+    .doc("brainArtifacts")
+    .collection("items")
+    .get();
+
+  return snapshot.docs
+    .map((doc) => doc.data() as Record<string, unknown>)
+    .filter((item) => item["monthKey"] === monthKey)
+    .sort((left, right) => {
+      const leftAt = typeof left["generatedAt"] === "string" ? left["generatedAt"] : "";
+      const rightAt = typeof right["generatedAt"] === "string" ? right["generatedAt"] : "";
+      return leftAt.localeCompare(rightAt);
+    });
+}
+
+/**
  * Reads confirmed Matches for a MonthClose (for exclusion checks)
  */
 export async function readConfirmedMatches(
@@ -505,4 +531,62 @@ export async function findBankTxByFingerprint(
   }
 
   return snapshot.docs[0].data() as StoredBankTx;
+}
+
+/**
+ * Lists all tenant IDs
+ */
+export async function readTenantIds(db: Firestore): Promise<string[]> {
+  const snapshot = await db.collection("tenants").get();
+  return snapshot.docs.map((doc) => doc.id).sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * Reads a readmodel snapshot at: tenants/{tenantId}/readmodels/{modelName}/{docId}/snapshot
+ */
+export async function readReadmodelSnapshot(
+  db: Firestore,
+  tenantId: string,
+  modelName: string,
+  docId: string
+): Promise<Record<string, unknown> | null> {
+  const doc = await db
+    .collection("tenants")
+    .doc(tenantId)
+    .collection("readmodels")
+    .doc(modelName)
+    .collection(docId)
+    .doc("snapshot")
+    .get();
+
+  if (!doc.exists) {
+    return null;
+  }
+
+  return doc.data() as Record<string, unknown>;
+}
+
+/**
+ * Reads a readmodel item at: tenants/{tenantId}/readmodels/{modelName}/items/{itemId}
+ */
+export async function readReadmodelItem(
+  db: Firestore,
+  tenantId: string,
+  modelName: string,
+  itemId: string
+): Promise<Record<string, unknown> | null> {
+  const doc = await db
+    .collection("tenants")
+    .doc(tenantId)
+    .collection("readmodels")
+    .doc(modelName)
+    .collection("items")
+    .doc(itemId)
+    .get();
+
+  if (!doc.exists) {
+    return null;
+  }
+
+  return doc.data() as Record<string, unknown>;
 }

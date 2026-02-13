@@ -474,6 +474,17 @@ export const en = {
       noEvents: 'No events recorded for this period.',
       download: 'Download Audit Log',
     },
+    flightRecorder: {
+      title: 'Flight Recorder',
+      description: 'Deterministic decision replay with policy and context traceability.',
+      noData: 'No flight recorder entries for this period.',
+      generatedAt: 'Generated',
+      why: 'Why fired',
+      ruleVsAi: 'Rule vs AI',
+      projections: 'Projection Snapshot',
+      timeline: 'Decision Timeline',
+      whatChanged: 'What changed',
+    },
   },
   settings: {
     title: 'Settings',

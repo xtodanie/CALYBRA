@@ -8,11 +8,13 @@ import { Firestore, Timestamp } from "firebase-admin/firestore";
 import crypto from "crypto";
 import {
   readEventsByMonth,
+  readBrainArtifactsByMonth,
   readJob,
   readPeriod,
   readExportArtifact,
 } from "../persistence/read";
 import {
+  appendBrainArtifact,
   createJob,
   updateJob,
   upsertPeriod,
@@ -41,6 +43,16 @@ import { parseMonth, getMonthStart, getMonthEnd } from "../domain/dates/month";
 import { CurrencyCode } from "../domain/money";
 import { Event, sortEvents } from "../domain/events";
 import { WriteContext } from "../persistence/write";
+import {
+  BrainReplayArtifact,
+  BrainSnapshot,
+  CanonicalEventEnvelope,
+  computeIntelligenceHealthIndex,
+  evaluateMemoryAcl,
+  stableSha256Hex,
+  validateBrainReplayArtifact,
+} from "../logic/brain";
+import { BrainReplayState, runBrainReplayWorkflow } from "./brainReplay.workflow";
 
 export interface PeriodFinalizedInput {
   readonly tenantId: string;
@@ -248,6 +260,119 @@ export async function onPeriodFinalizedWorkflow(
     await writeReadmodel(db, input.tenantId, "vatSummary", input.monthKey, vatSummaryReadmodel);
     await writeReadmodel(db, input.tenantId, "mismatchSummary", input.monthKey, mismatchReadmodel);
 
+    const actorRole = resolveActorRole(input.actorId);
+    const aclRead = evaluateMemoryAcl({
+      tenantId: input.tenantId,
+      actorTenantId: input.tenantId,
+      actorRole,
+      action: "read-artifact",
+    });
+    if (!aclRead.allowed) {
+      throw new Error(`memory ACL read denied: ${aclRead.reason}`);
+    }
+
+    const existingBrainArtifacts = await readBrainArtifactsByMonth(db, input.tenantId, input.monthKey);
+    const priorEventLog = findLatestArtifactByType(existingBrainArtifacts, "event_log");
+    const priorEvents = extractPriorEvents(priorEventLog);
+    const priorSnapshots = extractPriorSnapshots(existingBrainArtifacts);
+
+    const brainOutcome = runBrainReplayWorkflow({
+      tenantId: input.tenantId,
+      actorId: input.actorId,
+      actorRole,
+      policyPath: "brain/read-only/period-finalize",
+      traceId: `period-finalized:${input.monthKey}:${periodLockHash.slice(0, 12)}`,
+      requestId: `brain:${input.tenantId}:${input.monthKey}:${periodLockHash.slice(0, 16)}`,
+      timestamp: generatedAtIso,
+      routerInput: {
+        monthKey: input.monthKey,
+        periodLockHash,
+        openMismatchCount:
+          mismatchSummary.bankTxWithoutInvoice.length +
+          mismatchSummary.invoiceMatchedWithoutBankTx.length +
+          mismatchSummary.partialPayments.length +
+          mismatchSummary.overpayments.length,
+        closeFrictionIndex: closeFriction.closeFrictionScore / 100,
+      },
+      aiResponse: {
+        tenantId: input.tenantId,
+        contextHash: periodLockHash,
+        model: "gpt-5.3-codex",
+        generatedAt: generatedAtIso,
+        suggestions: [
+          {
+            suggestionId: `s:${periodLockHash.slice(0, 12)}`,
+            code: closeFriction.closeFrictionScore < 50 ? "ESCALATE_CLOSE_FRICTION" : "OBSERVE_CLOSE_FRICTION",
+            summary: closeFriction.closeFrictionScore < 50
+              ? "Escalate high close friction for manual review"
+              : "Observe close friction trend and continue monitoring",
+            confidence: closeFriction.closeFrictionScore < 50 ? 0.88 : 0.74,
+            evidenceRefs: [periodLockHash],
+          },
+        ],
+        mutationIntent: "none",
+        allowedActions: ["suggest", "explain", "escalate"],
+      },
+      reflectionIndicators: {
+        anomalyRate: Math.min(1, mismatchSummary.bankTxWithoutInvoice.length / 10),
+        efficiencyDelta: 1 - Math.min(1, closeFriction.closeFrictionScore / 100),
+        behaviorShift: Math.min(1, mismatchSummary.partialPayments.length / 10),
+      },
+      snapshotPolicy: {
+        interval: 2,
+        maxRetained: 50,
+      },
+      priorEvents,
+      priorSnapshots,
+    });
+
+    const healthIndex = computeIntelligenceHealthIndex({
+      predictionAccuracy: Math.max(0, 1 - Math.min(1, closeFriction.closeFrictionScore / 100)),
+      roiDelta: Math.max(-1, Math.min(1, timeline.entries.length / 10)),
+      driftRate: Math.min(1, mismatchSummary.overpayments.length / 10),
+      falsePositiveRate: Math.min(1, mismatchSummary.partialPayments.length / 10),
+      autonomyStability: brainOutcome.gate.accepted ? 0.9 : 0.4,
+    });
+
+    const artifacts = buildBrainArtifacts({
+      tenantId: input.tenantId,
+      monthKey: input.monthKey,
+      generatedAt: generatedAtIso,
+      periodLockHash,
+      brainOutcome,
+      healthIndex,
+    });
+
+    const aclAppend = evaluateMemoryAcl({
+      tenantId: input.tenantId,
+      actorTenantId: input.tenantId,
+      actorRole,
+      action: "append-artifact",
+    });
+    if (!aclAppend.allowed) {
+      throw new Error(`memory ACL append denied: ${aclAppend.reason}`);
+    }
+
+    for (const artifact of artifacts) {
+      const validation = validateBrainReplayArtifact(artifact);
+      if (!validation.valid) {
+        throw new Error(`invalid brain artifact ${artifact.artifactId}: ${validation.errors.join("; ")}`);
+      }
+      await appendBrainArtifact(db, input.tenantId, artifact.artifactId, artifact);
+    }
+
+    emitDeterministicTelemetry({
+      event: "brain_replay_executed",
+      tenantId: input.tenantId,
+      monthKey: input.monthKey,
+      periodLockHash,
+      replayHash: brainOutcome.replay.replayHash,
+      gateAccepted: brainOutcome.gate.accepted,
+      healthIndex,
+      artifactCount: artifacts.length,
+      generatedAt: generatedAtIso,
+    });
+
     await writeAuditorReplaySnapshots({
       db,
       tenantId: input.tenantId,
@@ -311,6 +436,7 @@ export async function onPeriodFinalizedWorkflow(
       duration_ms: 0,
       outcome: "error",
       error_code: "PERIOD_FINALIZE_FAILED",
+      error_message: error instanceof Error ? error.message : "Unknown error",
       idempotency_key: jobId,
     });
 
@@ -319,6 +445,145 @@ export async function onPeriodFinalizedWorkflow(
       code: "PERIOD_FINALIZE_FAILED",
       message: "Failed to finalize period",
     };
+  }
+}
+
+function resolveActorRole(actorId: string): string {
+  if (actorId === "system") {
+    return "service";
+  }
+  return "controller";
+}
+
+function findLatestArtifactByType(
+  artifacts: readonly Record<string, unknown>[],
+  type: string,
+): Record<string, unknown> | undefined {
+  const filtered = artifacts.filter((artifact) => artifact["type"] === type);
+  return filtered[filtered.length - 1];
+}
+
+function extractPriorEvents(artifact?: Record<string, unknown>): readonly CanonicalEventEnvelope[] {
+  if (!artifact) return [];
+  const payload = artifact["payload"];
+  if (!payload || typeof payload !== "object") return [];
+  const events = (payload as Record<string, unknown>)["events"];
+  return Array.isArray(events) ? (events as CanonicalEventEnvelope[]) : [];
+}
+
+function extractPriorSnapshots(
+  artifacts: readonly Record<string, unknown>[],
+): readonly BrainSnapshot<BrainReplayState>[] {
+  const snapshots: BrainSnapshot<BrainReplayState>[] = [];
+  for (const artifact of artifacts) {
+    if (artifact["type"] !== "snapshot") continue;
+    const payload = artifact["payload"];
+    if (!payload || typeof payload !== "object") continue;
+    const snapshot = (payload as Record<string, unknown>)["snapshot"];
+    if (!snapshot || typeof snapshot !== "object") continue;
+    snapshots.push(snapshot as BrainSnapshot<BrainReplayState>);
+  }
+  return snapshots.sort((left, right) => left.atTimestamp.localeCompare(right.atTimestamp));
+}
+
+function buildBrainArtifacts(input: {
+  tenantId: string;
+  monthKey: string;
+  generatedAt: string;
+  periodLockHash: string;
+  brainOutcome: ReturnType<typeof runBrainReplayWorkflow>;
+  healthIndex: number;
+}): BrainReplayArtifact[] {
+  const artifacts: BrainReplayArtifact[] = [];
+
+  const pushArtifact = (
+    type: BrainReplayArtifact["type"],
+    payload: Record<string, unknown>,
+  ) => {
+    const sanitizedPayload = sanitizeForFirestore(payload) as Record<string, unknown>;
+    const hash = stableSha256Hex({
+      tenantId: input.tenantId,
+      monthKey: input.monthKey,
+      type,
+      payload: sanitizedPayload,
+      periodLockHash: input.periodLockHash,
+    });
+    artifacts.push({
+      artifactId: `brain:${input.monthKey}:${type}:${hash.slice(0, 16)}`,
+      tenantId: input.tenantId,
+      monthKey: input.monthKey,
+      type,
+      generatedAt: input.generatedAt,
+      hash,
+      schemaVersion: 1,
+      payload: sanitizedPayload,
+    });
+  };
+
+  pushArtifact("decision", {
+    accepted: input.brainOutcome.accepted,
+    intent: input.brainOutcome.intent,
+    replayHash: input.brainOutcome.replay.replayHash,
+  });
+
+  pushArtifact("escalation", {
+    escalationTriggered: !input.brainOutcome.gate.accepted || input.healthIndex < 0.5,
+    reasons: input.brainOutcome.gate.reasons,
+  });
+
+  pushArtifact("health", {
+    healthIndex: input.healthIndex,
+    eventsApplied: input.brainOutcome.replay.eventsApplied,
+  });
+
+  pushArtifact("context_window", {
+    contextWindow: input.brainOutcome.contextWindow,
+  });
+
+  pushArtifact("gate_audit", {
+    accepted: input.brainOutcome.gate.accepted,
+    reasons: input.brainOutcome.gate.reasons,
+  });
+
+  pushArtifact("event_log", {
+    events: input.brainOutcome.events,
+    replayHash: input.brainOutcome.replay.replayHash,
+  });
+
+  if (input.brainOutcome.snapshot) {
+    pushArtifact("snapshot", {
+      snapshot: input.brainOutcome.snapshot,
+      retainedSnapshots: input.brainOutcome.snapshots,
+    });
+  }
+
+  return artifacts;
+}
+
+function sanitizeForFirestore(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((entry) => sanitizeForFirestore(entry));
+  }
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+
+  const record = value as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  for (const [key, entry] of Object.entries(record)) {
+    if (entry === undefined) {
+      continue;
+    }
+    out[key] = sanitizeForFirestore(entry);
+  }
+  return out;
+}
+
+function emitDeterministicTelemetry(payload: Record<string, unknown>): void {
+  try {
+    console.log(JSON.stringify({ telemetry: "brain", ...payload }));
+  } catch {
+    // non-blocking telemetry bridge
   }
 }
 

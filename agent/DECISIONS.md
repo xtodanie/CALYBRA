@@ -40,6 +40,16 @@ This exception applies only to immutable historical entries in `agent/RELEASE.md
 - ADR-0016: Comprehensive Agent Self-Improvement System
 - ADR-0017: UX Polish via Incremental, Data-Safe SSIs
 - ADR-0018: Authenticated App Shell Layout Contract (Grid-Owned Spatial Authority)
+- ADR-0019: Credential Lifecycle Hardening + Tracked-File Secret Scan
+- ADR-0020: ZEREBROX-CORE Phase 1 (Read-Only AI Brain with Structured Memory)
+- ADR-0021: OpenClaw Evidence Mapping as Reference Architecture Input (No Trust Boundary Changes)
+- ADR-0022: Phase 1 Path Convention Mapping (/core and /contracts Aliases)
+- ADR-0023: Phase 2 Self-Accountable Intelligence (Deterministic ROI + Self-Restriction)
+- ADR-0024: Phase Ordering Enforcement + Phase 1 Freeze Execution
+- ADR-0025: SSI-0606 Deterministic Brain Workflow Integration
+- ADR-0026: SSI-0607..0617 Full Integration (Artifacts + ACL + Preflight)
+- ADR-0027: SSI-0618..0627 Advanced Consolidation Layer
+- ADR-0028: SSI-0628..0637 Breakthrough Engineering Layer
 
 ## ADR-0001: Tenant Isolation is Non-Negotiable
 **Status:** Accepted  
@@ -256,11 +266,47 @@ Rollback approach:
 - UX Flows: Render props pattern + hooks for observable, explainable, interruptible operations.
 **Rationale:**
 - System state becomes observable, explainable, and interruptible.
+**Consequences:**
 - UX actions map 1:1 to server workflows - no ambiguity.
 - Fail-fast guards prevent wasted network calls.
 - Structured errors enable recovery guidance in UI.
 - Separation of concerns: UI renders, flows orchestrate, guards validate, workflows execute.
+**Proof requirements:**
+- Intent types enforce immutability via Object.freeze
+- Guard tests prove invalid operations are blocked
+- Flow components expose controlled interface (render props)
+- Orchestration tests in `/src/client/__tests__/orchestration.test.ts`
+**Rollback approach:**
+- `rm -rf src/client/`
+- Remove PHASE_3_COMPLETION.md
+- No deployed surfaces affected (client-only code).
+
+---
+
+## ADR-0021: OpenClaw Evidence Mapping as Reference Architecture Input (No Trust Boundary Changes)
+**Status:** Accepted
+**Decision:**
+- Adopt OpenClaw implementation patterns as evidence input for ZEREBROX Phase 1 architecture decomposition.
+- Record the canonical mapping in `agent/OPENCLAW_PHASE1_MAPPING.md`.
+- Keep CALYBRA trust boundaries unchanged:
+  - no autonomous writes to authoritative financial data,
+  - no tenant boundary relaxation,
+  - no server-authoritative field ownership changes.
+
+**Rationale:**
+- OpenClaw provides mature, production-tested patterns for skill gating, memory layering, scheduler reliability, and schema-validated outputs.
+- Mapping these patterns reduces architecture guesswork while preserving CALYBRA-specific invariants.
+
 **Consequences:**
+- Phase 1 SSIs must explicitly map to evidence-backed patterns (registry gate, trigger router, structured fallback, replay metadata).
+- Any future proposal to import additional OpenClaw behavior that affects security/authority requires a new ADR before implementation.
+- Mapping document becomes a required input artifact for Phase 1 execution reviews.
+
+**Proof requirements (tests/commands):**
+- `node scripts/consistency.mjs`
+
+**Rollback approach:**
+- Revert ADR-0021 and remove mapping references from architecture/task artifacts if Phase 1 direction is re-baselined.
 
 ---
 
@@ -276,19 +322,6 @@ Rollback approach:
 - `npx eslint src/app/[locale]/(app)/dashboard/page.tsx src/components/dashboard/bank-vs-invoices-card.tsx src/components/dashboard/pending-items-card.tsx src/components/dashboard/suppliers-card.tsx src/app/[locale]/(app)/layout.tsx`
 **Rollback approach:**
 - Revert the UI commit and re-run the same lint proof command.
-- UI components must use flow components or hooks, not direct workflow calls.
-- All permission checks run twice: client (fail-fast) and server (authoritative).
-- Progress events are simulated client-side (not server-pushed).
-- State is derived via selectors, projections are computed not stored.
-**Proof requirements:**
-- Intent types enforce immutability via Object.freeze
-- Guard tests prove invalid operations are blocked
-- Flow components expose controlled interface (render props)
-- Orchestration tests in `/src/client/__tests__/orchestration.test.ts`
-**Rollback approach:**
-- `rm -rf src/client/`
-- Remove PHASE_3_COMPLETION.md
-- No deployed surfaces affected (client-only code).
 
 ---
 
@@ -501,3 +534,268 @@ Integration points:
 - Revert `src/app/[locale]/(app)/layout.tsx`, `src/components/layout/app-sidebar.tsx`, and `src/components/layout/layout-constants.ts`.
 - Remove layout contract doc if full rollback is required.
 - Re-run lint/typecheck proofs.
+
+---
+
+## ADR-0019: Credential Lifecycle Hardening + Tracked-File Secret Scan
+**Status:** Accepted  
+**Decision:**
+- Enforce a tracked-file credential signature gate via `npm run security:credentials`.
+- Remove hardcoded credential-like values from tracked config/examples and require placeholders or Secret Manager bindings.
+- Treat key-restriction and rotation as mandatory operational controls in `agent/RUNBOOK.md`.
+**Rationale:**
+- External security warning indicates elevated risk from long-lived or unrestricted credentials.
+- Preventing new repository exposures and standardizing incident response reduces blast radius immediately.
+**Consequences:**
+- CI/local proof loops should include `npm run security:credentials` for security-sensitive SSIs.
+- Deployers must provision required Secret Manager secrets before App Hosting deploys.
+- Operational teams must execute key restriction/rotation tasks out-of-band in GCP.
+**Proof requirements:**
+- `npm run security:credentials`
+- `npm run lint`
+- `npm run typecheck`
+- `npm run build`
+**Rollback approach:**
+- Revert changes to `apphosting.yaml`, `.env.local.example`, and script/docs touched by this SSI.
+- Re-run build and security gate commands.
+
+---
+
+## ADR-0020: ZEREBROX-CORE Phase 1 (Read-Only AI Brain with Structured Memory)
+**Status:** Accepted  
+**Decision:**
+- Adopt an OpenClaw-inspired modular agent architecture for business operations, but keep Phase 1 strictly read-only.
+- Implement a skill registry with deterministic guardrails (`Finance`, `Inventory`, `POS`, `Supplier`) as bounded analyzers, not autonomous executors.
+- Build Memory Core v1 as structured persistent memory:
+  - event ledger (source of truth),
+  - temporal graph projection,
+  - behavioral summaries/versioned snapshots.
+- AI is trigger-gated and schema-bound:
+  - activated only by timer window + trigger policy,
+  - output must pass strict structured schema validation,
+  - deterministic fallback when confidence/policy checks fail.
+- Preserve CALYBRA non-negotiables:
+  - tenant isolation,
+  - server-authoritative boundaries,
+  - full auditability and replayability.
+**Rationale:**
+- Delivers the “digital business brain” direction while avoiding uncontrolled execution risk.
+- Reuses proven agent modularity concepts but aligns to enterprise governance and deterministic finance requirements.
+**Consequences:**
+- Phase 1 ships insights only (no autonomous writes).
+- New domain surfaces require contracts-first implementation and replay tests.
+- Trigger policies and memory schemas become first-class versioned artifacts.
+**Proof requirements:**
+- `npm run lint`
+- `npm run typecheck`
+- `npm run build`
+- `npx jest --ci --passWithNoTests`
+- Deterministic replay tests for rule and AI-decision envelopes (new tests in Phase 1 SSIs)
+**Rollback approach:**
+- Disable ZEREBROX scheduler/trigger entrypoints.
+- Revert Phase 1 skill registry and memory projection surfaces.
+- Keep existing CALYBRA workflows unaffected.
+
+---
+
+## ADR-0022: Phase 1 Path Convention Mapping (/core and /contracts Aliases)
+**Status:** Accepted
+**Decision:**
+- Adopt the hardening-plan path language (`/core/*`, `/contracts/*`, `/tests/*`) as specification aliases.
+- Implement those modules inside existing CALYBRA server boundaries under `server/logic/brain/core/*`, `server/logic/brain/contracts/*`, and `server/tests/*`.
+- Require each task entry using alias paths to include explicit repo path mapping.
+
+**Rationale:**
+- The approved 20-step hardening plan uses concise conceptual paths not currently present at repo root.
+- Mapping aliases to current server structure avoids destructive refactors while preserving plan clarity and execution traceability.
+
+**Consequences:**
+- Future SSI implementation must not create parallel duplicate module trees at repo root unless a new ADR explicitly approves it.
+- Docs and release entries must keep alias+repo path pairing to prevent ambiguity.
+
+**Proof requirements:**
+- `node scripts/consistency.mjs`
+
+**Rollback approach:**
+- Revert ADR-0022 and normalize task language back to repo-native paths only.
+
+---
+
+## ADR-0023: Phase 2 Self-Accountable Intelligence (Deterministic ROI + Self-Restriction)
+**Status:** Accepted
+**Decision:**
+- Phase 2 objective is operational leverage: measurable ROI, deterministic pattern detection, and self-accountable autonomy control.
+- Add four deterministic organs:
+  1) Improvement Measurement Engine,
+  2) Error Detection & Self-Critique,
+  3) Autonomy Restriction Controller,
+  4) Escalation Governance + Health containment.
+- No free-form AI authority: AI can inform, but state-changing trust must pass deterministic engines and guardrails.
+- Phase 2 completion requires explicit freeze criteria in `docs/phase2-freeze.md`.
+
+**Rationale:**
+- Prevents AI theater by making intelligence performance quantifiable and replay-auditable.
+- Ensures system can degrade safely via automatic restriction and escalation before risk compounds.
+
+**Consequences:**
+- Every recommendation path needs measurable baseline, delta, and outcome traces.
+- Autonomy state becomes a strict machine (`Advisory/Assisted/Restricted/Locked`) tied to risk/accuracy signals.
+- Human override reasoning is treated as first-class audit input for recalibration loops.
+
+**Proof requirements:**
+- `npm run typecheck`
+- `npm run lint`
+- `runTests(server/tests/logic/phase2Intelligence.test.ts)`
+
+**Rollback approach:**
+- Disable Phase 2 execution paths by routing to advisory-only mode.
+- Revert Phase 2 core modules and docs while preserving Phase 1 deterministic memory/replay integrity.
+
+---
+
+## ADR-0024: Phase Ordering Enforcement + Phase 1 Freeze Execution
+**Status:** Accepted
+**Decision:**
+- Resolve canonical roadmap conflict by enforcing strict ordering: Phase 1 must be completed/frozen before any active Phase 2 rollout behavior.
+- Complete and freeze all 20 Phase 1 steps with deterministic contracts, append-only event store, replay/snapshot primitives, AI isolation/gating, context/reflection/identity modules, integrity script, and failure simulation suite.
+- Treat previously added Phase 2 modules as non-authoritative scaffolding until Phase 1 freeze gates are satisfied.
+
+**Rationale:**
+- Product mode requires non-negotiable sequencing (Phase 1 -> Phase 2 -> Phase 3).
+- Deterministic memory/replay and isolation guardrails are prerequisite controls for safe intelligence scaling.
+
+**Consequences:**
+- Phase 1 artifacts become the canonical substrate for all later intelligence behavior.
+- Any Phase 2 operational activation remains blocked until Phase 1 freeze proof pack is green.
+
+**Proof requirements:**
+- `npm run typecheck`
+- `npm run lint`
+- `runTests(server/tests/logic/phase1BrainCore.test.ts)`
+- `runTests(server/tests/failure-sim.spec.ts)`
+- `node scripts/integrity-check.mjs`
+- `node scripts/consistency.mjs`
+- `npm run security:credentials`
+- `npm run build`
+
+**Rollback approach:**
+- Revert Phase 1 module/doc additions and task/release decision updates.
+- Re-run consistency and compile gates to ensure rollback integrity.
+
+---
+
+## ADR-0025: SSI-0606 Deterministic Brain Workflow Integration
+**Status:** Accepted
+**Decision:**
+- Activate Phase 2 execution track after confirmed Phase 1 freeze proofs by adding a deterministic workflow integration slice (`brainReplay.workflow`).
+- Integration flow must remain read-only to financial truth and follow: deterministic routing -> AI gate evaluation -> explicit chained events -> deterministic replay -> optional snapshot -> context window build.
+- Canonical event ordering must use parsed epoch timestamps (not string-lexicographic comparison) to avoid replay chain drift under timestamp format variants.
+
+**Rationale:**
+- Connects validated Phase 1 primitives to a real orchestration entrypoint without weakening tenant isolation or authority boundaries.
+- Prevents subtle hash-chain regressions caused by mixed ISO timestamp string formats.
+
+**Consequences:**
+- `server/workflows` now includes a deterministic brain execution workflow suitable for controlled operational wiring.
+- Replay integrity relies on epoch-based sort normalization in both event store and replay engine.
+
+**Proof requirements:**
+- `npm run typecheck`
+- `npm run lint`
+- `runTests(server/tests/workflows/brainReplay.workflow.test.ts)`
+- `node scripts/integrity-check.mjs`
+- `node scripts/consistency.mjs`
+
+**Rollback approach:**
+- Revert `brainReplay.workflow` and associated tests/exports.
+- Revert replay/event-store ordering updates if needed.
+- Re-run proofs above to validate rollback health.
+
+---
+
+## ADR-0026: SSI-0607..0617 Full Integration (Artifacts + ACL + Preflight)
+**Status:** Accepted
+**Decision:**
+- Implement the full Phase 2 tranche from SSI-0607 through SSI-0617 in one deterministic integration pass.
+- `onPeriodFinalized.workflow` is the canonical orchestration hook for brain replay execution and artifact emission.
+- Brain artifacts are append-only and tenant-scoped under readmodel storage using deterministic IDs + hashes and versioned replay artifact contracts.
+- Runtime memory ACL checks are enforced before artifact read/write operations; denied paths remain auditable and deterministic.
+- Preflight gate is standardized through `scripts/phase2_preflight.mjs` and must pass before release logging.
+
+**Rationale:**
+- Closes the gap between Phase 1 primitives and live orchestration behavior.
+- Preserves non-authoritative AI posture while enabling deterministic operational intelligence evidence.
+
+**Consequences:**
+- Workflow emits deterministic telemetry (non-blocking) and artifact trails now required for replay-grade audits.
+- Emulator-backed period-finalized tests become mandatory proof for this integration slice.
+
+**Proof requirements:**
+- `npm run typecheck`
+- `npm run lint`
+- `runTests(server/tests/workflows/brainReplay.workflow.test.ts, server/tests/failure-sim.spec.ts, server/tests/logic/phase1BrainCore.test.ts)`
+- `npx firebase emulators:exec --only firestore "npm test -- server/tests/workflows/periodFinalized.workflow.test.ts"`
+- `node scripts/integrity-check.mjs`
+- `node scripts/consistency.mjs`
+- `npm run phase2:preflight`
+
+**Rollback approach:**
+- Revert workflow hook + artifact persistence + ACL + preflight script additions.
+- Re-run proof chain above to confirm restored baseline behavior.
+
+---
+
+## ADR-0027: SSI-0618..0627 Advanced Consolidation Layer
+**Status:** Accepted
+**Decision:**
+- Implement a deterministic advanced consolidation layer for Phase 2 with ten new pure modules (`unified-brain-engine`, `artifact-compactor`, `replay-diff-analyzer`, `policy-registry`, `autonomy-circuit-breaker`, `escalation-sla`, `decision-scorer-v2`, `replay-benchmark`, `preflight-report`, `phase2-closure-evaluator`).
+- Maintain strict purity and replay stability for all modules; no server-authoritative financial write paths introduced.
+- Add a dedicated validation suite (`phase2Next10.test.ts`) and include outcomes in governance records.
+
+**Rationale:**
+- Consolidates Phase 2 into a composable, analyzable architecture while preserving deterministic safety posture.
+- Provides explicit closure and preflight evaluators for objective phase readiness decisions.
+
+**Consequences:**
+- Brain core exports now include additional deterministic composition and evaluation primitives.
+- Phase planning now has a 12-todo execution map directly tied to executable modules and tests.
+
+**Proof requirements:**
+- `npm run typecheck`
+- `npm run lint`
+- `runTests(server/tests/logic/phase2Next10.test.ts, server/tests/logic/phase2Intelligence.test.ts, server/tests/workflows/brainReplay.workflow.test.ts, server/tests/failure-sim.spec.ts)`
+- `node scripts/consistency.mjs`
+- `npm run phase2:preflight`
+
+**Rollback approach:**
+- Revert new consolidation modules/exports and associated tests.
+- Re-run proof requirements to confirm baseline restoration.
+
+---
+
+## ADR-0028: SSI-0628..0637 Breakthrough Engineering Layer
+**Status:** Accepted
+**Decision:**
+- Implement ten additional deterministic modules for lineage, determinism auditing, policy simulation, threshold tuning, escalation balancing, compaction verification, performance budget gating, explainability packs, closure scoring, and freeze recommendation.
+- Keep all modules pure and deterministic, with no direct persistence or authority-bound writes.
+- Validate via dedicated suite `phase2Next10b.test.ts` and include outcomes in standard preflight chain.
+
+**Rationale:**
+- Creates a top-tier operational intelligence layer with explicit readiness and freeze-decision mechanisms.
+- Strengthens explainability and replay assurance before Phase 2 closure recommendation.
+
+**Consequences:**
+- Brain core now exposes full closure-readiness and freeze-candidate primitives.
+- Governance relies on expanded module set and tests as canonical baseline for next phase decisions.
+
+**Proof requirements:**
+- `npm run typecheck`
+- `npm run lint`
+- `runTests(server/tests/logic/phase2Next10b.test.ts, server/tests/logic/phase2Next10.test.ts, server/tests/logic/phase2Intelligence.test.ts, server/tests/workflows/brainReplay.workflow.test.ts, server/tests/failure-sim.spec.ts)`
+- `node scripts/consistency.mjs`
+- `npm run phase2:preflight`
+
+**Rollback approach:**
+- Revert 0628..0637 modules and exports.
+- Revert added tests and task/release updates.
+- Re-run proof requirements to confirm restored baseline.

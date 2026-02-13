@@ -476,6 +476,17 @@ export const es: Dict = {
       noEvents: 'No hay eventos registrados para este período.',
       download: 'Descargar Log de Auditoría',
     },
+    flightRecorder: {
+      title: 'Flight Recorder',
+      description: 'Reproducción determinista de decisiones con trazabilidad de política y contexto.',
+      noData: 'No hay entradas de flight recorder para este período.',
+      generatedAt: 'Generado',
+      why: 'Por qué se disparó',
+      ruleVsAi: 'Regla vs IA',
+      projections: 'Snapshot de Proyecciones',
+      timeline: 'Línea de Decisiones',
+      whatChanged: 'Qué cambió',
+    },
   },
   settings: {
     title: 'Configuración',

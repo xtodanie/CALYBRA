@@ -9,7 +9,7 @@ runConfig:
 env:
   # Public Firebase config (baked into client bundle)
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
-    value: AIzaSyD73-P8wsNzwURoCywfhjkvYpNJgBYKWIw
+    secret: NEXT_PUBLIC_FIREBASE_API_KEY
   - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
     value: studio-5801368156-a6af7.firebaseapp.com
   - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID

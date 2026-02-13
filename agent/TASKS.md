@@ -58,6 +58,23 @@ This is the execution backlog. Work-in-progress belongs here. Nothing is “ship
 
 ## P0: Build Stabilization (COMPLETED)
 
+### SSI-0316: Urgent credential lifecycle hardening response
+- [x] Remove tracked credential-like literals from `.env.local.example` and use placeholders only.
+- [x] Replace hardcoded app hosting API key value with Secret Manager binding in `apphosting.yaml`.
+- [x] Add tracked-file credential signature scanner `scripts/credential_audit.mjs` and wire `npm run security:credentials`.
+- [x] Add credential lifecycle controls and incident runbook commands to canonical security docs.
+**Proof**
+- [x] `npm run security:credentials` -> PASS
+- [x] `npm run lint` -> PASS
+- [x] `npm run typecheck` -> PASS
+- [x] `npm run build` -> PASS
+
+### SSI-0315: Make production build script cross-platform
+- [x] Replace shell-specific `NODE_ENV=production next build` with `next build` in `package.json`.
+- [x] Verify `npm run build` works directly on Windows shell.
+**Proof**
+- [x] `npm run build` -> PASS (`BUILD_PASS`)
+
 ### SSI-0314: Resolve post-layout typecheck exceptions
 - [x] Align month-close analytics state typing to card prop contracts in `src/app/[locale]/(app)/month-closes/[id]/page.tsx`.
 - [x] Fix upload parse status gate to use canonical enum value (`PARSED`) in `src/app/[locale]/(app)/upload/page.tsx`.
@@ -601,15 +618,15 @@ This is the execution backlog. Work-in-progress belongs here. Nothing is “ship
 - [x] No backend contract changes
 
 **Proof**
-- [ ] `npm run typecheck` -> FAIL (pre-existing analytics typing errors in `src/app/[locale]/(app)/month-closes/[id]/page.tsx`)
+- [x] `npm run typecheck` -> PASS
 - [x] `npm run lint` -> PASS
-- [x] `npx next build` -> PASS (used due Windows-incompatible `NODE_ENV=production` in `npm run build` script)
+- [x] `npm run build` -> PASS
 - [x] `npx jest --ci --passWithNoTests` -> PASS (478 passed, 0 failed)
 - [x] `grep -R "#fff\|#000" src` -> PASS for app surfaces; remaining hits are dependency files under `node_modules`
 
 **Rollback**
-- [ ] Revert SSI-0400 UI/token/layout commits
-- [ ] Re-run `npm run typecheck && npm run lint && npm run build`
+- Revert SSI-0400 UI/token/layout commits
+- Re-run `npm run typecheck && npm run lint && npm run build`
 
 ### SSI-0401: Month Closes + Upload Premium Completion
 - [x] Rebuild `/month-closes` into premium month cards with status badges, progress bars, and CTA row (`View`, `Lock`, `Recompute`)
@@ -628,11 +645,415 @@ This is the execution backlog. Work-in-progress belongs here. Nothing is “ship
 
 **Proof**
 - [x] `npm run lint` -> PASS
-- [x] `npx next build` -> PASS
+- [x] `npm run build` -> PASS
 - [x] `npx jest --ci --passWithNoTests` -> PASS (478 passed, 0 failed)
-- [ ] `npm run typecheck` -> FAIL (pre-existing analytics typing errors in `src/app/[locale]/(app)/month-closes/[id]/page.tsx`)
+- [x] `npm run typecheck` -> PASS
 - [x] `grep -R "#fff\|#000" src` -> PASS for touched app surfaces
 
 **Rollback**
-- [ ] Revert SSI-0401 page/component/i18n commits
-- [ ] Re-run `npm run lint && npx next build && npx jest --ci --passWithNoTests`
+- Revert SSI-0401 page/component/i18n commits
+- Re-run `npm run lint && npm run build && npx jest --ci --passWithNoTests`
+
+---
+
+## P0/P1: ZEREBROX-CORE Phase 1 (Read-Only AI Brain) (IN PROGRESS)
+
+### SSI-0499: OpenClaw Evidence Mapping for Phase 1 Execution
+- [x] Collect source-backed OpenClaw patterns for memory layering, skill/plugin gating, scheduler reliability, policy-first ingress, structured output validation, and replay metadata.
+- [x] Produce CALYBRA mapping artifact `agent/OPENCLAW_PHASE1_MAPPING.md` with strict trust-boundary constraints.
+- [x] Link architecture and ADR records to the mapping artifact to prevent silent assumption drift.
+**Acceptance Criteria**
+- [x] Mapping is explicit, evidence-driven, and bound to Phase 1 SSIs (`0500`–`0506`).
+- [x] Mapping does not change server-authoritative write boundaries or tenant isolation model.
+**Proof**
+- [x] `node scripts/consistency.mjs` -> PASS
+
+### SSI-0500 (Day 1): Contracts + Skill Registry Skeleton
+- [x] Define versioned schemas for `SkillInput`, `SkillOutput`, `TriggerEvent`, `DecisionEnvelope`, `MemoryWrite`.
+- [x] Implement skill registry interface with deterministic precheck hooks and tenant-scoped context contract.
+- [x] Register initial skill stubs: `Finance`, `Inventory`, `POS`, `Supplier` (read-only).
+**Acceptance Criteria**
+- [x] Contracts compile and are versioned.
+- [x] Skills cannot execute without schema-valid input + tenant context.
+**Proof**
+- [x] `npm run typecheck` -> PASS
+- [x] `npm run lint` -> PASS
+- [x] `runTests(server/tests/logic/brainRegistry.test.ts)` -> PASS (5 passed, 0 failed)
+
+### SSI-0501 (Day 2): Unified Business Model Projections (Read-Only)
+- [x] Create normalized UBM projection layer for cross-source read-only analytics.
+- [x] Add adapter boundary for CALYBRA-native readmodels plus one external stub connector payload format.
+**Acceptance Criteria**
+- [x] UBM projection generated deterministically from input bundle.
+- [x] No write path introduced to source systems.
+**Proof**
+- [x] `npm run typecheck` -> PASS
+- [x] `runTests(server/tests/logic/phase1BrainCore.test.ts)` -> PASS
+
+### SSI-0502 (Day 3): Rule Engine Heartbeat + Trigger Router
+- [x] Add scheduler window gate (every 30 min, 07:00 to venue close).
+- [x] Implement trigger router for threshold, inconsistency, anomaly, EOD, manual triggers.
+- [x] Emit deterministic `RuleResult` with evidence IDs and context hash.
+**Acceptance Criteria**
+- [x] Off-window runs are skipped with auditable reason.
+- [x] Trigger routing is deterministic for identical input bundles.
+**Proof**
+- [x] `npm run typecheck` -> PASS
+- [x] `runTests(server/tests/logic/phase1BrainCore.test.ts)` -> PASS
+
+### SSI-0503 (Day 4): AI Activation Core (Structured, Gated)
+- [x] Implement policy gate deciding AI activation from rule outputs.
+- [x] Enforce strict structured output schema validation.
+- [x] Add deterministic fallback when AI output invalid/low confidence/policy denied.
+**Acceptance Criteria**
+- [x] No free-form output reaches decision layer.
+- [x] Fallback path remains deterministic and auditable.
+**Proof**
+- [x] `npm run typecheck` -> PASS
+- [x] `runTests(server/tests/failure-sim.spec.ts)` -> PASS
+
+### SSI-0504 (Day 5): Memory Core v1
+- [x] Implement append-only event ledger for orchestration and trigger outcomes.
+- [x] Build temporal graph projection update path.
+- [x] Add behavioral summary snapshots with versioning metadata.
+**Acceptance Criteria**
+- [x] Memory updates are tenant-scoped and versioned.
+- [x] No memory write mutates authoritative financial truth.
+**Proof**
+- [x] `npm run typecheck` -> PASS
+- [x] `node scripts/integrity-check.mjs` -> PASS
+
+### SSI-0505 (Day 6): Auditability + Replay
+- [x] Add replay endpoint/tooling for `DecisionEnvelope` reproducibility.
+- [x] Expose insight explainability fields (`ruleIds`, `policyPath`, `evidenceRefs`, `modelVersion`).
+**Acceptance Criteria**
+- [x] Same `contextHash` reproduces same deterministic envelope.
+- [x] Explainability metadata available for every insight.
+**Proof**
+- [x] `npm run typecheck` -> PASS
+- [x] `runTests(server/tests/logic/phase1BrainCore.test.ts)` -> PASS
+
+### SSI-0506 (Day 7): Hardening + Release Candidate
+- [x] Run full quality/security gates and resolve blockers.
+- [x] Produce go/no-go checklist and rollback runbook for Phase 1 read-only release.
+**Acceptance Criteria**
+- [x] Lint/typecheck/tests/build pass.
+- [x] No security boundary regressions in tenant isolation or authority boundaries.
+**Proof**
+- [x] `npm run security:credentials` -> PASS
+- [x] `npm run lint` -> PASS
+- [x] `npm run typecheck` -> PASS
+- [x] `runTests(server/tests/logic/phase1BrainCore.test.ts, server/tests/failure-sim.spec.ts)` -> PASS
+- [x] `npm run build` -> PASS
+
+### Phase 1 Advanced Execution Plan (20 Steps)
+1. [x] UBM Scope Freeze (Domain Boundary Definition): define exact UBM entity set, event types, memory granularity, and explicit rule that no AI logic lives inside UBM. Deliverables: `docs/architecture/ubm-scope.md` + JSON schema draft. Gate: no implementation code for SSI-0501 before this is committed.
+2. [x] Memory Taxonomy Definition: define structural/event/behavioral/reflection memory classes and intended retention semantics. Deliverable: `docs/architecture/memory-types.md`.
+3. [x] Canonical Event Envelope Contract: define strict event format (`id,type,actor,context,payload,timestamp,hash,parent_id?`) and Zod schema. Deliverable: `server/logic/brain/contracts/event-envelope.ts` (spec alias: `/contracts/event-envelope.ts`).
+4. [x] Deterministic Hashing Layer: implement stable SHA-256 hashing over canonical JSON with key order normalization. Module: `server/logic/brain/core/hash.ts` (spec alias: `/core/hash.ts`). Rule: no event persisted without hash.
+5. [x] Append-Only Event Store Implementation: implement immutable persistence with append-only guarantees (no update/delete). Module: `server/logic/brain/core/event-store.ts` (spec alias: `/core/event-store.ts`).
+6. [x] Replay Engine v1: deterministic replay from event log with hash-chain validation and deterministic state rebuild. Module: `server/logic/brain/core/replay.ts` (spec alias: `/core/replay.ts`). Proof: replay same stream twice yields identical state.
+7. [x] Snapshot Strategy Definition: define interval, structure, and integrity verification policy. Deliverable: `docs/architecture/snapshot-policy.md`.
+8. [x] Snapshot Implementation: snapshot writer + loader to accelerate replay without changing final deterministic state. Module: `server/logic/brain/core/snapshot.ts` (spec alias: `/core/snapshot.ts`).
+9. [x] AI Isolation Boundary: define contract where AI can only emit suggestions and cannot mutate state directly. Deliverable: `server/logic/brain/contracts/ai-response.ts` (spec alias: `/contracts/ai-response.ts`).
+10. [x] Deterministic Router Layer: implement router that classifies intent, emits event, and logs reasoning; block any direct AI-to-state write path. Module: `server/logic/brain/core/router.ts` (spec alias: `/core/router.ts`).
+11. [x] AI Audit Trail Logging: log prompt, context window, token usage, response, and decision mapping for every AI call. Module: `server/logic/brain/core/ai-audit.ts` (spec alias: `/core/ai-audit.ts`).
+12. [x] AI Gating Rules Engine: validate permission, state constraints, and conflicts before accepting AI suggestions. Module: `server/logic/brain/core/ai-gate.ts` (spec alias: `/core/ai-gate.ts`).
+13. [x] Memory Compaction Strategy: define when/how memory summarization occurs and how integrity is preserved through compaction. Deliverable: `docs/architecture/memory-compaction.md`.
+14. [x] Reflection Engine v1: periodic reflection generation for behavioral pattern/anomaly/efficiency insights; outputs must be explicit events, never hidden state. Module: `server/logic/brain/core/reflection.ts` (spec alias: `/core/reflection.ts`).
+15. [x] Context Window Builder: deterministically select relevant events, snapshot material, and reflection insights for downstream reasoning. Module: `server/logic/brain/core/context-builder.ts` (spec alias: `/core/context-builder.ts`).
+16. [x] Identity Binding Layer: enforce non-spoofable actor binding with cryptographic signature verification. Module: `server/logic/brain/core/identity.ts` (spec alias: `/core/identity.ts`).
+17. [x] Memory Access Control Policy: define read/write/reflection scopes and tenant boundaries. Deliverable: `docs/security/memory-acl.md`.
+18. [x] Integrity Consistency Gate: implement automated verification for hash-chain validity, snapshot integrity, and replay diff detection. Module: `scripts/integrity-check.mjs`.
+19. [x] Failure Simulation Suite: simulate corrupt event, missing snapshot, partial AI output, and router crash; system must fail safely. Module: `server/tests/failure-sim.spec.ts` (spec alias: `/tests/failure-sim.spec.ts`).
+20. [x] Phase 1 Freeze Criteria Definition: formalize freeze gate (deterministic replay, AI gating enforced, append-only memory, passing integrity gate, no mutable state pathways). Deliverable: `docs/phase1-freeze.md`. Once achieved: lock Phase 1.
+
+---
+
+## P1: ZEREBROX Phase 2 — Self-Accountable Intelligence (IN PROGRESS)
+
+### SSI-0601: Improvement Measurement Engine (IME)
+- [x] Step 1 — Metrics Registry module (`server/logic/brain/core/metrics-registry.ts`).
+- [x] Step 2 — Baseline Snapshot module (`server/logic/brain/core/baseline-engine.ts`).
+- [x] Step 3 — Delta Computation module (`server/logic/brain/core/delta-engine.ts`).
+- [x] Step 4 — Improvement Score Ledger (`server/logic/brain/core/improvement-ledger.ts`).
+**Acceptance Criteria**
+- [x] Metrics are explicit and versionable.
+- [x] Baselines are immutable and hashable.
+- [x] Delta computation is replay-deterministic.
+
+### SSI-0602: Error Detection & Self-Critique
+- [x] Step 5 — Prediction vs Outcome comparator (`server/logic/brain/core/prediction-audit.ts`).
+- [x] Step 6 — Confidence Calibration engine (`server/logic/brain/core/confidence-calibrator.ts`).
+- [x] Step 7 — Drift Detection layer (`server/logic/brain/core/drift-detector.ts`).
+- [x] Step 8 — Self-Critique event emission (`server/logic/brain/core/self-critique.ts`).
+**Acceptance Criteria**
+- [x] Intelligence degradation emits explicit events.
+- [x] Confidence recalibration deterministically affects trust level.
+
+### SSI-0603: Autonomy Restriction Controller
+- [x] Step 9 — Autonomy State Machine (`server/logic/brain/core/autonomy-state.ts`).
+- [x] Step 10 — Risk Exposure calculator (`server/logic/brain/core/risk-calculator.ts`).
+- [x] Step 11 — Automatic downgrade logic integrated in state transitions.
+- [x] Step 12 — Hard Guardrail policy (`docs/autonomy/hard-guardrails.md`).
+**Acceptance Criteria**
+- [x] Unsafe conditions force deterministic autonomy restriction.
+- [x] Hard guardrails are immutable policy inputs.
+
+### SSI-0604: Escalation Governance System
+- [x] Step 13 — Escalation trigger matrix (`docs/escalation/triggers.md`).
+- [x] Step 14 — Escalation event engine (`server/logic/brain/core/escalation-engine.ts`).
+- [x] Step 15 — Escalation context builder (`server/logic/brain/core/escalation-context.ts`).
+- [x] Step 16 — Human override audit trail (`server/logic/brain/core/override-audit.ts`).
+**Acceptance Criteria**
+- [x] Escalation events are deterministic and auditable.
+- [x] Human overrides are tracked and available for recalibration.
+
+### SSI-0605: System Health & Self-Awareness
+- [x] Step 17 — Intelligence Health Index (`server/logic/brain/core/health-index.ts`).
+- [x] Step 18 — Degradation containment protocol (`resolveDegradationContainment` in `health-index.ts`).
+- [x] Step 19 — Longitudinal performance graph (`server/logic/brain/core/performance-graph.ts`).
+- [x] Step 20 — Phase 2 freeze criteria (`docs/phase2-freeze.md`).
+**Acceptance Criteria**
+- [x] Health index can trigger deterministic containment actions.
+- [x] Longitudinal trends are replay-reproducible.
+
+**Phase 2 Supporting Intelligence Modules (Strategic + Decision Layer)**
+- [x] Pattern DSL (`server/logic/brain/core/pattern-dsl.ts`)
+- [x] Pattern Registry (`server/logic/brain/core/pattern-registry.ts`)
+- [x] Pattern Runner (`server/logic/brain/core/pattern-runner.ts`)
+- [x] Signal Confidence (`server/logic/brain/core/signal-score.ts`)
+- [x] Signal Dampener (`server/logic/brain/core/signal-dampener.ts`)
+- [x] Decision Contract (`server/logic/brain/contracts/decision.ts`)
+- [x] Decision Evaluator (`server/logic/brain/core/decision-evaluator.ts`)
+- [x] Decision Ledger (`server/logic/brain/core/decision-ledger.ts`)
+- [x] Threshold policy docs (`docs/intelligence/signal-thresholds.md`)
+
+**Proof**
+- [x] `npm run typecheck` -> PASS
+- [x] `npm run lint` -> PASS
+- [x] `runTests(server/tests/logic/phase2Intelligence.test.ts)` -> PASS (5 passed, 0 failed)
+
+### SSI-0606: Brain Replay/Router Workflow Integration
+- [x] Implement deterministic orchestration workflow that routes intent, enforces AI gate, emits chained events, replays state, and materializes context window.
+- [x] Wire workflow into canonical workflow exports for server entrypoint consumption.
+- [x] Add integration tests proving deterministic replay output, gate-deny path, and snapshot materialization behavior.
+**Acceptance Criteria**
+- [x] Identical inputs produce identical event log + replay hash output.
+- [x] AI suggestion acceptance remains policy-gated and can deterministically deny unsafe actor-role paths.
+- [x] Hash-chain ordering is stable under timestamp format variance and remains replay-valid.
+**Proof**
+- [x] `npm run typecheck` -> PASS
+- [x] `npm run lint` -> PASS
+- [x] `runTests(server/tests/workflows/brainReplay.workflow.test.ts, server/tests/logic/phase1BrainCore.test.ts, server/tests/failure-sim.spec.ts)` -> PASS (6 passed, 0 failed)
+- [x] `node scripts/integrity-check.mjs` -> PASS
+- [x] `node scripts/consistency.mjs` -> PASS
+
+### SSI-0607: Orchestration Hook into Period Finalization
+- [x] Invoke `brainReplay.workflow` from `onPeriodFinalized.workflow` with deterministic input bundle and explicit tenant context.
+- [x] Ensure invocation is idempotent under existing job key semantics.
+**Acceptance Criteria**
+- [x] Period finalization produces stable brain replay outputs for identical lock hash inputs.
+- [x] No changes to financial write authority or status machine semantics.
+**Proof**
+- [x] `npm run typecheck` -> PASS
+- [x] `npx firebase emulators:exec --only firestore "npm test -- server/tests/workflows/periodFinalized.workflow.test.ts"` -> PASS (2 passed)
+- [x] `runTests(server/tests/workflows/brainReplay.workflow.test.ts)` -> PASS (4 passed)
+**Rollback**
+- [x] Revert workflow hook and keep standalone `brainReplay.workflow` only.
+
+### SSI-0608: Canonical Brain Artifact Persistence
+- [x] Persist brain artifacts (`decision`, `escalation`, `health`, `contextWindow`) under tenant-scoped append-only readmodel/export paths.
+- [x] Add deterministic artifact IDs and content hashes.
+**Acceptance Criteria**
+- [x] Artifact writes are tenant-scoped, replay-reproducible, and hash-verifiable.
+- [x] Existing export/readmodel consumers remain backward compatible.
+**Proof**
+- [x] `npm run typecheck` -> PASS
+- [x] `npx firebase emulators:exec --only firestore "npm test -- server/tests/workflows/periodFinalized.workflow.test.ts"` -> PASS
+- [x] `node scripts/integrity-check.mjs` -> PASS
+**Rollback**
+- [x] Remove artifact persistence path and retain in-memory workflow output only.
+
+### SSI-0609: Replay Artifact Contract Versioning
+- [x] Add explicit schema contract for replay artifacts and version marker (`schemaVersion`).
+- [x] Enforce contract validation at write boundary.
+**Acceptance Criteria**
+- [x] Invalid artifact payloads are rejected deterministically.
+- [x] Contract version drift is detectable in tests.
+**Proof**
+- [x] `npm run typecheck` -> PASS
+- [x] `runTests(server/tests/workflows/workflow.contracts.test.ts)` -> PASS
+**Rollback**
+- [x] Revert strict contract validation while keeping raw artifact storage.
+
+### SSI-0610: Orchestration-Level AI Gate Enforcement
+- [x] Enforce AI gate at workflow boundary before any artifact persistence.
+- [x] Persist gate decision audit payload for accepted/denied paths.
+**Acceptance Criteria**
+- [x] Denied gate path emits auditable record and prevents suggestion-derived outputs.
+- [x] Accepted path remains deterministic and reproducible.
+**Proof**
+- [x] `npm run typecheck` -> PASS
+- [x] `runTests(server/tests/workflows/brainReplay.workflow.test.ts)` -> PASS
+**Rollback**
+- [x] Revert boundary gate enforcement to module-level gate only.
+
+### SSI-0611: Snapshot Lifecycle in Live Workflow
+- [x] Load latest eligible snapshot before replay and create new snapshot per policy interval.
+- [x] Retain snapshots according to policy cap.
+**Acceptance Criteria**
+- [x] Replay with snapshot and without snapshot produce identical final replay hash.
+- [x] Snapshot retention is deterministic and bounded.
+**Proof**
+- [x] `npm run typecheck` -> PASS
+- [x] `runTests(server/tests/logic/phase1BrainCore.test.ts, server/tests/workflows/brainReplay.workflow.test.ts)` -> PASS
+**Rollback**
+- [x] Disable snapshot load/write in workflow and use full-event replay path.
+
+### SSI-0612: Runtime Memory ACL Enforcement
+- [x] Implement tenant/action/role ACL checks for artifact read/write/replay operations.
+- [x] Emit deterministic denial audit entries for ACL violations.
+**Acceptance Criteria**
+- [x] Cross-tenant and unauthorized actor-role requests are denied with explicit reason.
+- [x] Authorized paths remain unaffected.
+**Proof**
+- [x] `npm run typecheck` -> PASS
+- [x] `runTests(server/tests/failure-sim.spec.ts, server/tests/workflows/brainReplay.workflow.test.ts)` -> PASS
+**Rollback**
+- [x] Revert ACL runtime checks and keep policy docs/contracts only.
+
+### SSI-0613: Integrity Gate Expansion (Workflow Artifacts)
+- [x] Extend `scripts/integrity-check.mjs` to verify persisted brain artifact chain integrity.
+- [x] Validate parent linkage and replay diff detection across persisted artifacts.
+**Acceptance Criteria**
+- [x] Integrity gate fails on tampered artifact hashes/parent mismatch.
+- [x] Integrity gate remains deterministic and fast for CI usage.
+**Proof**
+- [x] `node scripts/integrity-check.mjs` -> PASS
+- [x] `node scripts/consistency.mjs` -> PASS
+**Rollback**
+- [x] Revert expanded checks and keep base event-chain validation.
+
+### SSI-0614: Failure Simulation Suite v2
+- [x] Add tests for duplicate event IDs, parent-chain discontinuity, and ACL bypass attempts.
+- [x] Add timestamp canonicalization edge-case tests.
+**Acceptance Criteria**
+- [x] All adversarial cases fail safely with deterministic error behavior.
+- [x] No flaky behavior across repeated test runs.
+**Proof**
+- [x] `runTests(server/tests/failure-sim.spec.ts)` -> PASS
+- [x] `npm run typecheck` -> PASS
+**Rollback**
+- [x] Revert new adversarial tests if they conflict with current canonical contracts.
+
+### SSI-0615: Emulator E2E for Brain Replay Path
+- [x] Add emulator-backed integration tests covering period finalize -> brain replay -> artifact persistence.
+- [x] Validate idempotency under repeated workflow execution.
+**Acceptance Criteria**
+- [x] Two identical executions produce identical replay hash and artifact IDs.
+- [x] Job/status behavior remains idempotent and deterministic.
+**Proof**
+- [x] `npx firebase emulators:exec --only firestore "npm test -- server/tests/workflows/periodFinalized.workflow.test.ts"` -> PASS (2 passed)
+- [x] `node scripts/consistency.mjs` -> PASS
+**Rollback**
+- [x] Revert emulator brain-path tests and retain unit/integration local coverage.
+
+### SSI-0616: Deterministic Telemetry Bridge
+- [x] Emit non-blocking telemetry entries for replay hash, gate outcome, containment signal, escalation signal.
+- [x] Keep telemetry strictly non-authoritative and failure-tolerant.
+**Acceptance Criteria**
+- [x] Telemetry failures do not affect workflow outcome.
+- [x] Deterministic payload shape and field completeness are preserved.
+**Proof**
+- [x] `npm run typecheck` -> PASS
+- [x] `runTests(server/tests/workflows/brainReplay.workflow.test.ts)` -> PASS
+**Rollback**
+- [x] Remove telemetry emission points while preserving workflow logic.
+
+### SSI-0617: Phase 2 Performance Baseline + Preflight Gate
+- [x] Define replay/artifact latency baseline and enforce via deterministic preflight script chain.
+- [x] Consolidate gate command sequence for release readiness evidence.
+**Acceptance Criteria**
+- [x] Single preflight pass executes type/lint/tests/integrity/consistency and outputs PASS/FAIL summary.
+- [x] Performance baseline documented and reproducible.
+**Proof**
+- [x] `npm run typecheck` -> PASS
+- [x] `npm run lint` -> PASS
+- [x] `npm run phase2:preflight` -> PASS
+- [x] `node scripts/integrity-check.mjs` -> PASS
+- [x] `node scripts/consistency.mjs` -> PASS
+**Rollback**
+- [x] Revert preflight aggregator and keep individual proof commands.
+
+### Phase 2 Next-TODOs (12-Point Master Execution Plan)
+1. [x] Analyze existing Phase 2 architecture and proof baseline before new implementation.
+2. [x] Define consolidated next-wave SSIs (0618..0627) with deterministic boundaries.
+3. [x] Implement unified brain engine facade for cross-organ orchestration outputs.
+4. [x] Implement artifact compactor for deterministic append-only window summaries.
+5. [x] Implement replay diff analyzer for stability/drift diagnostics.
+6. [x] Implement deterministic policy registry for confidence/path enforcement.
+7. [x] Implement autonomy circuit breaker for hard containment paths.
+8. [x] Implement escalation SLA planner for deterministic response windows.
+9. [x] Implement decision quality scorer v2 and replay benchmark utilities.
+10. [x] Implement deterministic preflight report builder and phase closure evaluator.
+11. [x] Add dedicated tests covering all next-10 phase modules.
+12. [x] Execute full proof chain and record completion outcomes.
+
+### SSI-0618..0627: Phase 2 Advanced Consolidation Wave
+- [x] SSI-0618 Unified Brain Engine (`server/logic/brain/core/unified-brain-engine.ts`)
+- [x] SSI-0619 Artifact Compactor (`server/logic/brain/core/artifact-compactor.ts`)
+- [x] SSI-0620 Replay Diff Analyzer (`server/logic/brain/core/replay-diff-analyzer.ts`)
+- [x] SSI-0621 Deterministic Policy Registry (`server/logic/brain/core/policy-registry.ts`)
+- [x] SSI-0622 Autonomy Circuit Breaker (`server/logic/brain/core/autonomy-circuit-breaker.ts`)
+- [x] SSI-0623 Escalation SLA Planner (`server/logic/brain/core/escalation-sla.ts`)
+- [x] SSI-0624 Decision Quality Scorer v2 (`server/logic/brain/core/decision-scorer-v2.ts`)
+- [x] SSI-0625 Replay Benchmark Harness (`server/logic/brain/core/replay-benchmark.ts`)
+- [x] SSI-0626 Deterministic Preflight Report (`server/logic/brain/core/preflight-report.ts`)
+- [x] SSI-0627 Phase 2 Closure Evaluator (`server/logic/brain/core/phase2-closure-evaluator.ts`)
+**Acceptance Criteria**
+- [x] All modules are deterministic/pure and compile under strict TS.
+- [x] All modules are exported through brain core barrel for consumption.
+- [x] Validation suite covers core behavior and determinism for each module.
+**Proof**
+- [x] `npm run typecheck` -> PASS
+- [x] `npm run lint` -> PASS
+- [x] `runTests(server/tests/logic/phase2Next10.test.ts, server/tests/logic/phase2Intelligence.test.ts, server/tests/workflows/brainReplay.workflow.test.ts, server/tests/failure-sim.spec.ts)` -> PASS (13 passed, 0 failed)
+- [x] `node scripts/consistency.mjs` -> PASS
+- [x] `npm run phase2:preflight` -> PASS
+
+### Phase 2 Next-TODOs (12-Point Plan for SSI-0628..0637)
+1. [x] Analyze current architecture surfaces for artifact lineage, determinism audit, and closure readiness.
+2. [x] Define SSI-0628..0637 scope with deterministic and policy-safe constraints.
+3. [x] Implement artifact lineage graph module.
+4. [x] Implement cross-run determinism audit module.
+5. [x] Implement policy simulation and bounded threshold tuner modules.
+6. [x] Implement escalation workload balancer module.
+7. [x] Implement compaction verifier and performance budget evaluator modules.
+8. [x] Implement explainability pack generator module.
+9. [x] Implement closure scoreboard and freeze-candidate evaluator modules.
+10. [x] Wire all modules into brain core exports.
+11. [x] Add comprehensive deterministic test suite for SSI-0628..0637.
+12. [x] Execute full proof chain and record release/governance outcomes.
+
+### SSI-0628..0637: Phase 2 Breakthrough Engineering Wave
+- [x] SSI-0628 Artifact Lineage Graph (`server/logic/brain/core/artifact-lineage.ts`)
+- [x] SSI-0629 Cross-Run Determinism Audit (`server/logic/brain/core/determinism-audit.ts`)
+- [x] SSI-0630 Policy Simulation Mode (`server/logic/brain/core/policy-simulation.ts`)
+- [x] SSI-0631 Adaptive Threshold Tuner (`server/logic/brain/core/threshold-tuner.ts`)
+- [x] SSI-0632 Escalation Workload Balancer (`server/logic/brain/core/escalation-balancer.ts`)
+- [x] SSI-0633 Compaction Verifier v2 (`server/logic/brain/core/compaction-verifier.ts`)
+- [x] SSI-0634 Replay Performance Budget Evaluator (`server/logic/brain/core/perf-budget.ts`)
+- [x] SSI-0635 Explainability Pack Builder (`server/logic/brain/core/explainability-pack.ts`)
+- [x] SSI-0636 Closure Readiness Scoreboard (`server/logic/brain/core/closure-scoreboard.ts`)
+- [x] SSI-0637 Freeze Candidate Evaluator (`server/logic/brain/core/freeze-candidate.ts`)
+**Acceptance Criteria**
+- [x] All modules are deterministic and compile under strict TS.
+- [x] Modules are exported through `server/logic/brain/core/index.ts`.
+- [x] Dedicated tests validate expected behavior for all ten modules.
+**Proof**
+- [x] `npm run typecheck` -> PASS
+- [x] `npm run lint` -> PASS
+- [x] `runTests(server/tests/logic/phase2Next10b.test.ts, server/tests/logic/phase2Next10.test.ts, server/tests/logic/phase2Intelligence.test.ts, server/tests/workflows/brainReplay.workflow.test.ts, server/tests/failure-sim.spec.ts)` -> PASS (18 passed, 0 failed)
+- [x] `node scripts/consistency.mjs` -> PASS
+- [x] `npm run phase2:preflight` -> PASS

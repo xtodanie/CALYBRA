@@ -38,6 +38,7 @@ import {
   TimelineCard,
   FrictionCard,
   AuditorReplayCard,
+  FlightRecorderCard,
 } from "@/components/analytics";
 
 
@@ -78,6 +79,7 @@ type MismatchSummaryData = NonNullable<ComponentProps<typeof MismatchSummaryCard
 type TimelineData = NonNullable<ComponentProps<typeof TimelineCard>["data"]>;
 type FrictionData = ComponentProps<typeof FrictionCard>["data"];
 type AuditorReplayData = ComponentProps<typeof AuditorReplayCard>["data"];
+type FlightRecorderData = ComponentProps<typeof FlightRecorderCard>["data"];
 
 const WorkflowPanel = ({ status, t }: { status: MonthCloseStatus; t: Translations }) => {
     const statusToStep: Record<MonthCloseStatus, number> = {
@@ -156,6 +158,7 @@ export default function MonthCloseDetailPage({ params }: { params: Promise<{ id:
   const [timeline, setTimeline] = useState<TimelineData | null>(null);
   const [friction, setFriction] = useState<FrictionData>(null);
   const [auditorReplay, setAuditorReplay] = useState<AuditorReplayData>(null);
+  const [flightRecorder, setFlightRecorder] = useState<FlightRecorderData>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -185,11 +188,12 @@ export default function MonthCloseDetailPage({ params }: { params: Promise<{ id:
       // Try to load from readmodels (for finalized months)
       const readmodelBasePath = `tenants/${user.tenantId}/readmodels`;
       
-      const [vatSnap, mismatchSnap, timelineSnap, frictionSnap] = await Promise.all([
+      const [vatSnap, mismatchSnap, timelineSnap, frictionSnap, flightRecorderSnap] = await Promise.all([
         getDoc(doc(db, `${readmodelBasePath}/vatSummary/${monthKey}/snapshot`)),
         getDoc(doc(db, `${readmodelBasePath}/mismatchSummary/${monthKey}/snapshot`)),
         getDoc(doc(db, `${readmodelBasePath}/monthCloseTimeline/${monthKey}/snapshot`)),
         getDoc(doc(db, `${readmodelBasePath}/closeFriction/${monthKey}/snapshot`)),
+        getDoc(doc(db, `${readmodelBasePath}/flightRecorder/${monthKey}/snapshot`)),
       ]);
 
       if (vatSnap.exists()) setVatSummary(vatSnap.data() as VatSummaryData);
@@ -203,6 +207,9 @@ export default function MonthCloseDetailPage({ params }: { params: Promise<{ id:
           exceptionPercent: data.exceptionPercent || 0,
           frictionScore: data.frictionScore || 0,
         });
+      }
+      if (flightRecorderSnap.exists()) {
+        setFlightRecorder(flightRecorderSnap.data() as FlightRecorderData);
       }
 
       // Load auditor replay summary
@@ -370,6 +377,8 @@ export default function MonthCloseDetailPage({ params }: { params: Promise<{ id:
           </div>
 
           <TimelineCard data={timeline} loading={analyticsLoading} />
+
+          <FlightRecorderCard data={flightRecorder} loading={analyticsLoading} />
         </div>
       )}
     </div>

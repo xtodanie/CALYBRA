@@ -61,6 +61,781 @@ Use semantic versioning when you start shipping externally. Until then, use incr
 
 ## Releases
 https://console.cloud.google.com/google/maps-apis/api-list?hl=es-419&project=studio-5801368156-a6af7
+### 2026-02-14 — Release 0048
+**Scope**
+- Surfaces: Control-Plane Invariants / E2E Orchestration / Security Rules / Harness Automation
+- Risk: P1
+
+**Summary**
+- Implemented an adversarial validation increment for ZEREBROX with deterministic invariant tests, e2e orchestration tests, dedicated security-rule checks, and an executable harness in fast/full modes.
+
+**Changes**
+- `server/tests/invariants/zerebroxInvariants.test.ts`
+  - Added invariant matrix coverage for:
+    - append-only decision/truth/feedback chain,
+    - schema-locked fallback,
+    - arbitration + dual-path disagreement tiers,
+    - envelope downgrades,
+    - mode-transition legality,
+    - deterministic scoring/heartbeat/adaptation gates,
+    - deterministic proposal IDs + canary rollback,
+    - flight-recorder delta tracking.
+- `server/tests/e2e/zerebroxControlPlane.e2e.test.ts`
+  - Added mocked e2e orchestration coverage for:
+    - proposal creation in `propose` gate,
+    - decision/truth/feedback event trilogy,
+    - replay run determinism under same clock tick,
+    - approval vs rollback canary paths.
+- `tests/security/firestore.zerebrox.rules.test.ts`
+  - Added focused Firestore rules tests for control-plane paths:
+    - client write denial on events/readmodels,
+    - server write allowance,
+    - tenant-scoped read enforcement.
+- `scripts/e2e_control_plane_harness.mjs`
+  - Added executable harness (`fast` and `--full`) to run control-plane proof suites.
+- `package.json`
+  - Added scripts:
+    - `control-plane:harness`
+    - `control-plane:harness:full`
+
+**Proof (Executed)**
+- Command: `runTests(server/tests/invariants/zerebroxInvariants.test.ts, server/tests/e2e/zerebroxControlPlane.e2e.test.ts, server/tests/workflows/zerebroxControlPlane.workflow.test.ts, server/tests/logic/zerebroxControlPlane.test.ts)`
+  - Result: PASS
+  - Output summary: 21 passed, 0 failed.
+- Command: `npm run control-plane:harness`
+  - Result: PASS
+  - Output summary: harness fast mode passed all suites.
+- Command: `runTests(tests/security/firestore.zerebrox.rules.test.ts)`
+  - Result: PASS (guarded)
+  - Output summary: 0 passed, 0 failed when Firestore emulator is not configured in test environment.
+- Command: `npm run typecheck ; npm run lint`
+  - Result: PASS
+  - Output summary: typecheck and lint clean.
+
+**Rollback**
+- Revert: `git revert <sha>`
+- Re-run baseline proofs: `npm run typecheck ; npm run lint ; npm run test -- server/tests/workflows/zerebroxControlPlane.workflow.test.ts`
+
+### 2026-02-14 — Release 0047
+**Scope**
+- Surfaces: Evidence / Compliance Traceability
+- Risk: P0
+
+**Summary**
+- Added a strict 18-directive closure matrix with per-directive implementation evidence, runtime wiring evidence, test references, status, and residual-gap notes.
+
+**Changes**
+- `agent/ZEREBROX_18_CLOSURE_MATRIX.md`
+  - Added end-to-end closure matrix for directives #1-#18.
+  - Added cross-cutting integrity checks (tenant scope, server-authoritative writes, append-only events).
+  - Added proof command inventory with latest passing status.
+
+**Proof (Referenced)**
+- `npm --prefix functions run build` — PASS
+- `npm run typecheck` — PASS
+- `npm run lint` — PASS
+- `node scripts/truth.mjs` — PASS
+- `node scripts/consistency.mjs` — PASS
+- `runTests` (`server/tests/logic/zerebroxControlPlane.test.ts`, `server/tests/workflows/zerebroxControlPlane.workflow.test.ts`) — PASS
+
+**Rollback**
+- Revert matrix docs entry if needed: `git revert <sha>`
+
+### 2026-02-13 — Release 0046
+**Scope**
+- Surfaces: Control-Plane Runtime Hardening / Event Log Persistence / Workflow Tests
+- Risk: P1
+
+**Summary**
+- Completed end-to-end runtime hardening for control-plane execution by adding enforced mode transitions, protection-envelope gating, command arbitration, and append-only decision/truth/feedback event persistence.
+- Extended heartbeat workflow outputs to include explicit safety-control artifacts used by replay/audit.
+- Updated tests and proofs to validate the hardened path.
+
+**Changes**
+- `server/workflows/zerebroxControlPlane.workflow.ts`
+  - Added autopilot mode transition persistence (`autopilotMode/active`).
+  - Added envelope evaluation + downgrade handling.
+  - Added rule-vs-ai command arbiter output persistence.
+  - Added append-only event writes for:
+    - `zerebrox.decision`
+    - `zerebrox.truth_link`
+    - `zerebrox.feedback`
+  - Added normalized feedback + decision-truth linkage execution into heartbeat path.
+- `server/persistence/write.ts`
+  - `createEvent` now uses `.create()` to enforce append-only event semantics.
+- `server/tests/workflows/zerebroxControlPlane.workflow.test.ts`
+  - Updated expectations for hardened persistence path and append-only event writes.
+
+**Proof (Executed)**
+- Command: `runTests(server/tests/workflows/zerebroxControlPlane.workflow.test.ts, server/tests/logic/zerebroxControlPlane.test.ts)`
+  - Result: PASS
+  - Output summary: 10 passed, 0 failed.
+- Command: `npm --prefix functions run build`
+  - Result: PASS
+  - Output summary: server + functions TypeScript build succeeded.
+- Command: `npm run typecheck`
+  - Result: PASS
+  - Output summary: workspace type checks clean.
+- Command: `npm run lint`
+  - Result: PASS
+  - Output summary: no ESLint warnings or errors.
+- Command: `node scripts/truth.mjs`
+  - Result: PASS
+  - Output summary: truth lock passed and `agent/TRUTH_SNAPSHOT.md` regenerated.
+- Command: `node scripts/consistency.mjs`
+  - Result: PASS
+  - Output summary: consistency gate passed.
+
+**Rollback**
+- Revert: `git revert <sha>`
+- Redeploy: `firebase deploy --only functions`
+- Validate: rerun proof commands above
+
+**Notes**
+- This release hardens runtime enforcement and audit persistence for the control plane; scheduling/deployment behavior depends on Firebase project scheduler configuration at deploy time.
+
+### 2026-02-13 — Release 0045
+**Scope**
+- Surfaces: Control-Plane Workflows / Functions Runtime / Analytics UI / Workflow Tests
+- Risk: P1
+
+**Summary**
+- Wired ZEREBROX control-plane primitives into runtime workflows with Firestore persistence and scheduler execution paths.
+- Added policy-approval callable path with canary gating and auto-rollback behavior.
+- Added operator-facing Flight Recorder analytics surface in month-close finalized view.
+
+**Changes**
+- `server/workflows/zerebroxControlPlane.workflow.ts`
+  - Added heartbeat/adaptation runtime workflow materializing `flightRecorder` snapshot and control-plane run docs.
+  - Added policy proposal approval workflow with canary regression checks and activation/rollback outcome handling.
+- `server/workflows/index.ts`
+  - Exported control-plane workflow.
+- `server/persistence/read.ts`
+  - Added tenant listing and generic readmodel snapshot/item readers.
+- `server/persistence/write.ts`
+  - Added merge helper for readmodel item docs.
+- `functions/src/index.ts`
+  - Added callables: `getFlightRecorder`, `approvePolicyProposal`.
+  - Added schedulers: hourly heartbeat, nightly adaptation, weekly adaptation.
+  - Moved workflow imports to source paths for robust TypeScript module resolution.
+- `src/components/analytics/flight-recorder-card.tsx`
+  - Added operator replay card with decision timeline, policy/context, rule-vs-ai, projection snapshot, why fired, and what changed.
+- `src/components/analytics/index.ts`
+  - Exported new analytics card.
+- `src/app/[locale]/(app)/month-closes/[id]/page.tsx`
+  - Loaded and rendered `flightRecorder` snapshot for finalized periods.
+- `src/i18n/en.ts`, `src/i18n/es.ts`
+  - Added localized copy for flight recorder surface.
+- `server/tests/workflows/zerebroxControlPlane.workflow.test.ts`
+  - Added tests for heartbeat materialization and policy approval canary paths.
+
+**Proof (Executed)**
+- Command: `runTests(server/tests/workflows/zerebroxControlPlane.workflow.test.ts, server/tests/logic/zerebroxControlPlane.test.ts)`
+  - Result: PASS
+  - Output summary: 10 passed, 0 failed.
+- Command: `npm --prefix functions run build`
+  - Result: PASS
+  - Output summary: server + functions TypeScript build completed.
+- Command: `npm run typecheck`
+  - Result: PASS
+  - Output summary: workspace type checks clean.
+- Command: `npm run lint`
+  - Result: PASS
+  - Output summary: no ESLint warnings or errors.
+- Command: `node scripts/truth.mjs`
+  - Result: PASS
+  - Output summary: truth lock passed and `agent/TRUTH_SNAPSHOT.md` regenerated.
+- Command: `node scripts/consistency.mjs`
+  - Result: PASS
+  - Output summary: consistency gate passed.
+
+**Rollback**
+- Revert: `git revert <sha>`
+- Redeploy: `firebase deploy --only functions`
+- Validate: rerun proof commands above
+
+**Notes**
+- This release advances runtime execution for control-plane governance and replay visibility; remaining completion work is focused on deeper persistence/state-machine hardening for all autonomy entities and full canary shadow lifecycle orchestration.
+
+### 2026-02-13 — Release 0044
+**Scope**
+- Surfaces: Brain Core Control Plane / Logic Tests
+- Risk: P1
+
+**Summary**
+- Added an enforceable ZEREBROX control-plane module implementing deterministic, tenant-bound guardrails for decision traceability, feedback normalization, scoring, projections, mode/state gating, envelope protection, schema-locked AI fallback, replay payloads, and canary rollback logic.
+- Added focused tests validating append-only behavior and safety interceptions across key control-plane paths.
+- Preserved server-authoritative boundaries (no client authority expansion, no policy auto-activation).
+
+**Changes**
+- `server/logic/brain/core/zerebrox-control-plane.ts`
+  - Implemented concrete contracts and execution functions for:
+    - decision→truth immutable linkage and append-only feedback events,
+    - tenant/month scoring with threshold alerts,
+    - deterministic core memory projections,
+    - least-privilege runtime context compiler + token/data-origin logs,
+    - hourly heartbeat + adaptation scheduler gates,
+    - autopilot mode state machine and transition controls,
+    - command arbiter, dual-path disagreement classification,
+    - protection envelope denial and auto-downgrade,
+    - policy-delta proposal lifecycle, activation/rollback helpers,
+    - prompt governance registry,
+    - schema-locked AI I/O with deterministic fallback,
+    - flight-recorder replay entry builder,
+    - canary/shadow evaluation with auto-rollback trigger.
+- `server/logic/brain/core/index.ts`
+  - Exported control-plane module in canonical barrel.
+- `server/tests/logic/zerebroxControlPlane.test.ts`
+  - Added deterministic unit coverage for append-only logs, scoring alerts, projections, context compiler logs, heartbeat/adaptation gates, mode transition restrictions, arbiter/disagreement handling, envelope denial, schema fallback, replay diff, and canary rollback.
+
+**Proof (Executed)**
+- Command: `runTests(server/tests/logic/zerebroxControlPlane.test.ts)`
+  - Result: PASS
+  - Output summary: 7 passed, 0 failed.
+- Command: `npm run typecheck`
+  - Result: PASS
+  - Output summary: TypeScript compile checks passed.
+- Command: `npm run lint`
+  - Result: PASS
+  - Output summary: no ESLint warnings or errors.
+- Command: `node scripts/truth.mjs`
+  - Result: PASS
+  - Output summary: truth lock passed and `agent/TRUTH_SNAPSHOT.md` regenerated.
+- Command: `node scripts/consistency.mjs`
+  - Result: PASS
+  - Output summary: consistency gate passed.
+
+**Rollback**
+- Revert: `git revert <sha>`
+- Redeploy: N/A (logic/tests increment)
+- Validate: rerun proof commands above
+
+**Notes**
+- This release provides the deterministic control-plane foundation; policy activation remains explicitly human-approved and versioned.
+
+### 2026-02-13 — Release 0043
+**Scope**
+- Surfaces: Final Gate Workflow / Emulator Tests / Preflight Gate
+- Risk: P1
+
+**Summary**
+- Finalized SSI-0637 validation by fixing Firestore emulator fixture shape for `phase2FinalGate`.
+- Verified the new final-gate workflow executes and persists report artifacts under emulator.
+- Confirmed consolidated phase2 preflight now includes and passes the final-gate workflow test.
+
+**Changes**
+- `server/tests/workflows/phase2FinalGate.workflow.test.ts`
+  - Removed undefined nested fixture field in seeded payload to satisfy Firestore serialization rules.
+- `scripts/phase2_preflight.mjs`
+  - Included `server/tests/workflows/phase2FinalGate.workflow.test.ts` in mandatory preflight commands.
+
+**Proof (Executed)**
+- Command: `npx firebase emulators:exec --only firestore "npm test -- server/tests/workflows/phase2FinalGate.workflow.test.ts"`
+  - Result: PASS
+  - Output summary: 1 passed, 0 failed; final gate report persisted in emulator-backed path.
+- Command: `npm run typecheck`
+  - Result: PASS
+  - Output summary: workspace type checks clean.
+- Command: `npm run lint`
+  - Result: PASS
+  - Output summary: no ESLint warnings or errors.
+- Command: `npm run phase2:preflight`
+  - Result: PASS
+  - Output summary: full preflight chain passed including final-gate workflow test.
+- Command: `node scripts/consistency.mjs`
+  - Result: PASS
+  - Output summary: consistency gate passed.
+
+**Rollback**
+- Revert: `git revert <sha>`
+- Redeploy: N/A (tests/scripts/gate integration)
+- Validate: rerun proof commands above
+
+**Notes**
+- Jest still emits an open-handle warning after emulator test completion; assertions and exit code remain PASS.
+
+### 2026-02-13 — Release 0042
+**Scope**
+- Surfaces: Brain Core Modules / Logic Tests / Governance Docs
+- Risk: P1
+
+**Summary**
+- Implemented SSI-0628 through SSI-0637 completely with deterministic, composable, closure-ready modules.
+- Added dedicated test suite for all new modules and validated through full proof chain.
+- Updated canonical tasks/ADR to reflect completion and architectural commitments.
+
+**Changes**
+- `server/logic/brain/core/artifact-lineage.ts`
+- `server/logic/brain/core/determinism-audit.ts`
+- `server/logic/brain/core/policy-simulation.ts`
+- `server/logic/brain/core/threshold-tuner.ts`
+- `server/logic/brain/core/escalation-balancer.ts`
+- `server/logic/brain/core/compaction-verifier.ts`
+- `server/logic/brain/core/perf-budget.ts`
+- `server/logic/brain/core/explainability-pack.ts`
+- `server/logic/brain/core/closure-scoreboard.ts`
+- `server/logic/brain/core/freeze-candidate.ts`
+- `server/logic/brain/core/index.ts`
+- `server/tests/logic/phase2Next10b.test.ts`
+- `agent/TASKS.md`, `agent/DECISIONS.md`
+
+**Proof (Executed)**
+- Command: `npm run typecheck`
+  - Result: PASS
+  - Output summary: strict compile checks passed after new module wave.
+- Command: `npm run lint`
+  - Result: PASS
+  - Output summary: lint clean.
+- Command: `runTests(server/tests/logic/phase2Next10b.test.ts, server/tests/logic/phase2Next10.test.ts, server/tests/logic/phase2Intelligence.test.ts, server/tests/workflows/brainReplay.workflow.test.ts, server/tests/failure-sim.spec.ts)`
+  - Result: PASS
+  - Output summary: 18 passed, 0 failed.
+- Command: `node scripts/consistency.mjs`
+  - Result: PASS
+  - Output summary: consistency checks passed.
+- Command: `npm run phase2:preflight`
+  - Result: PASS
+  - Output summary: full preflight chain passed.
+
+**Rollback**
+- Revert: `git revert <sha>`
+- Redeploy: N/A (logic/tests/docs increment)
+- Validate: rerun all proof commands above
+
+**Notes**
+- This release strengthens Phase 2 closure and freeze-readiness evaluation without altering financial authority boundaries.
+
+### 2026-02-13 — Release 0041
+**Scope**
+- Surfaces: Brain Core / Logic Tests / Phase Planning Docs
+- Risk: P1
+
+**Summary**
+- Started next Phase 2 wave with 10 advanced deterministic modules (SSI-0618..0627) plus a 12-item execution plan.
+- Added cohesive composition, benchmarking, diffing, policy, circuit-breaker, and closure-evaluator utilities.
+- Added focused test suite validating deterministic behavior across all newly introduced modules.
+
+**Changes**
+- `server/logic/brain/core/unified-brain-engine.ts`
+- `server/logic/brain/core/artifact-compactor.ts`
+- `server/logic/brain/core/replay-diff-analyzer.ts`
+- `server/logic/brain/core/policy-registry.ts`
+- `server/logic/brain/core/autonomy-circuit-breaker.ts`
+- `server/logic/brain/core/escalation-sla.ts`
+- `server/logic/brain/core/decision-scorer-v2.ts`
+- `server/logic/brain/core/replay-benchmark.ts`
+- `server/logic/brain/core/preflight-report.ts`
+- `server/logic/brain/core/phase2-closure-evaluator.ts`
+- `server/logic/brain/core/index.ts`
+- `server/tests/logic/phase2Next10.test.ts`
+- `agent/TASKS.md`, `agent/DECISIONS.md`
+
+**Proof (Executed)**
+- Command: `npm run typecheck`
+  - Result: PASS
+  - Output summary: strict TypeScript checks passed.
+- Command: `npm run lint`
+  - Result: PASS
+  - Output summary: no ESLint warnings/errors.
+- Command: `runTests(server/tests/logic/phase2Next10.test.ts, server/tests/logic/phase2Intelligence.test.ts, server/tests/workflows/brainReplay.workflow.test.ts, server/tests/failure-sim.spec.ts)`
+  - Result: PASS
+  - Output summary: 13 passed, 0 failed.
+- Command: `node scripts/consistency.mjs`
+  - Result: PASS
+  - Output summary: consistency gate passed.
+- Command: `npm run phase2:preflight`
+  - Result: PASS
+  - Output summary: full preflight chain passed.
+
+**Rollback**
+- Revert: `git revert <sha>`
+- Redeploy: N/A (logic/tests/docs increment)
+- Validate: rerun the proof commands above
+
+**Notes**
+- This release extends deterministic Phase 2 architecture; it does not alter client authority or financial write boundaries.
+
+### 2026-02-13 — Release 0040
+**Scope**
+- Surfaces: Workflows / Brain Contracts+Core / Persistence / Tests / Scripts / Governance Docs
+- Risk: P1
+
+**Summary**
+- Implemented SSI-0607 through SSI-0617 end-to-end: orchestration hook, artifact persistence/versioning, runtime ACLs, expanded integrity/failure coverage, emulator E2E proof, telemetry bridge, and preflight gate.
+- Integrated deterministic brain replay into `onPeriodFinalized.workflow` with tenant-scoped append-only artifact trails.
+- Resolved integration failures (Firestore undefined nested fields, reflection ID collisions) and finalized green proof chain.
+
+**Changes**
+- `server/workflows/onPeriodFinalized.workflow.ts`
+  - Added brain replay invocation, prior artifact/snapshot loading, ACL checks, artifact contract validation, append-only artifact writes, and non-blocking deterministic telemetry emission.
+- `server/workflows/brainReplay.workflow.ts`
+  - Added prior event/snapshot lifecycle support, chained parent linking against prior tail, retained snapshot set, and deterministic replay continuity.
+- `server/persistence/read.ts`, `server/persistence/write.ts`
+  - Added `readBrainArtifactsByMonth` and append-only `appendBrainArtifact` persistence helpers.
+- `server/logic/brain/contracts/replay-artifact.ts`, `server/logic/brain/core/memory-acl.ts`
+  - Added versioned replay artifact schema and runtime memory ACL engine.
+- `server/logic/brain/core/reflection.ts`, `server/logic/brain/core/index.ts`, `server/logic/brain/contracts/index.ts`, `server/logic/brain/index.ts`
+  - Fixed deterministic reflection ID seed and exported new contract/core surfaces.
+- `server/tests/workflows/brainReplay.workflow.test.ts`, `server/tests/workflows/periodFinalized.workflow.test.ts`, `server/tests/failure-sim.spec.ts`
+  - Added lifecycle chain test, emulator artifact/idempotency assertions, and adversarial v2 failure simulations.
+- `scripts/integrity-check.mjs`, `scripts/phase2_preflight.mjs`, `package.json`, `docs/intelligence/performance-baseline.md`
+  - Expanded integrity checks for artifacts, added preflight aggregator command, and documented performance baseline/gates.
+- `agent/TASKS.md`, `agent/DECISIONS.md`
+  - Marked SSI-0607..0617 complete and added ADR-0026.
+
+**Proof (Executed)**
+- Command: `npm run typecheck`
+  - Result: PASS
+  - Output summary: strict TS checks clean after full 0607..0617 integration.
+- Command: `npm run lint`
+  - Result: PASS
+  - Output summary: no ESLint warnings or errors.
+- Command: `runTests(server/tests/workflows/brainReplay.workflow.test.ts, server/tests/failure-sim.spec.ts, server/tests/logic/phase1BrainCore.test.ts)`
+  - Result: PASS
+  - Output summary: 7 passed, 0 failed.
+- Command: `npx firebase emulators:exec --only firestore "npm test -- server/tests/workflows/periodFinalized.workflow.test.ts"`
+  - Result: PASS
+  - Output summary: emulator-backed integration test passed (2 passed).
+- Command: `node scripts/integrity-check.mjs`
+  - Result: PASS
+  - Output summary: artifact + chain integrity checks passed.
+- Command: `node scripts/consistency.mjs`
+  - Result: PASS
+  - Output summary: consistency gate passed.
+- Command: `npm run phase2:preflight`
+  - Result: PASS
+  - Output summary: consolidated gate chain completed with PASS.
+
+**Rollback**
+- Revert: `git revert <sha>`
+- Redeploy: N/A (server/tests/scripts/docs increment)
+- Validate: rerun all proof commands listed above
+
+**Notes**
+- Period-finalized emulator tests still report a Jest open-handle warning after success; functional assertions pass and workflow behavior is deterministic.
+
+### 2026-02-13 — Release 0039
+**Scope**
+- Surfaces: Server Workflows / Brain Core Ordering / Workflow Tests / Governance Docs
+- Risk: P1
+
+**Summary**
+- Delivered SSI-0606 by wiring deterministic brain routing/replay primitives into an executable workflow integration path.
+- Added workflow-level deterministic tests for stable replay output, policy-gated denial, and snapshot creation.
+- Hardened replay and event-store ordering to use epoch-time sorting, eliminating timestamp format drift risks.
+
+**Changes**
+- `server/workflows/brainReplay.workflow.ts`
+  - Added deterministic orchestration path: route -> AI gate -> append chained events -> replay -> snapshot -> context window.
+- `server/workflows/index.ts`
+  - Exported `brainReplay.workflow` for server entrypoint consumption.
+- `server/tests/workflows/brainReplay.workflow.test.ts`
+  - Added tests covering deterministic output equivalence, denied role path, and snapshot policy trigger.
+- `server/logic/brain/core/event-store.ts`, `server/logic/brain/core/replay.ts`
+  - Replaced lexicographic timestamp sorting with epoch-time sorting for stable hash-chain/replay behavior.
+- `agent/TASKS.md`, `agent/DECISIONS.md`
+  - Recorded SSI-0606 completion and ADR-0025 integration constraints.
+
+**Proof (Executed)**
+- Command: `npm run typecheck`
+  - Result: PASS
+  - Output summary: workspace TypeScript checks completed clean.
+- Command: `npm run lint`
+  - Result: PASS
+  - Output summary: no ESLint warnings or errors.
+- Command: `runTests(server/tests/workflows/brainReplay.workflow.test.ts, server/tests/logic/phase1BrainCore.test.ts, server/tests/failure-sim.spec.ts)`
+  - Result: PASS
+  - Output summary: 6 passed, 0 failed.
+- Command: `node scripts/integrity-check.mjs`
+  - Result: PASS
+  - Output summary: `INTEGRITY_CHECK: PASS`.
+- Command: `node scripts/consistency.mjs`
+  - Result: PASS
+  - Output summary: `CONSISTENCY: PASSED`.
+
+**Rollback**
+- Revert: `git revert <sha>`
+- Redeploy: N/A (server/docs/tests increment)
+- Validate: rerun typecheck/lint/tests/integrity/consistency proofs above
+
+**Notes**
+- Workflow remains non-authoritative for financial writes and preserves tenant-scoped read-only constraints.
+
+### 2026-02-13 — Release 0038
+**Scope**
+- Surfaces: Server Logic / Brain Core / Scripts / Tests / Governance Docs
+- Risk: P1
+
+**Summary**
+- Completed and froze all 20 Phase 1 hardening steps for ZEREBROX-CORE with deterministic memory/replay foundations.
+- Added canonical event envelope, deterministic hash layer, append-only event store, replay/snapshot engines, AI isolation/gating/audit, reflection/context/identity modules.
+- Added integrity gate script, failure simulation suite, and formal Phase 1 freeze/security architecture documents.
+
+**Changes**
+- `server/logic/brain/contracts/event-envelope.ts`, `server/logic/brain/contracts/ai-response.ts`, `server/logic/brain/contracts/index.ts`
+  - Added strict envelope and AI suggestion-only contracts with validation boundaries.
+- `server/logic/brain/core/hash.ts`, `event-store.ts`, `replay.ts`, `snapshot.ts`, `router.ts`, `ai-audit.ts`, `ai-gate.ts`, `reflection.ts`, `context-builder.ts`, `identity.ts`
+  - Added deterministic Phase 1 core modules for hashing, append-only eventing, replay integrity, snapshots, routing, AI controls, and identity binding.
+- `server/logic/brain/core/index.ts`, `server/logic/brain/index.ts`
+  - Exported Phase 1 modules/contracts for deterministic reuse.
+- `server/tests/logic/phase1BrainCore.test.ts`, `server/tests/failure-sim.spec.ts`
+  - Added replay/snapshot/router determinism tests and failure simulation coverage (corrupt hash, missing snapshot, partial AI output, block path safety).
+- `docs/architecture/ubm-scope.md`, `docs/architecture/memory-types.md`, `docs/architecture/snapshot-policy.md`, `docs/architecture/memory-compaction.md`, `docs/security/memory-acl.md`, `docs/phase1-freeze.md`
+  - Added all required Phase 1 policy/freeze documentation deliverables.
+- `scripts/integrity-check.mjs`
+  - Added deterministic integrity gate for hash-chain + replay-diff verification.
+- `agent/TASKS.md`, `agent/DECISIONS.md`
+  - Marked all 20 Phase 1 steps complete, parked active Phase 2 until freeze order, and added ADR-0024.
+
+**Proof (Executed)**
+- Command: `npm run typecheck`
+  - Result: PASS
+  - Output summary: strict TypeScript checks completed with no errors.
+- Command: `npm run lint`
+  - Result: PASS
+  - Output summary: no ESLint warnings or errors.
+- Command: `runTests(server/tests/logic/phase1BrainCore.test.ts, server/tests/failure-sim.spec.ts, server/tests/logic/phase2Intelligence.test.ts)`
+  - Result: PASS
+  - Output summary: 8 passed, 0 failed.
+- Command: `node scripts/integrity-check.mjs`
+  - Result: PASS
+  - Output summary: `INTEGRITY_CHECK: PASS`.
+- Command: `node scripts/consistency.mjs`
+  - Result: PASS
+  - Output summary: `CONSISTENCY: PASSED`.
+- Command: `npm run security:credentials`
+  - Result: PASS
+  - Output summary: no tracked credential signatures detected.
+- Command: `npm run build`
+  - Result: PASS
+  - Output summary: Next.js production build completed successfully.
+
+**Rollback**
+- Revert: `git revert <sha>`
+- Redeploy: N/A (server/doc/script increment)
+- Validate: rerun all proof commands in this release entry
+
+**Notes**
+- Phase 1 is now the canonical frozen base; Phase 2 remains non-operational until explicitly advanced under freeze governance.
+
+### 2026-02-13 — Release 0037
+**Scope**
+- Surfaces: Server Logic / Phase 2 Intelligence Core / Governance Docs
+- Risk: P1
+
+**Summary**
+- Implemented final Phase 2 “Self-Accountable Intelligence” core module scaffolding with deterministic outputs.
+- Added self-critique, autonomy restriction, escalation governance, and health containment primitives.
+- Locked canonical SSI-0601..0605 execution plan and ADR-0023.
+
+**Changes**
+- `server/logic/brain/core/*`
+  - Added deterministic Phase 2 modules: `pattern-dsl`, `pattern-runner`, `signal-score`, `signal-dampener`, `metrics-registry`, `baseline-engine`, `delta-engine`, `improvement-ledger`, `prediction-audit`, `confidence-calibrator`, `drift-detector`, `self-critique`, `autonomy-state`, `risk-calculator`, `escalation-engine`, `escalation-context`, `override-audit`, `health-index`, `performance-graph`, `decision-evaluator`, `decision-ledger`.
+  - Updated registry to declarative DSL patterns and deterministic runner/event outputs.
+  - Added `core/index.ts` export barrel and updated brain index exports.
+- `server/logic/brain/contracts/decision.ts`
+  - Added decision contract and marker-event schema for measurable decision tracking.
+- `server/tests/logic/phase2Intelligence.test.ts`
+  - Added deterministic unit coverage for pattern outputs, decision evaluation, autonomy downgrade, and health/performance behavior.
+- `docs/intelligence/signal-thresholds.md`, `docs/autonomy/hard-guardrails.md`, `docs/escalation/triggers.md`, `docs/phase2-freeze.md`
+  - Added required governance artifacts for thresholds, immutable guardrails, escalation triggers, and freeze criteria.
+- `agent/TASKS.md`, `agent/DECISIONS.md`
+  - Added SSI-0601..0605 execution ledger and ADR-0023.
+
+**Proof (Executed)**
+- Command: `npm run typecheck`
+  - Result: PASS
+  - Output summary: Phase 2 module tree compiles under strict TypeScript rules.
+- Command: `npm run lint`
+  - Result: PASS
+  - Output summary: Lint remains clean after Phase 2 additions.
+- Command: `runTests(server/tests/logic/phase2Intelligence.test.ts)`
+  - Result: PASS
+  - Output summary: deterministic intelligence tests passed.
+
+**Rollback**
+- Revert: `git revert <sha>`
+- Redeploy: N/A (server/doc scaffolding increment)
+- Validate: rerun typecheck/lint/phase2Intelligence test proofs
+
+**Notes**
+- This increment provides deterministic core scaffolding; production autonomy activation remains policy-gated by Phase 2 acceptance proofs.
+
+### 2026-02-13 — Release 0036
+**Scope**
+- Surfaces: Execution Planning / ADR Governance
+- Risk: P1
+
+**Summary**
+- Adopted the user-approved ZEREBROX Phase 1 “Hardening Execution Plan (Memory-First)” as the canonical 20-step sequence.
+- Added explicit task-level mapping for conceptual `/core` and `/contracts` paths to repo-native server module paths.
+- Recorded ADR-0022 to prevent parallel path drift during implementation.
+
+**Changes**
+- `agent/TASKS.md`
+  - Replaced prior generic 20-step list with the approved hardening-first sequence across SSI-0501..0506.
+  - Added concrete deliverables/modules for UBM freeze, event envelope, hash/replay/snapshot, AI isolation/gating, memory compaction/reflection, ACL/integrity/failure simulation, and freeze criteria.
+- `agent/DECISIONS.md`
+  - Added ADR-0022 (`/core` and `/contracts` alias mapping to `server/logic/brain/*`).
+
+**Proof (Executed)**
+- Command: `node scripts/consistency.mjs`
+  - Result: PASS
+  - Output summary: planning and decision artifacts remain consistency-clean after hardening-plan adoption.
+
+**Rollback**
+- Revert: `git revert <sha>`
+- Redeploy: N/A (docs/governance increment only)
+- Validate: rerun `node scripts/consistency.mjs`
+
+**Notes**
+- This release changes execution governance only; no runtime logic, schema, or rules changed.
+
+### 2026-02-13 — Release 0035
+**Scope**
+- Surfaces: Server Logic / Brain Contracts / Skill Registry
+- Risk: P1
+
+**Summary**
+- Completed SSI-0500 with versioned brain contracts and guarded registry execution path.
+- Enabled initial read-only skill stubs (`Finance`, `Inventory`, `POS`, `Supplier`) with tenant-bound outputs.
+- Fixed export collision that blocked compile gate by namespacing brain validation type.
+
+**Changes**
+- `server/logic/brain/contracts.ts`
+  - Versioned contracts for `TriggerEvent`, `SkillInput`, `DecisionEnvelope`, `MemoryWrite`, `SkillOutput`.
+  - Input/context/output validators and schema-version enforcement.
+  - Renamed brain validation type to avoid `server/index.ts` export ambiguity.
+- `server/logic/brain/registry.ts`
+  - Deterministic skill registry with precheck hooks and tenant-context gating.
+  - Output verification enforcing tenant-bound envelope and memory writes.
+- `server/logic/brain/skills.ts`
+  - Registered read-only deterministic stubs for `Finance`, `Inventory`, `POS`, `Supplier`.
+- `server/tests/logic/brainRegistry.test.ts`
+  - Coverage for registration, invalid input/context rejection, deterministic execution, and tenant-scoped memory write behavior.
+- `agent/TASKS.md`
+  - Marked SSI-0500 completed with proof records.
+
+**Proof (Executed)**
+- Command: `npm run typecheck`
+  - Result: PASS
+  - Output summary: `tsc --noEmit` completed clean after resolving export-name collision.
+- Command: `npm run lint`
+  - Result: PASS
+  - Output summary: Next.js lint completed with no warnings/errors.
+- Command: `runTests(server/tests/logic/brainRegistry.test.ts)`
+  - Result: PASS
+  - Output summary: 5 passed, 0 failed.
+
+**Rollback**
+- Revert: `git revert <sha>`
+- Redeploy: N/A (server module + docs only in current workspace)
+- Validate: rerun `npm run typecheck`, `npm run lint`, and `runTests(server/tests/logic/brainRegistry.test.ts)`
+
+**Notes**
+- Runtime financial write boundaries remain unchanged; this release is read-only brain scaffolding.
+
+### 2026-02-13 — Release 0034
+**Scope**
+- Surfaces: Architecture Planning / ADR Governance / Task Ledger
+- Risk: P1
+
+**Summary**
+- Added a source-backed OpenClaw-to-ZEREBROX mapping artifact for Phase 1 execution.
+- Recorded governance decision that OpenClaw patterns are reference input only (no CALYBRA trust-boundary changes).
+- Added explicit execution SSI for this mapping step under Phase 1 backlog.
+
+**Changes**
+- `agent/OPENCLAW_PHASE1_MAPPING.md`
+  - Added evidence-to-mapping matrix across memory, skills/plugins, scheduling, policy gating, structured outputs, and replay/audit.
+- `agent/ARCHITECTURE.md`
+  - Added explicit architecture linkage to mapping artifact under Phase 1 section.
+- `agent/DECISIONS.md`
+  - Added ADR-0021 establishing reference-only adoption of OpenClaw patterns.
+- `agent/TASKS.md`
+  - Added SSI-0499 completion record and proof command.
+
+**Proof (Executed)**
+- Command: `node scripts/consistency.mjs`
+  - Result: PASS
+  - Output summary: architecture/decision/task documents remain consistency-clean after mapping updates.
+
+**Rollback**
+- Revert: `git revert <sha>`
+- Redeploy: N/A (documentation/governance-only increment)
+- Validate: rerun `node scripts/consistency.mjs`
+
+**Notes**
+- This increment is planning/governance hardening only; no runtime behavior, schema, or rule changes.
+
+### 2026-02-13 — Release 0033
+**Scope**
+- Surfaces: Security Hardening / Build-Time Secret Hygiene / Runbook
+- Risk: P0
+
+**Summary**
+- Removed tracked credential-like values from repo surfaces and replaced with placeholders/secret bindings.
+- Added a tracked-file credential audit gate to block future accidental key commits.
+- Added urgent incident-response runbook commands for key restriction, rotation, and org-policy enforcement.
+
+**Changes**
+- `.env.local.example`
+  - Replaced Firebase API key literal with placeholder and added missing `GOOGLE_MAPS_API_KEY` placeholder.
+- `apphosting.yaml`
+  - Switched `NEXT_PUBLIC_FIREBASE_API_KEY` from inline value to `secret: NEXT_PUBLIC_FIREBASE_API_KEY` binding.
+- `scripts/credential_audit.mjs`
+  - Added tracked-file scanner for Google API keys, private key blocks, service-account signatures, and suspicious secret assignments.
+- `package.json`
+  - Added `security:credentials` script.
+- `agent/SECURITY_MODEL.md`, `agent/RUNBOOK.md`, `agent/DECISIONS.md`, `agent/TASKS.md`
+  - Added credential lifecycle controls, ADR-0019, and incident-response operational commands.
+
+**Proof (Executed)**
+- Command: `npm run security:credentials`
+  - Result: PASS
+  - Output summary: no tracked credential signatures detected.
+- Command: `npm run lint`
+  - Result: PASS
+  - Output summary: repository lint clean.
+- Command: `npm run typecheck`
+  - Result: PASS
+  - Output summary: `tsc --noEmit` completed clean.
+- Command: `npm run build`
+  - Result: PASS
+  - Output summary: Next.js production build completed successfully.
+
+**Rollback**
+- Revert: `git revert <sha>`
+- Redeploy: `firebase apphosting:rollouts:create calybra-eu-alt --git-branch master --force`
+- Validate: rerun security/lint/typecheck/build proof commands above
+
+**Notes**
+- Key rotation/restriction actions in GCP are operational and require project/org IAM permissions; runbook commands are documented in `agent/RUNBOOK.md`.
+
+### 2026-02-12 — Release 0032
+**Scope**
+- Surfaces: Build Tooling
+- Risk: P0
+
+**Summary**
+- Fixed Windows-incompatible build script syntax so `npm run build` works directly across shells.
+
+**Changes**
+- `package.json`
+  - Updated `build` script from `NODE_ENV=production next build` to `next build`.
+
+**Proof (Executed)**
+- Command: `npm run build`
+  - Result: PASS
+  - Output summary: Next.js production build compiled and generated all routes successfully (`BUILD_PASS`).
+
+**Rollback**
+- Revert: `git revert <sha>`
+- Redeploy: `firebase apphosting:rollouts:create calybra-eu-alt --git-branch master --force`
+- Validate: rerun `npm run build`
+
+**Notes**
+- No runtime behavior changes; this is shell-compatibility hardening for build execution.
+
 ### 2026-02-12 — Release 0031
 **Scope**
 - Surfaces: UI Type Safety / Upload UX Gate
