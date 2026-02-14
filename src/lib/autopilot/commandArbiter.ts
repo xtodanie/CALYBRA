@@ -266,6 +266,10 @@ export class CommandArbiter {
       ? deterministicResult
       : (aiResult ?? deterministicResult);
 
+    const finalReason = conflictDetected
+      ? deterministicResult.reason
+      : (aiResult?.reasoning ?? deterministicResult.reason);
+
     logs.push({
       stage: 'FINAL_VALIDATION',
       decision: finalDecision.allow ? 'ALLOW' : 'DENY',
@@ -284,7 +288,7 @@ export class CommandArbiter {
       conflictFlag: conflictDetected,
       confidenceScore: finalDecision.confidence ?? deterministicResult.confidence,
       envelopeStatus: 'APPROVED', // Simplified - real impl would check envelope
-      reasoning: finalDecision.reason,
+      reasoning: finalReason,
       timestamp,
       logs,
     };

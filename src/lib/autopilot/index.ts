@@ -10,38 +10,51 @@
 export {
   IntentClassifier,
   IntentCategory,
+  createIntentClassifier,
+} from './intentClassifier';
+
+export type {
   IntentContext,
   IntentInput,
   ClassificationResult,
-  createIntentClassifier,
 } from './intentClassifier';
 
 // Mode Manager
 export {
   ModeManager,
   SystemMode,
+  createModeManager,
+} from './modeManager';
+
+export type {
   ModeTransitionRule,
   ModeContext,
   ModeTransitionLog,
   ModeState,
-  createModeManager,
 } from './modeManager';
 
 // Envelope Guard
 export {
   EnvelopeGuard,
-  EnvelopePolicy,
   RiskTier,
+  createEnvelopeGuard,
+} from './envelopeGuard';
+
+export type {
+  EnvelopePolicy,
   ActionRequest,
   EnvelopeViolation,
   ValidationResult,
   CumulativeState,
-  createEnvelopeGuard,
 } from './envelopeGuard';
 
 // Command Arbiter
 export {
   CommandArbiter,
+  createCommandArbiter,
+} from './commandArbiter';
+
+export type {
   PolicyRule,
   PolicyDecision,
   AIRecommendation,
@@ -49,5 +62,4 @@ export {
   ArbitrationResult,
   ArbitrationLog,
   DisagreementConfig,
-  createCommandArbiter,
 } from './commandArbiter';
